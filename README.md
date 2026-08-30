@@ -8,6 +8,19 @@ repeticiones y fotografiar el cuaderno al terminar.
 contenido, la voz, el reconocimiento de la foto y los datos viven en el
 dispositivo de la familia.
 
+## Descargar
+
+APK firmado, listo para instalar en Android (hay que permitir "instalar de
+orígenes desconocidos" la primera vez):
+
+| Descarga | Para |
+|---|---|
+| [**RepasApp-arm64-v8a.apk**](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-arm64-v8a.apk) (29 MB) | Casi cualquier móvil de los últimos años |
+| [RepasApp-armeabi-v7a.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-armeabi-v7a.apk) (23 MB) | Móviles antiguos de 32 bits |
+| [RepasApp-universal.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-universal.apk) (77 MB) | Si las anteriores dan error de compatibilidad |
+
+Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
+
 ## Decisiones de producto
 
 | Decisión | Valor |
