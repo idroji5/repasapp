@@ -72,6 +72,10 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     final ocr = OcrMlKit();
     try {
       final lineas = await ocr.leer(widget.rutaFoto);
+      for (final l in lineas) {
+        debugPrint('[OCR] "${l.texto}" y=${l.y.round()} alto=${l.alto.round()} '
+            'x=${l.x.round()} ancho=${l.ancho.round()}');
+      }
 
       switch (widget.contenido) {
         case ContenidoDictado(:final dictado):

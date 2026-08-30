@@ -84,9 +84,11 @@ class _PantallaActividadState extends State<PantallaActividad> {
     super.dispose();
   }
 
-  Future<void> _hacerFoto() async {
+  /// La foto puede venir de la cámara o del carrete: el padre puede haber
+  /// fotografiado la hoja antes, o el niño tener las manos llenas de lápiz.
+  Future<void> _hacerFoto({ImageSource origen = ImageSource.camera}) async {
     final foto = await _camara.pickImage(
-      source: ImageSource.camera,
+      source: origen,
       // La foto no se guarda en ningún sitio: se reconoce y se descarta. Estos
       // límites son solo para que ML Kit trabaje rápido.
       maxWidth: 2000,
@@ -144,7 +146,8 @@ class _PantallaActividadState extends State<PantallaActividad> {
                   Expanded(child: _Escenario(reproductor: r)),
                   _Controles(
                     reproductor: r,
-                    onFoto: _hacerFoto,
+                    onFoto: () => _hacerFoto(),
+                    onElegirFoto: () => _hacerFoto(origen: ImageSource.gallery),
                   ),
                 ],
               ),
@@ -318,10 +321,15 @@ class _Escribiendo extends StatelessWidget {
 /// La barra de abajo: botones para todo lo que también se puede decir en voz
 /// alta. La voz es un atajo; el botón es la garantía.
 class _Controles extends StatelessWidget {
-  const _Controles({required this.reproductor, required this.onFoto});
+  const _Controles({
+    required this.reproductor,
+    required this.onFoto,
+    required this.onElegirFoto,
+  });
 
   final ReproductorGuion reproductor;
   final VoidCallback onFoto;
+  final VoidCallback onElegirFoto;
 
   @override
   Widget build(BuildContext context) {
@@ -329,11 +337,24 @@ class _Controles extends StatelessWidget {
 
     if (r.fase == Fase.foto) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: BotonGrande(
-          texto: 'Hacer la foto',
-          icono: Icons.photo_camera_rounded,
-          onPressed: onFoto,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+        child: Column(
+          children: [
+            BotonGrande(
+              texto: 'Hacer la foto',
+              icono: Icons.photo_camera_rounded,
+              onPressed: onFoto,
+            ),
+            TextButton.icon(
+              onPressed: onElegirFoto,
+              icon: const Icon(Icons.photo_library_outlined, size: 19),
+              label: const Text('Elegir una foto que ya tengo'),
+              style: TextButton.styleFrom(
+                foregroundColor: Tema.tintaSuave,
+                minimumSize: const Size(0, 48),
+              ),
+            ),
+          ],
         ),
       );
     }

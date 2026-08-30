@@ -38,28 +38,9 @@ void main() {
     });
   });
 
-  group('agrupar en bloques', () {
-    test('las líneas pegadas forman un bloque y las separadas no', () {
-      final bloques = agruparEnBloques([
-        linea('47', y: 100),
-        linea('+ 25', y: 145),
-        linea('72', y: 190),
-        linea('88', y: 600), // otro ejercicio, mucho más abajo
-      ]);
-      expect(bloques.length, 2);
-      expect(bloques.first.lineas.length, 3);
-    });
-
-    test('dos ejercicios en columnas paralelas no se mezclan', () {
-      final bloques = agruparEnBloques([
-        linea('47', x: 100, y: 100),
-        linea('88', x: 900, y: 140),
-      ]);
-      expect(bloques.length, 2);
-    });
-  });
-
   _pruebasDeFotoIlegible();
+  _pruebasDeHojaReal();
+  _pruebasDeOcrImperfecto();
 
   group('emparejar la hoja con lo dictado', () {
     test('operación en línea con el resultado tras el igual', () {
@@ -158,5 +139,105 @@ void _pruebasDeFotoIlegible() {
       final r = corregirDictado(referencia, 'Ayer cayo una tormenta muy fuerte.');
       expect(r.aciertos, greaterThan(0));
     });
+  });
+}
+
+/// Caso real capturado en el dispositivo: cinco operaciones en línea, una por
+/// renglón, en una hoja de papel cuadriculado.
+///
+/// El algoritmo antiguo agrupaba los renglones 3, 4 y 5 en un solo bloque; el
+/// ejercicio 3 se quedaba el bloque entero, tomaba como resultado el último
+/// número que había en él —que era el del ejercicio 5— y los ejercicios 4 y 5
+/// se quedaban sin bloque y salían como "sin hacer". Tres fallos que el niño no
+/// había cometido.
+void _pruebasDeHojaReal() {
+  test('cinco operaciones en renglones separados se leen cada una por su lado', () {
+    Operacion op(int n, String enunciado, String respuesta) => Operacion(
+          numero: n,
+          destrezaId: 'mult_3x2',
+          enunciado: enunciado,
+          dictado: '',
+          respuesta: respuesta,
+          pistas: const ['', ''],
+          explicacion: '',
+        );
+
+    final operaciones = [
+      op(1, '555 × 49', '27195'),
+      op(2, '146 : 4', '36 resto 2'),
+      op(3, '299 × 39', '11661'),
+      op(4, '416 : 7', '59 resto 3'),
+      op(5, '386 × 63', '24318'),
+    ];
+
+    // Un renglón por ejercicio, con las proporciones REALES de la hoja: letra
+    // grande (unos 80 px de alto) y renglones a 180 px. El hueco entre líneas
+    // es menor que 1,6 alturas de línea, que es justo lo que hacía que se
+    // fundieran en un solo bloque.
+    final lineas = [
+      linea('1) 555 x 49 = 27195', y: 120, alto: 80),
+      linea('2) 146 : 4 = 36 resto 2', y: 300, alto: 80),
+      linea('3) 299 x 39 = 11651', y: 480, alto: 80),
+      linea('4) 416 : 7 = 59 resto 3', y: 660, alto: 80),
+      linea('5) 386 x 63 = 24318', y: 840, alto: 80),
+    ];
+
+    final lectura = interpretarTanda(lineas, operaciones);
+    final corregido = corregirTanda(operaciones, lectura);
+
+    // Cuatro bien y solo el fallo de verdad.
+    expect(corregido.where((r) => r.correcta).length, 4);
+    expect(corregido[2].correcta, isFalse);
+    expect(corregido[2].escrito, '11651');
+    expect(corregido[2].motivo, MotivoFallo.resultado);
+
+    // Y sobre todo: ninguno se queda sin leer.
+    expect(corregido.any((r) => r.motivo == MotivoFallo.sinHacer), isFalse,
+        reason: 'ningún ejercicio escrito puede salir como "sin hacer"');
+  });
+}
+
+/// Las líneas TAL Y COMO las devolvió ML Kit con la hoja real, copiadas del log
+/// del dispositivo. Dos dígitos mal leídos, los dos un 1 confundido con un 4.
+void _pruebasDeOcrImperfecto() {
+  test('un dígito mal leído no puede convertir un ejercicio hecho en sin hacer', () {
+    Operacion op(int n, String enunciado, String respuesta) => Operacion(
+          numero: n, destrezaId: 'mult_3x2', enunciado: enunciado, dictado: '',
+          respuesta: respuesta, pistas: const ['', ''], explicacion: '',
+        );
+
+    final operaciones = [
+      op(1, '555 × 49', '27195'),
+      op(2, '146 : 4', '36 resto 2'),
+      op(3, '299 × 39', '11661'),
+      op(4, '416 : 7', '59 resto 3'),
+      op(5, '386 × 63', '24318'),
+    ];
+
+    // Geometría y texto exactos del log de ML Kit.
+    final lineas = [
+      LineaOcr(texto: '1) 555x 49 = 27195', x: 164, y: 116, ancho: 931, alto: 78),
+      LineaOcr(texto: '2) 146 : 4 = 36 resto 2', x: 156, y: 320, ancho: 988, alto: 70),
+      LineaOcr(texto: '3) 299 x 39 = 11654', x: 160, y: 510, ancho: 864, alto: 74),
+      LineaOcr(texto: '4) 446:7=59 resto 3', x: 158, y: 678, ancho: 996, alto: 78),
+      LineaOcr(texto: '5) 386x 63 = 24318', x: 164, y: 862, ancho: 929, alto: 80),
+    ];
+
+    final corregido = corregirTanda(operaciones, interpretarTanda(lineas, operaciones));
+
+    // Ningún ejercicio escrito puede salir como "sin hacer" por un dígito.
+    expect(corregido.any((r) => r.motivo == MotivoFallo.sinHacer), isFalse);
+
+    // Los tres que el OCR leyó limpios salen correctos.
+    expect(corregido[0].correcta, isTrue, reason: '555 × 49');
+    expect(corregido[1].correcta, isTrue, reason: '146 : 4');
+    expect(corregido[4].correcta, isTrue, reason: '386 × 63');
+
+    // El 4 estaba bien hecho: aunque el OCR leyera mal el enunciado, el
+    // resultado que el niño escribió es correcto.
+    expect(corregido[3].correcta, isTrue, reason: '416 : 7 = 59 resto 3');
+
+    // Y el 3 sigue marcado mal, que es el único fallo de verdad de la hoja.
+    expect(corregido[2].correcta, isFalse, reason: '299 × 39');
   });
 }
