@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+data/audio/
+*.log
+.DS_Store
+
+# Flutter
+app/.dart_tool/
+app/build/
+app/.flutter-plugins*
+app/ios/Pods/
+app/android/.gradle/
