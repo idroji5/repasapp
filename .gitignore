@@ -13,3 +13,8 @@ app/build/
 app/.flutter-plugins*
 app/ios/Pods/
 app/android/.gradle/
+
+# Credenciales de firma de Android: nunca al repositorio
+app/android/key.properties
+*.jks
+*.keystore

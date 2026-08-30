@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repasapp/contenido/matematicas.dart';
 import 'package:repasapp/correccion/interpretar.dart';
 import 'package:repasapp/correccion/matematicas.dart';
+import 'package:repasapp/correccion/alinear.dart';
 import 'package:repasapp/correccion/ocr.dart';
 
 /// Línea de cuaderno de prueba, con la geometría que tendría en la foto.
@@ -57,6 +58,8 @@ void main() {
       expect(bloques.length, 2);
     });
   });
+
+  _pruebasDeFotoIlegible();
 
   group('emparejar la hoja con lo dictado', () {
     test('operación en línea con el resultado tras el igual', () {
@@ -127,6 +130,33 @@ void main() {
         [op(1, '742 : 7', '106')],
       );
       expect(lectura.single.resultadoEscrito, isEmpty);
+    });
+  });
+}
+
+/// Una foto que el OCR no consigue leer no puede convertirse en un cero.
+///
+/// Es el fallo más dañino posible del producto: la app le pinta al niño que ha
+/// escrito mal todas las palabras, y ese cero cuenta para bajarle de nivel,
+/// cuando lo único que ha pasado es que la foto salió borrosa.
+void _pruebasDeFotoIlegible() {
+  group('foto ilegible', () {
+    test('una hoja de la que no se lee nada no es un dictado con 29 fallos', () {
+      const referencia = 'Ayer cayó una tormenta muy fuerte. '
+          'Mi madre cerró la ventana del salón.';
+      // Lo que devuelve ML Kit con una foto sin texto legible.
+      final r = corregirDictado(referencia, '');
+
+      expect(r.aciertos, 0);
+      // La señal que distingue "no escribió nada" de "no se pudo leer": todas
+      // las faltas son omisiones, ninguna es ortográfica.
+      expect(r.faltas.every((f) => f.tipo == TipoFalta.omision), isTrue);
+    });
+
+    test('un dictado real conserva aciertos aunque tenga faltas', () {
+      const referencia = 'Ayer cayó una tormenta muy fuerte.';
+      final r = corregirDictado(referencia, 'Ayer cayo una tormenta muy fuerte.');
+      expect(r.aciertos, greaterThan(0));
     });
   });
 }

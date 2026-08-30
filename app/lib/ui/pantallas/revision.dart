@@ -74,13 +74,17 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       final lineas = await ocr.leer(widget.rutaFoto);
 
       switch (widget.contenido) {
-        case ContenidoDictado():
+        case ContenidoDictado(:final dictado):
           _leido.text = transcripcionDeLineas(lineas);
+          if (_ilegible(dictado.texto, _leido.text)) return _noSeLee();
         case ContenidoOperaciones(:final operaciones):
-          for (final lectura in interpretarTanda(lineas, operaciones)) {
+          final lecturas = interpretarTanda(lineas, operaciones);
+          for (final lectura in lecturas) {
             _resultados[lectura.numero] =
                 TextEditingController(text: lectura.resultadoEscrito);
           }
+          final leidos = lecturas.where((l) => l.resultadoEscrito.isNotEmpty).length;
+          if (leidos == 0) return _noSeLee();
       }
       await _corregir();
     } catch (e) {
@@ -93,6 +97,28 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     } finally {
       await ocr.cerrar();
     }
+  }
+
+  /// ¿La foto es ilegible?
+  ///
+  /// Si el OCR apenas saca palabras, lo que ha fallado es la foto, no el niño.
+  /// Sin esta comprobación, una hoja borrosa o mal encuadrada se corrige como
+  /// si hubiera escrito mal TODAS las palabras: le pinta un muro rojo que no ha
+  /// merecido y, peor todavía, ese cero cuenta para bajarle de nivel.
+  static bool _ilegible(String referencia, String leido) {
+    final esperadas = palabrasDe(referencia).length;
+    final leidas = palabrasDe(leido).length;
+    if (esperadas == 0) return false;
+    return leidas < esperadas * 0.3;
+  }
+
+  void _noSeLee() {
+    if (!mounted) return;
+    setState(() {
+      _fase = _Fase.error;
+      _mensajeError = 'No he conseguido leer la hoja. Prueba otra vez con más '
+          'luz, la hoja plana y que se vea entera.';
+    });
   }
 
   Future<void> _corregir() async {
@@ -185,7 +211,12 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       body: SafeArea(
         child: switch (_fase) {
           _Fase.leyendo => const _Leyendo(),
-          _Fase.error => _Error(mensaje: _mensajeError, onSalir: _salir),
+          _Fase.error => _Error(
+              mensaje: _mensajeError,
+              onReintentar: _repetirFoto,
+              onEscribirlo: () => setState(() => _fase = _Fase.corrigiendoLectura),
+              onSalir: _salir,
+            ),
           _Fase.corrigiendoLectura => _EditorDeLectura(
               contenido: widget.contenido,
               leido: _leido,
@@ -211,6 +242,10 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     );
   }
 
+  /// Vuelve a la actividad para repetir la foto. La actividad sigue sin
+  /// corregir, así que el niño no pierde nada de lo que había hecho.
+  void _repetirFoto() => Navigator.of(context).pop();
+
   void _salir() => Navigator.of(context).pop();
 }
 
@@ -231,9 +266,16 @@ class _Leyendo extends StatelessWidget {
 }
 
 class _Error extends StatelessWidget {
-  const _Error({required this.mensaje, required this.onSalir});
+  const _Error({
+    required this.mensaje,
+    required this.onReintentar,
+    required this.onEscribirlo,
+    required this.onSalir,
+  });
 
   final String mensaje;
+  final VoidCallback onReintentar;
+  final VoidCallback onEscribirlo;
   final VoidCallback onSalir;
 
   @override
@@ -250,7 +292,29 @@ class _Error extends StatelessWidget {
               style: const TextStyle(fontSize: 18, height: 1.5),
             ),
             const SizedBox(height: 28),
-            BotonGrande(texto: 'Volver', onPressed: onSalir),
+            BotonGrande(
+              texto: 'Hacer otra foto',
+              icono: Icons.photo_camera_rounded,
+              onPressed: onReintentar,
+            ),
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: onEscribirlo,
+              icon: const Icon(Icons.edit_outlined, size: 19),
+              label: const Text('Prefiero escribirlo yo'),
+              style: TextButton.styleFrom(
+                foregroundColor: Tema.tintaSuave,
+                minimumSize: const Size(0, 48),
+              ),
+            ),
+            TextButton(
+              onPressed: onSalir,
+              style: TextButton.styleFrom(
+                foregroundColor: Tema.tintaSuave,
+                minimumSize: const Size(0, 44),
+              ),
+              child: const Text('Dejarlo para luego'),
+            ),
           ],
         ),
       );
