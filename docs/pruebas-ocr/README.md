@@ -20,8 +20,30 @@ lo que más importa: media app enseña reglas de acentuación.
 `cayo`, `mui`, `zerro`, `bentana` y `salon`. La app detectó las cinco y las
 explicó bien.
 
+**Dictado en letra ligada.** Aquí se rompe. De trece palabras, cinco
+destrozadas:
+
+```
+En la hoja: Ayer cayó una tormenta muy fuerte.  Mi madre cerró la ventana...
+ML Kit:     yer  cayó na  tomnta   muy unte     Mi madu  cernó la ventana...
+```
+
+Corregir eso tal cual sería acusar al niño de cinco faltas que no cometió.
+
 **Operaciones.** ML Kit falló dos dígitos, los dos el mismo error: leyó `416`
 como `446` y `11651` como `11654`. Siempre confunde el 1 con el 4.
+
+## La conclusión que importa
+
+ML Kit sirve con **letra de imprenta y números**, y no sirve con **letra
+ligada**. Como no se puede exigir a un niño que escriba de una forma concreta,
+la app no puede fiarse ciegamente de lo que lee.
+
+La señal que las distingue resultó ser fiable: un niño falla de maneras con
+nombre —una tilde, una b por una uve, una hache que se deja—, mientras que un
+mal reconocimiento devuelve palabras que no encajan en ninguna regla. Cuando la
+mayoría de las faltas no tienen regla, la app deja de puntuar y enseña lo que ha
+leído para que se corrija.
 
 ## Aviso sobre la validez de estas pruebas
 

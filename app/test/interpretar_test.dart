@@ -41,6 +41,7 @@ void main() {
   _pruebasDeFotoIlegible();
   _pruebasDeHojaReal();
   _pruebasDeOcrImperfecto();
+  _pruebasDeLetraLigada();
 
   group('emparejar la hoja con lo dictado', () {
     test('operación en línea con el resultado tras el igual', () {
@@ -239,5 +240,37 @@ void _pruebasDeOcrImperfecto() {
 
     // Y el 3 sigue marcado mal, que es el único fallo de verdad de la hoja.
     expect(corregido[2].correcta, isFalse, reason: '299 × 39');
+  });
+}
+
+/// La letra ligada, medida en el dispositivo: de trece palabras, ML Kit
+/// destrozó cinco. Si eso se corrige tal cual, la app le dice al niño que ha
+/// cometido faltas que no cometió, que es lo peor que puede hacer.
+void _pruebasDeLetraLigada() {
+  test('una lectura destrozada se distingue de un niño que escribe mal', () {
+    const referencia = 'Ayer cayó una tormenta muy fuerte. '
+        'Mi madre cerró la ventana del salón.';
+
+    // Salida real de ML Kit con la hoja en letra ligada.
+    final mala = corregirDictado(
+      referencia,
+      'yer cayó na tomnta muy unte Mi madu cernó la ventana del salón.',
+    );
+    final sinRegla = mala.faltas
+        .where((f) => f.tipo == TipoFalta.ortografia || f.tipo == TipoFalta.adicion)
+        .length;
+    expect(sinRegla / mala.faltas.length, greaterThanOrEqualTo(0.6),
+        reason: 'un mal reconocimiento produce faltas que no encajan en ninguna regla');
+
+    // Un niño de verdad falla con nombre y apellido: tildes, b/v, c/z.
+    final real = corregirDictado(
+      referencia,
+      'Ayer cayo una tormenta mui fuerte. Mi madre zerro la bentana del salon.',
+    );
+    final conRegla = real.faltas
+        .where((f) => f.tipo != TipoFalta.ortografia && f.tipo != TipoFalta.adicion)
+        .length;
+    expect(conRegla / real.faltas.length, greaterThan(0.6),
+        reason: 'las faltas de un niño sí encajan en reglas de ortografía');
   });
 }

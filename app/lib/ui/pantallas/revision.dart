@@ -81,6 +81,13 @@ class _PantallaRevisionState extends State<PantallaRevision> {
         case ContenidoDictado(:final dictado):
           _leido.text = transcripcionDeLineas(lineas);
           if (_ilegible(dictado.texto, _leido.text)) return _noSeLee();
+          if (_lecturaDudosa(corregirDictado(dictado.texto, _leido.text))) {
+            return _noSeLee(
+              'He leído la hoja, pero no me fío de lo que he sacado: la letra '
+              'ligada se me da mal. Mira si es esto lo que escribiste.',
+              true,
+            );
+          }
         case ContenidoOperaciones(:final operaciones):
           final lecturas = interpretarTanda(lineas, operaciones);
           for (final lectura in lecturas) {
@@ -116,12 +123,33 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     return leidas < esperadas * 0.3;
   }
 
-  void _noSeLee() {
+  /// ¿La corrección describe faltas de un niño, o basura de un mal reconocimiento?
+  ///
+  /// Un niño falla de maneras concretas y con nombre: una tilde, una b por una
+  /// uve, una hache que se deja. El OCR, cuando no puede con la letra, devuelve
+  /// palabras que no se parecen a nada —"tormenta" leído como "tomnta",
+  /// "fuerte" como "unte"— y esas caen todas en el cajón de "ortografía", que
+  /// es el de las que no encajan en ninguna regla.
+  ///
+  /// Así que una avalancha de faltas sin regla no describe a un niño que
+  /// escribe mal: describe una hoja que no se ha sabido leer. Decírselo al niño
+  /// sería acusarle de faltas que no ha cometido, que es la peor cosa que puede
+  /// hacer esta app.
+  static bool _lecturaDudosa(Correccion c) {
+    if (c.faltas.length < 3) return false;
+    final sinRegla = c.faltas
+        .where((f) => f.tipo == TipoFalta.ortografia || f.tipo == TipoFalta.adicion)
+        .length;
+    return sinRegla >= c.faltas.length * 0.6;
+  }
+
+  void _noSeLee([String? mensaje, bool alEditor = false]) {
     if (!mounted) return;
     setState(() {
-      _fase = _Fase.error;
-      _mensajeError = 'No he conseguido leer la hoja. Prueba otra vez con más '
-          'luz, la hoja plana y que se vea entera.';
+      _fase = alEditor ? _Fase.corrigiendoLectura : _Fase.error;
+      _mensajeError = mensaje ??
+          'No he conseguido leer la hoja. Prueba otra vez con más luz, la hoja '
+          'plana y que se vea entera.';
     });
   }
 
