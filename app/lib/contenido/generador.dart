@@ -49,6 +49,7 @@ class Cuerpo {
     this.pistas,
     this.explicacion, {
     this.problema,
+    this.respuestaDicha,
   });
 
   /// Cómo se escribe en el cuaderno: "742 : 7".
@@ -59,6 +60,9 @@ class Cuerpo {
 
   /// Respuesta correcta, ya normalizada como texto.
   final String respuesta;
+
+  /// La respuesta dicha en voz alta, cuando no basta con leer las cifras.
+  final String? respuestaDicha;
 
   /// Dos pistas graduales, antes de dar la solución.
   final List<String> pistas;
@@ -87,6 +91,7 @@ class Cuerpo {
     bool femenino = false,
   })  : problema = texto,
         dictado = numerosALetras(texto, femenino: femenino),
+        respuestaDicha = numerosALetras(respuesta, femenino: femenino),
         enunciado = operacion;
 }
 

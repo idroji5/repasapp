@@ -42,6 +42,9 @@ class _PantallaActividadState extends State<PantallaActividad> {
       guion: guion,
       voz: estado.voz,
       oido: estado.oido,
+      // Da igual si ha dicho "corregir" o si ha tocado el botón: el reproductor
+      // avisa cuando la actividad ha terminado, por donde sea.
+      alRevisar: _corregir,
     );
 
     estado.repo.marcarEnCurso(widget.actividad.id);
@@ -57,6 +60,7 @@ class _PantallaActividadState extends State<PantallaActividad> {
   /// A corregir. No hay foto ni reconocimiento: el niño ve la solución en
   /// pantalla y compara con su cuaderno.
   Future<void> _corregir() async {
+    if (!mounted) return;
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => PantallaRevision(
@@ -291,10 +295,15 @@ class _Controles extends StatelessWidget {
     if (r.fase == Fase.revisar) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: BotonGrande(
-          texto: 'Ya lo tengo, corregir',
-          icono: Icons.check_circle_outline_rounded,
-          onPressed: onCorregir,
+        child: Column(
+          children: [
+            SePuedeDecir(comandos: const [Comando.corregir], seEscucha: r.oido.disponible),
+            BotonGrande(
+              texto: 'Corregir',
+              icono: Icons.check_circle_outline_rounded,
+              onPressed: () => r.responder(Comando.corregir),
+            ),
+          ],
         ),
       );
     }
@@ -302,45 +311,41 @@ class _Controles extends StatelessWidget {
     final comandos = r.comandos;
     if (comandos.isEmpty) return const SizedBox(height: 24);
 
-    // "Estoy listo" es el paso adelante y merece el botón grande.
-    if (comandos.length == 1 && comandos.first == Comando.listo) {
+    // "Estoy listo" es el paso adelante y merece el botón grande, aunque haya
+    // otras cosas que se puedan decir en ese momento.
+    if (comandos.contains(Comando.listo)) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: BotonGrande(
-          texto: Comando.listo.etiqueta,
-          icono: Icons.check_rounded,
-          onPressed: () => r.responder(Comando.listo),
+        child: Column(
+          children: [
+            SePuedeDecir(comandos: comandos, seEscucha: r.oido.disponible),
+            BotonGrande(
+              texto: Comando.listo.etiqueta!,
+              icono: Icons.check_rounded,
+              onPressed: () => r.responder(Comando.listo),
+            ),
+          ],
         ),
       );
     }
+
+    // Solo llegan a la barra los comandos con botón. Los demás —cambiar la
+    // velocidad— se dicen, y se recuerdan como texto justo encima.
+    final conBoton = comandos.where((c) => c.tieneBoton).toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
       child: Column(
         children: [
-          if (r.oido.disponible)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.mic_none_rounded, size: 17, color: Tema.tintaSuave),
-                  SizedBox(width: 6),
-                  Text(
-                    'Puedes decirlo en voz alta',
-                    style: TextStyle(color: Tema.tintaSuave, fontSize: 13.5),
-                  ),
-                ],
-              ),
-            ),
+          SePuedeDecir(comandos: comandos, seEscucha: r.oido.disponible),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             alignment: WrapAlignment.center,
             children: [
-              for (final comando in comandos)
+              for (final comando in conBoton)
                 BotonComando(
-                  texto: comando.etiqueta,
+                  texto: comando.etiqueta!,
                   icono: _icono(comando),
                   onPressed: () => r.responder(comando),
                 ),
@@ -363,6 +368,7 @@ class _Controles extends StatelessWidget {
         Comando.masRapido => Icons.fast_forward_rounded,
         Comando.continua => Icons.arrow_forward_rounded,
         Comando.listo => Icons.check_rounded,
+        Comando.corregir => Icons.check_circle_outline_rounded,
         Comando.loTengo => Icons.lightbulb_outline_rounded,
         Comando.otraPista => Icons.help_outline_rounded,
       };

@@ -8,18 +8,19 @@ import 'package:path_provider/path_provider.dart';
 /// Velocidades a las que la app dicta. El niño puede pedir "más despacio" en
 /// cualquier momento y el cambio se aplica al siguiente fragmento.
 ///
-/// Las tres van por debajo del ritmo de conversación a propósito. Quien dicta a
-/// un niño de Primaria no habla como habla con un adulto: articula, separa las
-/// palabras y le da tiempo a que la mano llegue. Lo que en una app de lectura
-/// sería insoportablemente lento, aquí es el ritmo correcto.
+/// Las tres van muy por debajo del ritmo de conversación a propósito. Quien
+/// dicta a un niño de Primaria no habla como habla con un adulto: articula,
+/// separa las palabras y espera a que la mano llegue. Un adulto lee ~2,6
+/// palabras por segundo; aquí, a ritmo normal, van poco más de la mitad. Lo que
+/// en una app de lectura sería insoportable, en un dictado es lo correcto.
 enum Velocidad {
-  lenta(0.26),
-  normal(0.36),
-  rapida(0.48);
+  lenta(0.18),
+  normal(0.28),
+  rapida(0.40);
 
   const Velocidad(this.tasa);
 
-  /// Tasa de habla de flutter_tts, donde ~0,5 es el ritmo natural de un adulto.
+  /// Tasa de habla de flutter_tts, donde 0,5 es el ritmo natural de un adulto.
   final double tasa;
 
   Velocidad get masLenta => switch (this) {
@@ -41,9 +42,25 @@ enum Velocidad {
 /// con voz latinoamericana el dictado de "zapato" o "cielo" deja de tener
 /// sentido para un niño español.
 class Locutora {
-  Locutora({FlutterTts? motor}) : _tts = motor ?? FlutterTts();
+  Locutora({FlutterTts? motor})
+      : _tts = motor ?? FlutterTts(),
+        muda = false;
+
+  /// Una locutora que no habla y contesta al instante.
+  ///
+  /// Para las pruebas: sin un motor de voz de verdad detrás, cada frase se
+  /// queda esperando una respuesta que no llega nunca y el guion no avanza, así
+  /// que no se podría probar ni una actividad entera.
+  @visibleForTesting
+  Locutora.silenciosa()
+      : _tts = FlutterTts(),
+        muda = true;
 
   final FlutterTts _tts;
+
+  /// Si no hay que hablar de verdad.
+  final bool muda;
+
   bool _preparada = false;
 
   /// Queda a true cuando no se ha encontrado ninguna voz en español de España.
@@ -68,7 +85,7 @@ class Locutora {
   Velocidad velocidad = Velocidad.normal;
 
   Future<void> preparar() async {
-    if (_preparada) return;
+    if (_preparada || muda) return;
 
     await _tts.setLanguage('es-ES');
     await _tts.setPitch(1.0);
@@ -175,11 +192,15 @@ class Locutora {
 
   /// Aproximadamente cuánto se tarda en leer un texto en voz alta. Sirve para
   /// poner un tope razonable a la espera, no para medir nada con precisión.
+  ///
+  /// Se calcula contra el ritmo real de la voz y no contra "lo normal": si se
+  /// midiera en proporción a la velocidad normal, al bajarla el tope se
+  /// quedaría corto y la app cortaría frases largas a media palabra.
   static Duration duracionEstimada(String texto, Velocidad velocidad) {
     final palabras = texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
-    final segundos =
-        (palabras / 2.6 + 0.5) * (Velocidad.normal.tasa / velocidad.tasa);
-    return Duration(milliseconds: (segundos * 1000).round());
+    const palabrasPorSegundoDeAdulto = 2.6; // a tasa 0,5
+    final porSegundo = palabrasPorSegundoDeAdulto * (velocidad.tasa / 0.5);
+    return Duration(milliseconds: ((palabras / porSegundo + 0.8) * 1000).round());
   }
 
   /// Dice el texto y no vuelve hasta que ha terminado de decirlo.
@@ -190,6 +211,7 @@ class Locutora {
   /// congelada para siempre en el primer paso. Es preferible seguir en silencio
   /// —el texto está en pantalla— que dejar al niño mirando una pantalla muerta.
   Future<void> decir(String texto, {Velocidad? a}) async {
+    if (muda) return;
     await preparar();
     final ritmo = a ?? velocidad;
     await _tts.setSpeechRate(ritmo.tasa);
@@ -268,5 +290,5 @@ class Locutora {
     }
   }
 
-  Future<void> parar() => _tts.stop();
+  Future<void> parar() => muda ? Future<void>.value() : _tts.stop();
 }

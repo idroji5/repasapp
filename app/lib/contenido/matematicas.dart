@@ -24,6 +24,7 @@ class Operacion {
     required this.pistas,
     required this.explicacion,
     this.problema,
+    this.respuestaDicha,
   });
 
   /// Posición dentro de la tanda, empezando en 1.
@@ -36,8 +37,15 @@ class Operacion {
   /// Cómo lo dice la voz: "setecientos cuarenta y dos dividido entre siete".
   final String dictado;
 
-  /// Respuesta correcta, ya normalizada como texto.
+  /// Respuesta correcta, ya normalizada como texto: "106", "32 resto 12".
   final String respuesta;
+
+  /// Cómo se dice la respuesta en voz alta. Si no se dice de una forma
+  /// concreta, se leen las cifras tal cual.
+  final String? respuestaDicha;
+
+  /// La respuesta, para leerla al corregir.
+  String get respuestaEnVozAlta => respuestaDicha ?? numerosALetras(respuesta);
 
   /// Dos pistas graduales, antes de dar la solución.
   final List<String> pistas;
@@ -320,6 +328,7 @@ List<Operacion> generarTanda(
       pistas: cuerpo.pistas,
       explicacion: cuerpo.explicacion,
       problema: cuerpo.problema,
+      respuestaDicha: cuerpo.respuestaDicha,
     );
   });
 }

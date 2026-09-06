@@ -42,18 +42,19 @@ class PantallaRevision extends StatefulWidget {
   State<PantallaRevision> createState() => _PantallaRevisionState();
 }
 
-enum _Fase { marcando, palabras, guardando, resultado }
+enum _Fase { marcando, faltasSueltas, guardando, resultado }
 
-/// Tope de la pregunta "¿cuántas faltas?". Por encima de esto el número exacto
-/// da igual: lo que toca es repetir el dictado otro día, no contar.
+/// Tope de la pregunta "¿cuántas faltas más?". Por encima de esto el número
+/// exacto da igual: lo que toca es repetir el dictado otro día, no contar.
 const int _maxFaltasQuePregunta = 5;
 
 class _PantallaRevisionState extends State<PantallaRevision> {
   _Fase _fase = _Fase.marcando;
 
-  /// Dictado: cuántas faltas dice el niño que ha tenido, y en qué palabras.
-  int _faltas = 0;
+  /// Dictado: qué palabras dice haber fallado, y cuántas faltas más ha tenido
+  /// en palabras que la app no señala.
   final Set<String> _palabrasFalladas = {};
+  int _faltasSueltas = 0;
   CorreccionDictado? _correccionDictado;
 
   /// Matemáticas: qué ejercicios dice que le han salido bien.
@@ -101,7 +102,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       case ContenidoDictado(:final dictado):
         final correccion = corregirDictadoMarcado(
           dictado,
-          _faltas,
+          _palabrasFalladas.length + _faltasSueltas,
           _palabrasFalladas.toList(),
         );
         _correccionDictado = correccion;
@@ -174,17 +175,16 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     _repaso!.arrancar();
   }
 
-  void _responderFaltas(int cuantas) {
-    setState(() {
-      _faltas = cuantas;
-      // Sin faltas no hay nada que marcar ni nada que explicar.
-      if (cuantas == 0) {
-        _palabrasFalladas.clear();
-      } else {
-        _fase = _Fase.palabras;
-      }
-    });
-    if (cuantas == 0) _corregir();
+  /// Marcadas las palabras, queda saber si se le ha escapado alguna más: las
+  /// palabras señaladas son las trampas del dictado, no todas las palabras.
+  void _preguntarPorLasDemas() {
+    setState(() => _fase = _Fase.faltasSueltas);
+    unawaited(context.read<AppEstado>().voz.decir(Frases.algunaFaltaMas));
+  }
+
+  void _responderFaltasSueltas(int cuantas) {
+    _faltasSueltas = cuantas;
+    _corregir();
   }
 
   @override
@@ -222,20 +222,18 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       );
     }
 
+    if (_fase == _Fase.faltasSueltas) {
+      return _FaltasSueltas(onResponder: _responderFaltasSueltas);
+    }
+
     return switch (widget.contenido) {
-      ContenidoDictado(:final dictado) when _fase == _Fase.marcando =>
-        _MarcarDictado(dictado: dictado, onResponder: _responderFaltas),
-      ContenidoDictado(:final dictado) => _MarcarPalabras(
+      ContenidoDictado(:final dictado) => _MarcarDictado(
           dictado: dictado,
           seleccionadas: _palabrasFalladas,
           onCambiar: (palabra, marcada) => setState(() {
             marcada ? _palabrasFalladas.add(palabra) : _palabrasFalladas.remove(palabra);
           }),
-          onListo: _corregir,
-          onNoMeAcuerdo: () {
-            _palabrasFalladas.clear();
-            _corregir();
-          },
+          onListo: _preguntarPorLasDemas,
         ),
       ContenidoOperaciones(:final operaciones) => _MarcarOperaciones(
           operaciones: operaciones,
@@ -298,29 +296,40 @@ class _Frase extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text.rich(
-      TextSpan(
-        children: [
-          for (final trozo in frase.split(' '))
-            TextSpan(
-              text: '$trozo ',
-              style: Tema.deCuaderno(
-                tamano: 32,
-                color: resaltadas.any((p) => _esLaMisma(trozo, p))
-                    ? Tema.fallo
-                    : Tema.tinta,
-                peso: clave.any((p) => _esLaMisma(trozo, p))
-                    ? FontWeight.w700
-                    : FontWeight.w400,
-                subrayado: clave.any((p) => _esLaMisma(trozo, p))
-                    ? TextDecoration.underline
-                    : null,
-              ),
-            ),
-        ],
-      ),
+      TextSpan(children: [for (final trozo in frase.split(' ')) _palabra(trozo)]),
     );
   }
+
+  /// Las palabras difíciles van subrayadas —son las que hay que marcar— y las
+  /// que el niño ha marcado, en rojo.
+  TextSpan _palabra(String trozo) {
+    final normal = Tema.deCuaderno(tamano: 32);
+    if (!clave.any((p) => _esLaMisma(trozo, p))) {
+      return TextSpan(text: '$trozo ', style: normal);
+    }
+
+    // El subrayado señala la palabra, no la coma que va detrás.
+    final partes = _signosSueltos.firstMatch(trozo)!;
+    return TextSpan(children: [
+      TextSpan(text: partes.group(1), style: normal),
+      TextSpan(
+        text: partes.group(2),
+        style: Tema.deCuaderno(
+          tamano: 32,
+          color: resaltadas.any((p) => _esLaMisma(trozo, p))
+              ? Tema.fallo
+              : Tema.tinta,
+          peso: FontWeight.w700,
+          subrayado: TextDecoration.underline,
+        ),
+      ),
+      TextSpan(text: '${partes.group(3)} ', style: normal),
+    ]);
+  }
 }
+
+/// Los signos pegados a una palabra, delante y detrás.
+final RegExp _signosSueltos = RegExp(r'^([¿¡«"(]*)(.*?)([.,;:!?»")]*)$');
 
 /// Compara una palabra suelta del texto con una palabra clave, sin que la
 /// puntuación pegada estropee la comparación ("campo." es "campo").
@@ -329,11 +338,23 @@ bool _esLaMisma(String enElTexto, String clave) {
   return limpia == clave.toLowerCase();
 }
 
+/// El dictado con sus palabras difíciles, para tocar las que haya fallado.
+///
+/// Todo a la vez y sin prisa: lee su hoja, la compara con la pantalla y va
+/// tocando. Se pregunta por las palabras y no por un número de faltas porque
+/// una palabra se puede explicar —"había lleva hache"— y un número no.
 class _MarcarDictado extends StatelessWidget {
-  const _MarcarDictado({required this.dictado, required this.onResponder});
+  const _MarcarDictado({
+    required this.dictado,
+    required this.seleccionadas,
+    required this.onCambiar,
+    required this.onListo,
+  });
 
   final Dictado dictado;
-  final void Function(int faltas) onResponder;
+  final Set<String> seleccionadas;
+  final void Function(String palabra, bool marcada) onCambiar;
+  final VoidCallback onListo;
 
   @override
   Widget build(BuildContext context) {
@@ -350,115 +371,13 @@ class _MarcarDictado extends StatelessWidget {
                 style: TextStyle(color: Tema.tintaSuave, fontSize: 16),
               ),
               const SizedBox(height: 18),
-              _TextoDelDictado(dictado: dictado),
-            ],
-          ),
-        ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-          decoration: const BoxDecoration(
-            color: Tema.tarjeta,
-            border: Border(top: BorderSide(color: Tema.borde)),
-          ),
-          child: Column(
-            children: [
+              _TextoDelDictado(dictado: dictado, resaltadas: seleccionadas),
+              const SizedBox(height: 24),
               Text(
-                '¿Cuántas faltas has tenido?',
-                style: Theme.of(context).textTheme.titleLarge,
+                'Toca las que hayas escrito mal',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (var i = 0; i <= _maxFaltasQuePregunta; i++)
-                    _BotonNumero(numero: i, onPressed: () => onResponder(i)),
-                  BotonComando(
-                    texto: 'Más de $_maxFaltasQuePregunta',
-                    onPressed: () => onResponder(_maxFaltasQuePregunta + 1),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BotonNumero extends StatelessWidget {
-  const _BotonNumero({required this.numero, required this.onPressed});
-
-  final int numero;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final ninguna = numero == 0;
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          backgroundColor: ninguna ? Tema.accionSuave : Tema.tarjeta,
-          side: BorderSide(color: ninguna ? Tema.accion : Tema.borde, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        child: Text(
-          '$numero',
-          style: Tema.deNumeros(
-            tamano: 28,
-            peso: FontWeight.w700,
-            color: ninguna ? Tema.accion : Tema.tinta,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// En cuáles de las palabras difíciles ha fallado.
-///
-/// Es opcional a propósito. Marcarlas es lo que permite explicarle la regla
-/// —"había lleva hache"— y lo que alimenta los errores frecuentes de la zona de
-/// padres, pero obligar a un niño de nueve años a clasificar sus propias faltas
-/// al final de un dictado es la manera de que deje de hacer dictados.
-class _MarcarPalabras extends StatelessWidget {
-  const _MarcarPalabras({
-    required this.dictado,
-    required this.seleccionadas,
-    required this.onCambiar,
-    required this.onListo,
-    required this.onNoMeAcuerdo,
-  });
-
-  final Dictado dictado;
-  final Set<String> seleccionadas;
-  final void Function(String palabra, bool marcada) onCambiar;
-  final VoidCallback onListo;
-  final VoidCallback onNoMeAcuerdo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            children: [
-              Text('¿En cuáles?', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 6),
-              const Text(
-                'Toca las palabras que hayas escrito mal y te explico por qué '
-                'se escriben así.',
-                style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
-              ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -471,28 +390,97 @@ class _MarcarPalabras extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 22),
-              _TextoDelDictado(dictado: dictado, resaltadas: seleccionadas),
             ],
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-          child: Column(
-            children: [
-              BotonGrande(texto: 'Corregir', onPressed: onListo),
-              TextButton(
-                onPressed: onNoMeAcuerdo,
-                style: TextButton.styleFrom(
-                  foregroundColor: Tema.tintaSuave,
-                  minimumSize: const Size(0, 48),
-                ),
-                child: const Text('No me acuerdo de cuáles'),
-              ),
-            ],
+          child: BotonGrande(
+            texto: seleccionadas.isEmpty ? 'No he fallado ninguna' : 'Ya está',
+            onPressed: onListo,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Las faltas en palabras que la app no señala.
+///
+/// Las palabras clave son las trampas del dictado, pero no son todas: sin esta
+/// pregunta, quien se deja una tilde en cualquier otra palabra saca un diez.
+class _FaltasSueltas extends StatelessWidget {
+  const _FaltasSueltas({required this.onResponder});
+
+  final void Function(int cuantas) onResponder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '¿Alguna falta más?',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'En otras palabras, de las que no te he señalado.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
+          ),
+          const SizedBox(height: 26),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: [
+              BotonComando(
+                texto: 'Ninguna',
+                icono: Icons.check_rounded,
+                onPressed: () => onResponder(0),
+              ),
+              for (var i = 1; i <= _maxFaltasQuePregunta; i++)
+                _BotonNumero(numero: i, onPressed: () => onResponder(i)),
+              BotonComando(
+                texto: 'Más de $_maxFaltasQuePregunta',
+                onPressed: () => onResponder(_maxFaltasQuePregunta + 1),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BotonNumero extends StatelessWidget {
+  const _BotonNumero({required this.numero, required this.onPressed});
+
+  final int numero;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 68,
+      height: 68,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          backgroundColor: Tema.tarjeta,
+          side: const BorderSide(color: Tema.borde, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Text(
+          '$numero',
+          style: Tema.deNumeros(tamano: 28, peso: FontWeight.w700),
+        ),
+      ),
     );
   }
 }
@@ -900,15 +888,17 @@ class _LoQueDice extends StatelessWidget {
         ),
         if (r.comandos.isNotEmpty) ...[
           const SizedBox(height: 14),
+          SePuedeDecir(comandos: r.comandos, seEscucha: r.oido.disponible),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               for (final comando in r.comandos)
-                BotonComando(
-                  texto: comando.etiqueta,
-                  onPressed: () => r.responder(comando),
-                ),
+                if (comando.tieneBoton)
+                  BotonComando(
+                    texto: comando.etiqueta!,
+                    onPressed: () => r.responder(comando),
+                  ),
             ],
           ),
         ],

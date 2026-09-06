@@ -146,7 +146,8 @@ Guion guionRepasoMatematicas(
       pasos.add(Habla(Frases.fallasteEn(op.numero)));
 
       if (!modoPistas) {
-        pasos.add(Habla('${Frases.solucion(op.respuesta)} ${op.explicacion}'));
+        pasos.add(Habla(
+            '${Frases.solucion(op.respuestaEnVozAlta)} ${op.explicacion}'));
         continue;
       }
 
@@ -164,7 +165,7 @@ Guion guionRepasoMatematicas(
               [Habla('Eso es. Corrígela en el cuaderno.')],
             ),
             RamaPregunta(Comando.otraPista, [
-              Habla('${Frases.solucion(op.respuesta)} ${op.explicacion}'),
+              Habla('${Frases.solucion(op.respuestaEnVozAlta)} ${op.explicacion}'),
             ]),
           ]),
         ]),

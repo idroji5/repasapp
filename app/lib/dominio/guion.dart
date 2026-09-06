@@ -7,21 +7,37 @@ import 'asignaturas.dart';
 /// pantalla: las pantallas solo saben reproducir pasos. Cambiar cómo enseña la
 /// app es cambiar quien construye el guion, sin tocar la interfaz.
 enum Comando {
-  listo('listo', 'Estoy listo'),
-  repite('repite', 'Repite'),
-  masDespacio('más despacio', 'Más despacio'),
-  masRapido('más rápido', 'Más rápido'),
-  continua('continúa', 'Continúa'),
-  loTengo('ya lo veo', 'Ya lo veo'),
-  otraPista('otra pista', 'Otra pista');
+  listo('listo', 'Estoy listo', tambien: ['ya está', 'preparado', 'vale']),
+  repite('repite', 'Repite', tambien: ['otra vez', 'repítelo', 'no lo he oído']),
+  masDespacio('más despacio', null, tambien: ['despacio', 'más lento']),
+  masRapido('más rápido', null, tambien: ['rápido', 'más deprisa']),
+  continua('continúa', 'Sigue', tambien: ['sigue', 'siguiente', 'ya lo tengo']),
+  corregir('corregir', 'Corregir', tambien: ['ya he terminado', 'he terminado', 'ya está']),
+  loTengo('ya lo veo', 'Ya lo veo', tambien: ['sí', 'lo veo', 'ya lo tengo']),
+  otraPista('otra pista', 'Otra pista', tambien: ['pista', 'no lo veo', 'ayuda']);
 
-  const Comando(this.dicho, this.etiqueta);
+  const Comando(this.dicho, this.etiqueta, {this.tambien = const []});
 
   /// Cómo lo diría el niño en voz alta.
   final String dicho;
 
-  /// Cómo aparece en el botón, para quien prefiera tocar la pantalla.
-  final String etiqueta;
+  /// Otras formas de decir lo mismo. El reconocimiento de voz infantil falla
+  /// bastante, así que cuantas más maneras se acepten, menos veces tiene que
+  /// soltar el lápiz para tocar la pantalla.
+  final List<String> tambien;
+
+  /// Cómo aparece en el botón, o null si este comando solo se dice.
+  ///
+  /// No todo merece botón. Cambiar la velocidad se pide una vez y ya no se
+  /// vuelve a tocar; tenerlo siempre en pantalla llena la barra y esconde los
+  /// dos que de verdad se usan. Lo que no tiene botón se recuerda como texto:
+  /// "también puedes decir: más despacio".
+  final String? etiqueta;
+
+  bool get tieneBoton => etiqueta != null;
+
+  /// Todo lo que vale para decir este comando.
+  List<String> get comoSeDice => [dicho, ...tambien];
 }
 
 sealed class Paso {

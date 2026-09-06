@@ -124,18 +124,15 @@ class ReproductorGuion extends ChangeNotifier {
       case Espera(:final texto, :final comandos):
         enFragmento = false;
         escritoActual = null;
-        await _decir(texto, Fase.esperando, comandos);
-        if (_cancelado) return;
-        await _esperarComando(comandos, Fase.esperando);
+        await _preguntar(texto, comandos, Fase.esperando);
 
       case Pregunta(:final texto, :final opciones):
         enFragmento = false;
         escritoActual = null;
         final posibles = opciones.map((o) => o.comando).toList();
-        await _decir(texto, Fase.preguntando, posibles);
-        if (_cancelado) return;
 
-        final elegido = await _esperarComando(posibles, Fase.preguntando);
+        final elegido = await _preguntar(texto, posibles, Fase.preguntando);
+        if (_cancelado) return;
         final rama = opciones.firstWhere(
           (o) => o.comando == elegido,
           orElse: () => opciones.first,
@@ -145,16 +142,20 @@ class ReproductorGuion extends ChangeNotifier {
       case Revisar(:final texto):
         enFragmento = false;
         escritoActual = null;
-        await _decir(texto, Fase.hablando, const []);
+        // Se queda escuchando "corregir" en vez de esperar a que toque el
+        // botón: el niño acaba de soltar el lápiz y tiene la hoja en la mano.
+        await _decir(texto, Fase.revisar, const [Comando.corregir]);
         if (_cancelado) return;
-        _cambiar(Fase.revisar);
+        await _esperarComando(const [Comando.corregir], Fase.revisar);
+        if (_cancelado) return;
         alRevisar?.call();
     }
   }
 
   /// Cuánto se calla entre las dos lecturas de la misma frase. Lo justo para
-  /// que el niño oiga que empieza otra vez y no las junte en una sola.
-  static const Duration _respiroEntreLecturas = Duration(milliseconds: 1400);
+  /// que el niño oiga que empieza otra vez y no las junte en una sola, y para
+  /// que le dé tiempo a escribir el principio antes de que vuelva a sonar.
+  static const Duration _respiroEntreLecturas = Duration(seconds: 2);
 
   /// Lee una frase [veces] veces seguidas.
   ///
@@ -246,6 +247,26 @@ class ReproductorGuion extends ChangeNotifier {
 
   // --------------------------------------------------- esperar respuesta ---
 
+  /// Dice algo y espera a que conteste, repitiéndolo tantas veces como pida.
+  ///
+  /// "Repite" vale en cualquier pregunta, no solo dictando: una pregunta que
+  /// no se ha oído bien deja al niño mirando la pantalla sin saber qué le han
+  /// preguntado, y entonces la voz deja de servir para nada.
+  Future<Comando> _preguntar(
+    String texto,
+    List<Comando> posibles,
+    Fase fase,
+  ) async {
+    final conRepite = [...posibles, Comando.repite];
+    while (!_cancelado) {
+      await _decir(texto, fase, conRepite);
+      if (_cancelado) break;
+      final dicho = await _esperarComando(conRepite, fase);
+      if (dicho != Comando.repite) return dicho;
+    }
+    return posibles.first;
+  }
+
   Future<Comando> _esperarComando(List<Comando> posibles, Fase enFase) async {
     comandos = posibles;
     _cambiar(enFase);
@@ -283,10 +304,19 @@ class ReproductorGuion extends ChangeNotifier {
         voz.velocidad = voz.velocidad.masRapida;
         _cerrarPausa(_AccionPausa.repetir);
       case Comando.repite:
-        _cerrarPausa(_AccionPausa.repetir);
+        // Dictando, repetir es volver a decir el fragmento; en una pregunta,
+        // volver a hacerla. Son dos esperas distintas y solo hay una activa.
+        if (_respuesta?.isCompleted == false) {
+          _respuesta!.complete(Comando.repite);
+        } else {
+          _cerrarPausa(_AccionPausa.repetir);
+        }
       case Comando.continua:
         _cerrarPausa(_AccionPausa.seguir);
-      case Comando.listo || Comando.loTengo || Comando.otraPista:
+      case Comando.listo ||
+            Comando.corregir ||
+            Comando.loTengo ||
+            Comando.otraPista:
         if (_respuesta?.isCompleted == false) _respuesta!.complete(comando);
     }
     notifyListeners();

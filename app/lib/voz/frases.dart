@@ -39,8 +39,10 @@ class Frases {
 
   // ------------------------------------------------------- corrección ---
   static const String comparaDictado =
-      'Este es el dictado. Compáralo con tu hoja, sin prisa, y marca en la '
-      'pantalla cuántas faltas has tenido.';
+      'Ya está. Aquí tienes el dictado escrito, con las palabras difíciles '
+      'subrayadas. Compáralo con tu hoja y toca las que hayas escrito mal.';
+  static const String algunaFaltaMas =
+      '¿Has tenido alguna falta más, en otras palabras?';
   static const String comparaOperaciones =
       'Aquí tienes las soluciones. Mira una por una si te ha salido, y marca '
       'las que no.';

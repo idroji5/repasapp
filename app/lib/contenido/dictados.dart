@@ -276,7 +276,7 @@ int duracionEstimadaSegundos(Dictado d) {
   var total = 0.0;
   for (final f in d.fragmentos) {
     final palabras = f.split(RegExp(r'\s+')).length;
-    total += pausaSegundos(f, d.nivel) + palabras * 0.8 * vecesPorFrase;
+    total += pausaSegundos(f, d.nivel) + palabras * 1.0 * vecesPorFrase + 2;
   }
   return (total + 45).round(); // + preparación y corrección
 }

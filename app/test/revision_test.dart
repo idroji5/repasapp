@@ -16,8 +16,7 @@ import 'package:repasapp/voz/escucha.dart';
 import 'package:repasapp/voz/locutora.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-/// Prueba de humo de la pantalla de corrección: que el niño pueda recorrerla
-/// entera y que lo que marca acabe guardado.
+/// La corrección entera, de la primera marca a la nota guardada.
 ///
 /// Sin cámara, esta pantalla es por donde pasa todo lo que la app aprende del
 /// niño. Si se rompe, no se pierde una función: se pierden las estadísticas, el
@@ -28,9 +27,6 @@ void main() {
     // Sin isolate: en una prueba de widget el tiempo es falso, y las respuestas
     // de un isolate de verdad no llegan nunca a este hilo.
     databaseFactory = databaseFactoryFfiNoIsolate;
-    // El motor de voz no existe en un test; sus llamadas se quedan en nada y la
-    // pantalla tiene que funcionar igual.
-    TestWidgetsFlutterBinding.ensureInitialized();
   });
 
   late Repositorio repo;
@@ -46,8 +42,11 @@ void main() {
       minutosDiarios: 15,
       niveles: {Asignatura.matematicas: 3, Asignatura.dictado: 3},
     );
-    estado = AppEstado(repo: repo, voz: Locutora(), oido: Escucha())
-      ..elegir((await repo.nino(ninoId))!);
+    estado = AppEstado(
+      repo: repo,
+      voz: Locutora.silenciosa(),
+      oido: Escucha.sorda(),
+    )..elegir((await repo.nino(ninoId))!);
   });
 
   Future<ActividadGuardada> actividadDe(Asignatura asignatura) async {
@@ -55,16 +54,11 @@ void main() {
     return sesion.actividades.firstWhere((a) => a.asignatura == asignatura);
   }
 
-  /// Deja pasar el tiempo que tarda en guardarse la corrección. Incluye el
-  /// margen que la app se da para arrancar el motor de voz, que en una prueba
-  /// no existe y agota su espera.
-  Future<void> terminarDeGuardar(WidgetTester tester) async {
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 8));
-    await tester.pump();
-  }
-
   Future<void> abrir(WidgetTester tester, ActividadGuardada actividad) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       ChangeNotifierProvider<AppEstado>.value(
         value: estado,
@@ -81,11 +75,26 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('en matemáticas se marca ejercicio por ejercicio', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
+  /// Toca algo, bajando por la pantalla si hace falta: la lista se construye a
+  /// medida que se baja, así que lo de abajo del todo aún no existe.
+  Future<void> tocar(WidgetTester tester, Finder que) async {
+    if (que.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(que, 240);
+    }
+    await tester.ensureVisible(que);
+    await tester.pump();
+    await tester.tap(que);
+    await tester.pump();
+  }
 
+  /// Deja pasar el tiempo que tarda en guardarse la corrección.
+  Future<void> terminarDeGuardar(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pump();
+  }
+
+  testWidgets('en matemáticas se marca ejercicio por ejercicio', (tester) async {
     final actividad = await actividadDe(Asignatura.matematicas);
     final operaciones =
         (reconstruir(actividad.contenido, actividad.nivel) as ContenidoOperaciones)
@@ -95,17 +104,10 @@ void main() {
     // Sin marcar todo, no se puede corregir: media tanda corregida no dice nada.
     expect(find.text('Marca todas para seguir'), findsOneWidget);
 
-    await tester.tap(find.text('Todas bien'));
-    await tester.pump();
-
+    await tocar(tester, find.text('Todas bien'));
     // La primera se marca como fallada, para comprobar que la nota la lleva.
-    final primerFallo = find.text('No me ha salido').first;
-    await tester.ensureVisible(primerFallo);
-    await tester.pump();
-    await tester.tap(primerFallo);
-    await tester.pump();
-
-    await tester.tap(find.text('Corregir'));
+    await tocar(tester, find.text('No me ha salido').first);
+    await tocar(tester, find.text('Corregir'));
     await terminarDeGuardar(tester);
 
     final guardada = (await repo.actividad(actividad.id))!;
@@ -114,49 +116,60 @@ void main() {
     expect(guardada.aciertos, operaciones.length - 1);
 
     // Y la destreza del ejercicio fallado queda apuntada como floja.
-    expect(await repo.destrezasFlojas(ninoId), contains(operaciones.first.destrezaId));
+    expect(await repo.destrezasFlojas(ninoId),
+        contains(operaciones.first.destrezaId));
   });
 
-  testWidgets('en el dictado se dicen las faltas y se marcan las palabras',
-      (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
-
+  testWidgets('en el dictado se tocan las palabras falladas', (tester) async {
     final actividad = await actividadDe(Asignatura.dictado);
     final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;
     await abrir(tester, actividad);
 
-    expect(find.text('¿Cuántas faltas has tenido?'), findsOneWidget);
-    await tester.tap(find.text('2'));
-    await tester.pump();
+    // Las palabras difíciles están todas ahí para tocarlas.
+    await tester.scrollUntilVisible(find.text(dictado.palabrasClave.last), 240);
+    for (final palabra in dictado.palabrasClave) {
+      expect(find.text(palabra), findsWidgets, reason: palabra);
+    }
 
-    // Segunda pantalla: en cuáles.
-    expect(find.text('¿En cuáles?'), findsOneWidget);
-    await tester.tap(find.text(dictado.palabrasClave.first));
-    await tester.pump();
-    await tester.tap(find.text('Corregir'));
+    await tocar(tester, find.text(dictado.palabrasClave.first).last);
+    await tocar(tester, find.text('Ya está'));
+
+    // Y después, las que no estaban señaladas.
+    expect(find.text('¿Alguna falta más?'), findsOneWidget);
+    await tocar(tester, find.text('Ninguna'));
     await terminarDeGuardar(tester);
 
     final guardada = (await repo.actividad(actividad.id))!;
     expect(guardada.estado, EstadoActividad.corregida);
     expect(guardada.total, dictado.numeroDePalabras);
-    expect(guardada.aciertos, dictado.numeroDePalabras - 2);
+    expect(guardada.aciertos, dictado.numeroDePalabras - 1);
+
+    // La palabra que ha fallado se explica en pantalla, con su regla.
+    expect(find.text(dictado.palabrasClave.first), findsWidgets);
     expect(find.textContaining('de ${dictado.numeroDePalabras}'), findsOneWidget);
   });
 
-  testWidgets('un dictado sin faltas no pregunta por palabras', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
+  testWidgets('las faltas de otras palabras se cuentan aparte', (tester) async {
+    final actividad = await actividadDe(Asignatura.dictado);
+    final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;
+    await abrir(tester, actividad);
 
+    await tocar(tester, find.text('No he fallado ninguna'));
+    await tocar(tester, find.text('2'));
+    await terminarDeGuardar(tester);
+
+    final guardada = (await repo.actividad(actividad.id))!;
+    expect(guardada.aciertos, dictado.numeroDePalabras - 2);
+  });
+
+  testWidgets('un dictado sin faltas es perfecto', (tester) async {
     final actividad = await actividadDe(Asignatura.dictado);
     await abrir(tester, actividad);
 
-    await tester.tap(find.text('0'));
+    await tocar(tester, find.text('No he fallado ninguna'));
+    await tocar(tester, find.text('Ninguna'));
     await terminarDeGuardar(tester);
 
-    expect(find.text('¿En cuáles?'), findsNothing);
     expect(find.text('¡Sin ni un fallo!'), findsOneWidget);
   });
 }
