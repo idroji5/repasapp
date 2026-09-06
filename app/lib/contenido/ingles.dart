@@ -88,6 +88,7 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_saludos', 2, TipoIngles.vocabulario, 'gracias', 'thank you'),
   ItemIngles('ingles_saludos', 3, TipoIngles.alEspanol, 'Good morning', 'Buenos días'),
   ItemIngles('ingles_saludos', 3, TipoIngles.alEspanol, 'Good night', 'Buenas noches'),
+  ItemIngles('ingles_saludos', 2, TipoIngles.alEspanol, 'See you tomorrow', 'Hasta mañana'),
   ItemIngles('ingles_saludos', 4, TipoIngles.responder, 'How are you?', "I'm fine, thank you",
       nota: 'Se contesta con una frase, no con una palabra suelta.'),
 
@@ -98,6 +99,9 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_colores', 2, TipoIngles.vocabulario, 'amarillo', 'yellow'),
   ItemIngles('ingles_colores', 2, TipoIngles.vocabulario, 'negro', 'black'),
   ItemIngles('ingles_colores', 3, TipoIngles.vocabulario, 'morado', 'purple'),
+  ItemIngles('ingles_colores', 2, TipoIngles.alEspanol, 'The sky is blue', 'El cielo es azul'),
+  ItemIngles('ingles_colores', 3, TipoIngles.alEspanol, 'I have got a green pencil',
+      'Tengo un lápiz verde'),
   ItemIngles('ingles_colores', 4, TipoIngles.alIngles, 'Mi color favorito es el verde',
       'My favourite colour is green',
       nota: 'En inglés británico "colour" lleva u; el color va detrás del verbo.'),
@@ -109,6 +113,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_numeros', 3, TipoIngles.vocabulario, 'veinte', 'twenty'),
   ItemIngles('ingles_numeros', 3, TipoIngles.alEspanol, 'I am nine years old', 'Tengo nueve años',
       nota: 'La edad en inglés se dice con "to be", no con "tener": I AM nine.'),
+  ItemIngles('ingles_numeros', 2, TipoIngles.alEspanol, 'I have got three cats',
+      'Tengo tres gatos'),
   ItemIngles('ingles_numeros', 4, TipoIngles.completar,
       'I have got ... brothers. (dos)', 'two'),
 
@@ -118,6 +124,11 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_familia', 2, TipoIngles.vocabulario, 'abuela', 'grandmother'),
   ItemIngles('ingles_familia', 2, TipoIngles.vocabulario, 'primo', 'cousin'),
   ItemIngles('ingles_familia', 3, TipoIngles.alEspanol, 'This is my sister', 'Esta es mi hermana'),
+  ItemIngles('ingles_familia', 2, TipoIngles.alEspanol, 'My grandmother lives here',
+      'Mi abuela vive aquí'),
+  ItemIngles('ingles_familia', 4, TipoIngles.alEspanol, 'My brother is ten years old',
+      'Mi hermano tiene diez años',
+      nota: 'La edad se dice con "to be": is ten years old.'),
   ItemIngles('ingles_familia', 4, TipoIngles.alIngles, 'Mi padre es alto', 'My father is tall'),
   ItemIngles('ingles_familia', 4, TipoIngles.responder, 'Have you got a sister?',
       'Yes, I have / No, I have not'),
@@ -130,6 +141,10 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_animales', 3, TipoIngles.vocabulario, 'mariposa', 'butterfly'),
   ItemIngles('ingles_animales', 3, TipoIngles.alEspanol, 'The cat is under the table',
       'El gato está debajo de la mesa'),
+  ItemIngles('ingles_animales', 2, TipoIngles.alEspanol, 'The dog is in the garden',
+      'El perro está en el jardín'),
+  ItemIngles('ingles_animales', 4, TipoIngles.alEspanol, 'Birds can fly very high',
+      'Los pájaros pueden volar muy alto'),
   ItemIngles('ingles_animales', 4, TipoIngles.escribir, 'dog', 'My dog is black'),
 
   // --------------------------------------------------------- 2.º: to be ---
@@ -139,6 +154,7 @@ const List<ItemIngles> ejerciciosDeIngles = [
       nota: 'Con "you", "we" y "they" va "are".'),
   ItemIngles('ingles_to_be', 2, TipoIngles.completar, 'She ... my teacher.', 'is',
       nota: 'Con "he", "she" e "it" va "is".'),
+  ItemIngles('ingles_to_be', 2, TipoIngles.alEspanol, 'We are friends', 'Somos amigos'),
   ItemIngles('ingles_to_be', 3, TipoIngles.alIngles, 'Soy español', 'I am Spanish'),
   ItemIngles('ingles_to_be', 4, TipoIngles.alIngles, 'Ella no es mi hermana',
       'She is not my sister',
@@ -151,6 +167,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_clase', 2, TipoIngles.vocabulario, 'pizarra', 'blackboard'),
   ItemIngles('ingles_clase', 3, TipoIngles.alEspanol, 'Open your book, please',
       'Abre tu libro, por favor'),
+  ItemIngles('ingles_clase', 3, TipoIngles.alEspanol, 'The pencil is on the desk',
+      'El lápiz está encima del pupitre'),
   ItemIngles('ingles_clase', 4, TipoIngles.alIngles, 'Mi mochila es azul',
       'My schoolbag is blue'),
 
@@ -164,6 +182,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
       nota: 'El plural de "child" no lleva -s: es "children".'),
   ItemIngles('ingles_plurales', 4, TipoIngles.completar, 'My ... are new. (pies)', 'feet',
       nota: 'Otro plural irregular: foot, feet.'),
+  ItemIngles('ingles_plurales', 2, TipoIngles.alEspanol, 'I can see two birds',
+      'Veo dos pájaros'),
   ItemIngles('ingles_plurales', 4, TipoIngles.alEspanol, 'These are my books',
       'Estos son mis libros'),
 
@@ -183,6 +203,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_comida', 2, TipoIngles.vocabulario, 'queso', 'cheese'),
   ItemIngles('ingles_comida', 3, TipoIngles.alEspanol, 'I like fish', 'Me gusta el pescado',
       nota: '"I like" se traduce por "me gusta", aunque en inglés el sujeto sea yo.'),
+  ItemIngles('ingles_comida', 4, TipoIngles.alEspanol, 'I have milk and bread for breakfast',
+      'Desayuno leche y pan'),
   ItemIngles('ingles_comida', 4, TipoIngles.escribir, 'I like', 'I like apples'),
 
   // ---------------------------------------------- 4.º: presente simple ---
@@ -196,6 +218,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_presente_simple', 4, TipoIngles.alIngles, 'No me gusta el café',
       "I don't like coffee",
       nota: 'Para negar en presente, "do not" se junta en "don\'t".'),
+  ItemIngles('ingles_presente_simple', 4, TipoIngles.alEspanol,
+      'She goes to school every day', 'Ella va al colegio todos los días'),
   ItemIngles('ingles_presente_simple', 5, TipoIngles.completar,
       '... she like music? (¿le gusta?)', 'Does',
       nota: 'Las preguntas con "he", "she" e "it" empiezan por "Does".'),
@@ -208,6 +232,7 @@ const List<ItemIngles> ejerciciosDeIngles = [
       nota: '"Half past" es "y media", y va después de la hora.'),
   ItemIngles('ingles_hora', 4, TipoIngles.alEspanol, "It's quarter to nine",
       'Son las nueve menos cuarto'),
+  ItemIngles('ingles_hora', 2, TipoIngles.alEspanol, "It's six o'clock", 'Son las seis en punto'),
   ItemIngles('ingles_hora', 4, TipoIngles.responder, 'What time is it?', "It's ten o'clock"),
 
   // ------------------------------------------------- 4.º: preposiciones ---
@@ -217,6 +242,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
       'The book is ... the table. (encima)', 'on'),
   ItemIngles('ingles_preposiciones', 3, TipoIngles.alEspanol, 'The cat is behind the door',
       'El gato está detrás de la puerta'),
+  ItemIngles('ingles_preposiciones', 2, TipoIngles.alEspanol, 'The ball is in the box',
+      'La pelota está dentro de la caja'),
   ItemIngles('ingles_preposiciones', 4, TipoIngles.alIngles, 'El perro está entre las sillas',
       'The dog is between the chairs'),
 
@@ -224,6 +251,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_adjetivos', 1, TipoIngles.vocabulario, 'grande', 'big'),
   ItemIngles('ingles_adjetivos', 1, TipoIngles.vocabulario, 'pequeño', 'small'),
   ItemIngles('ingles_adjetivos', 2, TipoIngles.vocabulario, 'viejo', 'old'),
+  ItemIngles('ingles_adjetivos', 2, TipoIngles.alEspanol, 'This book is very old',
+      'Este libro es muy viejo'),
   ItemIngles('ingles_adjetivos', 3, TipoIngles.alIngles, 'Una casa grande', 'A big house',
       nota: 'En inglés el adjetivo va DELANTE del nombre: big house, no house big.'),
   ItemIngles('ingles_adjetivos', 4, TipoIngles.alEspanol, 'She has got long brown hair',
@@ -237,6 +266,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
       'She is ... to music. (escuchando)', 'listening'),
   ItemIngles('ingles_presente_continuo', 4, TipoIngles.alEspanol,
       'They are playing in the garden', 'Están jugando en el jardín'),
+  ItemIngles('ingles_presente_continuo', 3, TipoIngles.alEspanol, 'The baby is sleeping',
+      'El bebé está durmiendo'),
   ItemIngles('ingles_presente_continuo', 5, TipoIngles.responder, 'What are you doing?',
       'I am doing my homework'),
 
@@ -247,6 +278,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_there_is', 3, TipoIngles.completar, 'There ... four chairs.', 'are'),
   ItemIngles('ingles_there_is', 4, TipoIngles.alEspanol, 'There are two windows in my room',
       'Hay dos ventanas en mi habitación'),
+  ItemIngles('ingles_there_is', 3, TipoIngles.alEspanol, 'There is a cat under the chair',
+      'Hay un gato debajo de la silla'),
   ItemIngles('ingles_there_is', 5, TipoIngles.escribir, 'There are', 'There are trees in the park'),
 
   // ------------------------------------------------------- 5.º: rutinas ---
@@ -257,6 +290,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
       nota: 'El medio de transporte va con "by": by bus, by car, by bike.'),
   ItemIngles('ingles_rutinas', 4, TipoIngles.alIngles, 'Siempre desayuno leche',
       'I always have milk for breakfast'),
+  ItemIngles('ingles_rutinas', 4, TipoIngles.alEspanol, 'I do my homework after lunch',
+      'Hago los deberes después de comer'),
   ItemIngles('ingles_rutinas', 5, TipoIngles.responder, 'What time do you get up?',
       'I get up at half past seven'),
 
@@ -270,6 +305,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_pasado_simple', 4, TipoIngles.completar, 'We ... to the cinema. (fuimos)',
       'went',
       nota: '"Go" es irregular: su pasado es "went", no "goed".'),
+  ItemIngles('ingles_pasado_simple', 3, TipoIngles.alEspanol, 'We were at the beach',
+      'Estuvimos en la playa'),
   ItemIngles('ingles_pasado_simple', 5, TipoIngles.alEspanol, 'She bought a new bike',
       'Ella compró una bici nueva'),
 
@@ -280,6 +317,8 @@ const List<ItemIngles> ejerciciosDeIngles = [
   ItemIngles('ingles_comparativos', 4, TipoIngles.completar,
       'This book is more ... than that one. (interesante)', 'interesting',
       nota: 'Con adjetivos largos no se añade -er: se pone "more" delante.'),
+  ItemIngles('ingles_comparativos', 3, TipoIngles.alEspanol, 'My house is bigger than yours',
+      'Mi casa es más grande que la tuya'),
   ItemIngles('ingles_comparativos', 5, TipoIngles.alEspanol, 'My bike is better than yours',
       'Mi bici es mejor que la tuya',
       nota: '"Good" es irregular: su comparativo es "better".'),
@@ -411,14 +450,29 @@ List<Ejercicio> tandaDeIngles(
     lista.shuffle(_comoAzar(azar));
   }
 
+  // Se coge uno de cada tema, rotando, y dentro del tema se prefiere un tipo de
+  // ejercicio que no haya salido todavía. Si no se mirara el tipo, una tanda de
+  // cinco podía ser cinco palabras sueltas de vocabulario: el niño acabaría sin
+  // haber traducido una frase en toda la semana.
   final elegidos = <ItemIngles>[];
+  final tiposUsados = <TipoIngles>{};
+  final gastados = <ItemIngles>{};
+
   for (var vuelta = 0; elegidos.length < cuantas; vuelta++) {
     var quedaAlgo = false;
     for (final destreza in orden) {
-      final lista = porDestreza[destreza]!;
-      if (vuelta >= lista.length) continue;
+      final disponibles =
+          porDestreza[destreza]!.where((i) => !gastados.contains(i)).toList();
+      if (disponibles.isEmpty) continue;
       quedaAlgo = true;
-      elegidos.add(lista[vuelta]);
+
+      final elegido = disponibles.firstWhere(
+        (i) => !tiposUsados.contains(i.tipo),
+        orElse: () => disponibles.first,
+      );
+      elegidos.add(elegido);
+      gastados.add(elegido);
+      tiposUsados.add(elegido.tipo);
       if (elegidos.length == cuantas) break;
     }
     if (!quedaAlgo) break;

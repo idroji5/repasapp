@@ -7,6 +7,19 @@ import 'package:repasapp/voz/locutora.dart';
 /// El banco de inglés está escrito a mano, así que lo que hay que comprobar no
 /// es que las frases sean correctas —eso se revisa leyéndolas— sino que
 /// ninguna se quede coja: sin respuesta, sin destreza, o sin poder decirse.
+/// De qué tipo es un ejercicio ya montado, mirando cómo se plantea.
+TipoIngles _tipoDe(dynamic ejercicio) {
+  final e = ejercicio.enunciado as String;
+  final dictado = ejercicio.dictado as String;
+  if (e.endsWith('(en español)')) return TipoIngles.alEspanol;
+  if (e.endsWith('(en inglés)')) {
+    return e.split(' ').length > 3 ? TipoIngles.alIngles : TipoIngles.vocabulario;
+  }
+  if (dictado.startsWith('Completa')) return TipoIngles.completar;
+  if (dictado.startsWith('Contesta')) return TipoIngles.responder;
+  return TipoIngles.escribir;
+}
+
 void main() {
   test('cada ejercicio tiene destreza conocida y de su asignatura', () {
     final deIngles = destrezas
@@ -75,6 +88,33 @@ void main() {
       expect(tanda.map((e) => e.destrezaId).toSet().length, greaterThan(2),
           reason: 'cinco del mismo tema no es una tanda: $semilla');
       expect(tanda.map((e) => e.numero), [1, 2, 3, 4, 5]);
+    }
+  });
+
+  test('una tanda mezcla tipos de ejercicio, no solo temas', () {
+    // Cinco palabras sueltas de vocabulario también serían cinco temas
+    // distintos, y el niño se pasaría la semana sin traducir una frase.
+    for (final curso in [2, 4, 6]) {
+      final ids = destrezasHasta(curso, Asignatura.ingles).map((d) => d.id).toList();
+      for (var semilla = 0; semilla < 25; semilla++) {
+        final tanda = tandaDeIngles(ids, 3, 5, semilla);
+        final tipos = tanda.map(_tipoDe).toSet();
+        // Tres formatos distintos en cinco ejercicios. En los cursos bajos no
+        // da para más: no hay contenido de todos los tipos en todos los temas.
+        expect(tipos.length, greaterThanOrEqualTo(3),
+            reason: 'curso $curso, semilla $semilla: $tipos');
+      }
+    }
+  });
+
+  test('siempre cae algo de traducir del inglés al español', () {
+    for (final curso in [1, 2, 3, 4, 5, 6]) {
+      final ids = destrezasHasta(curso, Asignatura.ingles).map((d) => d.id).toList();
+      for (var semilla = 0; semilla < 25; semilla++) {
+        final tanda = tandaDeIngles(ids, 3, 5, semilla);
+        expect(tanda.any((e) => e.enunciado.endsWith('(en español)')), isTrue,
+            reason: 'curso $curso, semilla $semilla: ninguna para traducir');
+      }
     }
   });
 

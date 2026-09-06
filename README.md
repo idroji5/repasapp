@@ -77,9 +77,9 @@ obliga a tocar la interfaz.
 ## Inglés
 
 Tercera asignatura, con el mismo esquema: se escucha, se escribe en el papel y
-se corrige en pantalla. Los ejercicios están escritos uno a uno —una frase en
-otro idioma o está bien escrita o enseña a escribir mal— y son de cinco clases
-distintas, porque traducir todo el rato cansa:
+se corrige en pantalla. **123 ejercicios escritos uno a uno** —una frase en otro
+idioma o está bien escrita o enseña a escribir mal— de seis clases distintas,
+porque hacer siempre lo mismo cansa:
 
 | Tipo | Ejemplo |
 |---|---|
@@ -93,6 +93,10 @@ distintas, porque traducir todo el rato cansa:
 Van por temas —saludos, colores, familia, la hora, rutinas— y por estructuras
 —*to be*, *have got*, plurales, presente continuo, pasado simple—, cada una
 atada al curso en que se da y con dificultad 1-5 dentro de ella.
+
+Cada tanda **mezcla temas y formatos**, y siempre cae algo de traducir del
+inglés al español: cinco palabras sueltas de vocabulario también serían cinco
+temas distintos, y el niño se pasaría la semana sin traducir una frase.
 
 **La voz cambia de idioma a media frase.** Lo que va en inglés se dice con voz
 inglesa (británica, si el teléfono tiene una) y el resto en castellano: leer
@@ -172,7 +176,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 99 pruebas de la lógica pura y del repositorio
+flutter test          # 101 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 
@@ -193,7 +197,7 @@ Requiere JDK 17 para compilar en Android:
   *c/z* pierde sentido para un niño español.
 - **El banco de dictados es finito**: 60 textos, 12 por nivel. No repite
   ninguno de los 20 últimos, así que dan para unas semanas antes de reciclar.
-  Los de inglés son ~110. Las matemáticas sí son infinitas.
+  Los de inglés son 123. Las matemáticas sí son infinitas.
 
 ## `backend/`
 
