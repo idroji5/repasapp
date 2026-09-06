@@ -77,16 +77,18 @@ caligráfica**: el texto del dictado en letra ligada, como la del cuaderno, y la
 cuentas en manuscrita clara, porque en cursiva un 4 y un 7 se confunden. Aquí ya
 no hay prisa ni manos ocupadas, así que se marca tocando y se ve todo junto.
 
-- **Dictado**: el texto completo con las palabras difíciles subrayadas, y el
-  niño toca las que ha escrito mal. Después, *"¿alguna falta más?"* para las
-  palabras que la app no señala. Cada palabra que marque se le explica:
-  *"había: lleva hache, aunque no se oiga al pronunciarla"*.
+- **Dictado**: el texto completo, y el niño **tacha encima las palabras que ha
+  escrito mal**, tocándolas. Se corrige sobre la hoja, como se corrige de
+  verdad. Cada palabra tachada se le explica: *"había: lleva hache, aunque no
+  se oiga al pronunciarla"*.
 - **Matemáticas**: los cinco ejercicios con su solución, cada uno con *"me ha
   salido"* / *"no me ha salido"*. Los que no, se repasan de viva voz con pistas.
 
-Se pregunta por palabras y no por un número de faltas porque una palabra se
-puede explicar y un número no: de ahí salen las reglas que la voz repasa y los
-errores frecuentes de la zona de padres.
+Se marcan palabras y no un número de faltas porque una palabra se puede
+explicar y un número no: de ahí salen las reglas que la voz repasa y los
+errores frecuentes de la zona de padres. Y se puede tachar cualquiera, no solo
+las difíciles —esas van en negrita, como aviso—, así que no hace falta
+preguntar después si se le escapó alguna más.
 
 Y lo que ha salido mal se puede **volver a hacer ahí mismo**: la app monta una
 actividad nueva con solo esos ejercicios —las mismas cuentas, no otras— y la
@@ -117,7 +119,9 @@ falla bastante.
 
 Lo que hay que escribir —el dictado, el enunciado de un problema, una cuenta—
 se dice **palabra a palabra, con un silencio entre cada una** y dos veces
-seguidas. Lo que un niño necesita para escribir no es oír la palabra estirada,
+seguidas. Los enunciados de matemáticas no: esos se cortan por las comas, que
+un problema se entiende de corrido y trocearlo como un dictado lo vuelve
+ininteligible. Lo que un niño necesita para escribir no es oír la palabra estirada,
 es que le dejen tiempo antes de la siguiente; quien dicta de verdad no habla
 lento, habla y se calla. Las palabras de una o dos letras van pegadas a la
 siguiente, que dichas solas suenan a lista de la compra.
@@ -138,7 +142,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 77 pruebas de la lógica pura y del repositorio
+flutter test          # 79 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 
@@ -151,9 +155,9 @@ Requiere JDK 17 para compilar en Android:
   app se lo cree. No es grave: el nivel necesita varias actividades seguidas
   para moverse, así que una autoevaluación imperfecta no descarrila el
   progreso, y comprobar su propia hoja es parte del ejercicio.
-- **La app solo pregunta por las palabras difíciles del dictado.** De las demás
-  se fía de lo que él conteste a "¿alguna falta más?", y de esas no puede
-  explicar ninguna regla: no sabe cuáles son.
+- **De las palabras que no son las difíciles no hay regla que dar.** Se pueden
+  tachar y cuentan para la nota, pero la app solo sabe explicar aquello sobre
+  lo que el dictado está construido, más las tildes, que se ven en la palabra.
 - **La voz depende del teléfono.** Se busca la mejor voz `es-ES` instalada. Si
   el dispositivo solo trae voz latinoamericana, el dictado de palabras con
   *c/z* pierde sentido para un niño español.

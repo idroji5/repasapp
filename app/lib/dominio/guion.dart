@@ -59,6 +59,7 @@ class Fragmento extends Paso {
     this.avanzaSolo = true,
     this.veces = 1,
     this.escrito,
+    this.palabraAPalabra = true,
   });
 
   final int indice;
@@ -70,6 +71,13 @@ class Fragmento extends Paso {
   /// "742 : 7"; un problema se lee entero y se escribe con sus cifras. Es lo
   /// que se enseña cuando el niño pide verlo.
   final String? escrito;
+
+  /// Si hay que decirlo palabra por palabra, con silencio entre cada una.
+  ///
+  /// Un dictado sí: se copia tal cual, y lo que hace falta es tiempo entre
+  /// palabra y palabra. Un enunciado de matemáticas no: se entiende de
+  /// corrido, y trocearlo igual solo consigue que no se entienda.
+  final bool palabraAPalabra;
 
   /// Cuántas veces seguidas se dice antes de callar.
   ///

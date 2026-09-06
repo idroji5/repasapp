@@ -52,7 +52,7 @@ class Tema {
     double tamano = 30,
     Color color = tinta,
     FontWeight peso = FontWeight.w400,
-    TextDecoration? subrayado,
+    TextDecoration? decoracion,
   }) =>
       TextStyle(
         fontFamily: caligrafica,
@@ -60,7 +60,7 @@ class Tema {
         height: 1.5,
         color: color,
         fontWeight: peso,
-        decoration: subrayado,
+        decoration: decoracion,
         decorationColor: color,
         decorationThickness: 2,
       );

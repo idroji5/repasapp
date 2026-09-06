@@ -120,33 +120,45 @@ void main() {
         contains(operaciones.first.destrezaId));
   });
 
-  testWidgets('en el dictado se tocan las palabras falladas', (tester) async {
+  testWidgets('el dictado se corrige tachando sobre el propio texto',
+      (tester) async {
     final actividad = await actividadDe(Asignatura.dictado);
     final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;
     await abrir(tester, actividad);
 
-    // Las palabras difíciles están todas ahí para tocarlas.
-    await tester.scrollUntilVisible(find.text(dictado.palabrasClave.last), 240);
-    for (final palabra in dictado.palabrasClave) {
-      expect(find.text(palabra), findsWidgets, reason: palabra);
+    // El texto está entero en pantalla, palabra a palabra.
+    final primeraFrase = dictado.fragmentos.first.split(' ');
+    for (final trozo in primeraFrase) {
+      expect(find.text(trozo), findsWidgets, reason: trozo);
     }
 
+    // Se tacha una palabra difícil y otra corriente: se puede marcar
+    // cualquiera, no solo las que el dictado pone a prueba.
+    await tocar(tester, find.text(primeraFrase.first));
     await tocar(tester, find.text(dictado.palabrasClave.first).last);
-    await tocar(tester, find.text('Ya está'));
 
-    // Y después, las que no estaban señaladas.
-    expect(find.text('¿Alguna falta más?'), findsOneWidget);
-    await tocar(tester, find.text('Ninguna'));
+    expect(find.text('Corregir, con 2 faltas'), findsOneWidget);
+    await tocar(tester, find.text('Corregir, con 2 faltas'));
     await terminarDeGuardar(tester);
 
     final guardada = (await repo.actividad(actividad.id))!;
     expect(guardada.estado, EstadoActividad.corregida);
     expect(guardada.total, dictado.numeroDePalabras);
-    expect(guardada.aciertos, dictado.numeroDePalabras - 1);
-
-    // La palabra que ha fallado se explica en pantalla, con su regla.
-    expect(find.text(dictado.palabrasClave.first), findsWidgets);
+    expect(guardada.aciertos, dictado.numeroDePalabras - 2);
     expect(find.textContaining('de ${dictado.numeroDePalabras}'), findsOneWidget);
+  });
+
+  testWidgets('tocar dos veces la misma palabra la destacha', (tester) async {
+    final actividad = await actividadDe(Asignatura.dictado);
+    final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;
+    await abrir(tester, actividad);
+
+    final palabra = find.text(dictado.fragmentos.first.split(' ').first);
+    await tocar(tester, palabra);
+    expect(find.text('Corregir, con una falta'), findsOneWidget);
+
+    await tocar(tester, palabra);
+    expect(find.text('No he fallado ninguna'), findsOneWidget);
   });
 
   testWidgets('desde el resultado se puede volver a hacer lo fallado',
@@ -182,25 +194,11 @@ void main() {
     expect(find.text('Terminar'), findsOneWidget);
   });
 
-  testWidgets('las faltas de otras palabras se cuentan aparte', (tester) async {
-    final actividad = await actividadDe(Asignatura.dictado);
-    final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;
-    await abrir(tester, actividad);
-
-    await tocar(tester, find.text('No he fallado ninguna'));
-    await tocar(tester, find.text('2'));
-    await terminarDeGuardar(tester);
-
-    final guardada = (await repo.actividad(actividad.id))!;
-    expect(guardada.aciertos, dictado.numeroDePalabras - 2);
-  });
-
   testWidgets('un dictado sin faltas es perfecto', (tester) async {
     final actividad = await actividadDe(Asignatura.dictado);
     await abrir(tester, actividad);
 
     await tocar(tester, find.text('No he fallado ninguna'));
-    await tocar(tester, find.text('Ninguna'));
     await terminarDeGuardar(tester);
 
     expect(find.text('¡Sin ni un fallo!'), findsOneWidget);

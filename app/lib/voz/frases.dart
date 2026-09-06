@@ -39,10 +39,8 @@ class Frases {
 
   // ------------------------------------------------------- corrección ---
   static const String comparaDictado =
-      'Ya está. Aquí tienes el dictado escrito, con las palabras difíciles '
-      'subrayadas. Compáralo con tu hoja y toca las que hayas escrito mal.';
-  static const String algunaFaltaMas =
-      '¿Has tenido alguna falta más, en otras palabras?';
+      'Ya está. Aquí tienes el dictado escrito. Compáralo con tu hoja y toca '
+      'encima de cada palabra que hayas escrito mal.';
   static const String comparaOperaciones =
       'Aquí tienes las soluciones. Mira una por una si te ha salido, y marca '
       'las que no.';
@@ -54,13 +52,9 @@ class Frases {
   static String resumenFallos(int fallos, List<String> palabras) =>
       'Has tenido ${fallos == 1 ? "un fallo" : "$fallos fallos"}. '
       'Vamos a repasar ${enumerar(palabras)}.';
-  static String cuantasFaltas(int faltas) =>
-      'Has tenido ${faltas == 1 ? "una falta" : "$faltas faltas"}.';
   static const String animo = 'No pasa nada, para eso repasamos. Mañana seguimos.';
   static const String puedesRepetir =
       'Si quieres, vuelve a hacerlo y te lo corrijo otra vez.';
-  static const String apuntaLasFaltas =
-      'Apunta las palabras que has fallado y escríbelas bien tres veces.';
 
   // ------------------------------------------------------------- pistas ---
   static String fallasteEn(int numero) =>
@@ -80,8 +74,15 @@ String enumerar(List<String> elementos) {
 
 // ------------------------------------------- explicación de cada falta ---
 
+/// Cómo se llama cada letra en voz alta.
+///
+/// La be y la uve llevan apellido —"be de burro", "uve de vaca"— por dos
+/// motivos. El de fondo: en castellano suenan igual, así que decir "se escribe
+/// con be" no distingue nada si el niño no tiene ya claro cuál es cuál. Y el
+/// práctico: "be", sola, la mitad de los motores de voz la leen en inglés, y
+/// el niño oye "bi".
 const Map<String, String> _nombreLetra = {
-  'b': 'be', 'v': 'uve', 'h': 'hache', 'g': 'ge', 'j': 'jota',
+  'b': 'be de burro', 'v': 'uve de vaca', 'h': 'hache', 'g': 'ge', 'j': 'jota',
   'c': 'ce', 'z': 'zeta', 's': 'ese', 'y': 'i griega', 'll': 'elle',
   'r': 'erre', 'rr': 'doble erre', 'm': 'eme', 'n': 'ene', 'x': 'equis',
 };
@@ -110,9 +111,11 @@ String razonDe(Falta falta) => switch (falta.tipo) {
         _explicacionTilde[falta.destrezaId ?? ''] ?? 'lleva tilde',
       TipoFalta.h => 'lleva hache, aunque no se oiga al pronunciarla',
       TipoFalta.bV => falta.destrezaId == 'b_verbos_aba'
-          ? 'se escribe con be, porque los verbos terminados en -aba se escriben siempre con be'
+          ? 'se escribe con be de burro, porque los verbos terminados en -aba '
+              'se escriben siempre con be'
           : falta.destrezaId == 'v_adjetivos'
-              ? 'se escribe con uve, porque los adjetivos acabados en -ivo, -iva y -ave la llevan'
+              ? 'se escribe con uve de vaca, porque los adjetivos acabados en '
+                  '-ivo, -iva y -ave la llevan'
               : 'se escribe con ${_letraCorrecta(falta.esperado, ["b", "v"])}',
       TipoFalta.llY => 'se escribe con ${_letraCorrecta(falta.esperado, ["ll", "y"])}',
       TipoFalta.gJ => 'se escribe con ${_letraCorrecta(falta.esperado, ["j", "g"])}',
@@ -125,7 +128,8 @@ String razonDe(Falta falta) => switch (falta.tipo) {
       TipoFalta.rRr => falta.esperado.toLowerCase().contains('rr')
           ? 'lleva doble erre, porque el sonido es fuerte y va entre vocales'
           : 'lleva una sola erre',
-      TipoFalta.mAntesPB => 'va con eme, porque antes de pe y de be siempre se escribe eme',
+      TipoFalta.mAntesPB =>
+        'va con eme, porque antes de pe y de be siempre se escribe eme',
       TipoFalta.dieresis =>
         'lleva diéresis, los dos puntitos sobre la u, para que la u se oiga',
       TipoFalta.xS => 'se escribe con ${_letraCorrecta(falta.esperado, ["x", "s"])}',

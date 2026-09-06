@@ -104,7 +104,8 @@ class ReproductorGuion extends ChangeNotifier {
           :final pausaSegundos,
           :final avanzaSolo,
           :final veces,
-          :final escrito
+          :final escrito,
+          :final palabraAPalabra
         ):
         fragmentoActual = indice + 1;
         revelado = false;
@@ -115,7 +116,7 @@ class ReproductorGuion extends ChangeNotifier {
         // que tenga puesta en ese momento.
         var repetir = true;
         while (repetir && !_cancelado) {
-          await _leerFragmento(texto, veces);
+          await _leerFragmento(texto, veces, palabraAPalabra);
           if (_cancelado) return;
           final accion = await _pausaParaEscribir(pausaSegundos, avanzaSolo);
           repetir = accion == _AccionPausa.repetir;
@@ -162,13 +163,17 @@ class ReproductorGuion extends ChangeNotifier {
   /// La segunda va un punto más despacio que la primera: así es como repite
   /// quien dicta de verdad, y así la repetición sirve para escribir y no solo
   /// para volver a oír lo mismo al mismo ritmo.
-  Future<void> _leerFragmento(String queDecir, int veces) async {
+  Future<void> _leerFragmento(String queDecir, int veces, bool palabraAPalabra) async {
     for (var vez = 0; vez < veces && !_cancelado; vez++) {
       texto = queDecir;
       comandos = guion.comandosGlobales;
       _cambiar(Fase.hablando);
       // Esto es lo único que se dicta: lo que el niño tiene que escribir.
-      await voz.dictar(queDecir, a: vez == 0 ? null : voz.velocidad.masLenta);
+      await voz.dictar(
+        queDecir,
+        a: vez == 0 ? null : voz.velocidad.masLenta,
+        corte: palabraAPalabra ? Corte.palabras : Corte.frases,
+      );
 
       if (vez + 1 < veces && !_cancelado) {
         await Future<void>.delayed(_respiroEntreLecturas);

@@ -88,6 +88,27 @@ void main() {
         reason: 'entre trozo y trozo hay silencio de verdad');
   });
 
+  test('un enunciado de matemáticas no se trocea palabra a palabra', () async {
+    final motor = _MotorEspia();
+    final locutora = Locutora(motor: motor);
+
+    await locutora.dictar(
+      'Cada caja trae doce lápices. ¿Cuántos hay?',
+      corte: Corte.frases,
+    );
+
+    // Se corta por donde ya se respira al leerlo. Un problema se entiende de
+    // corrido; trocearlo como un dictado lo vuelve ininteligible.
+    expect(motor.dicho, ['Cada caja trae doce lápices.', '¿Cuántos hay?']);
+  });
+
+  test('se corta por donde se respira', () {
+    expect(Locutora.enFrases('Hay 30 galletas, y son para tres niños. ¿Cuántas?'),
+        ['Hay 30 galletas,', 'y son para tres niños.', '¿Cuántas?']);
+    expect(Locutora.enFrases('Sin puntuación ninguna'),
+        ['Sin puntuación ninguna']);
+  });
+
   test('las palabras cortas no se dicen solas', () {
     expect(Locutora.enTrozos('Mi abuelo vive en el campo.'),
         ['Mi abuelo', 'vive', 'en el campo.']);

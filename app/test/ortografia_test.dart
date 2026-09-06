@@ -71,35 +71,39 @@ void main() {
     }
   });
 
-  test('la nota sale de las faltas que el niño dice haber tenido', () {
+  test('la nota sale de las palabras que ha tachado', () {
     final dictado = dictadoPorId('dic-101')!;
-    final c = corregirDictadoMarcado(dictado, 3, const []);
+    final c = corregirDictadoMarcado(dictado, const ['campo', 'queso', 'mesa']);
 
     expect(c.faltas, 3);
     expect(c.totalPalabras, dictado.numeroDePalabras);
     expect(c.aciertos, dictado.numeroDePalabras - 3);
     expect(c.perfecto, isFalse);
-    expect(c.explicadas, isEmpty);
   });
 
-  test('marcar palabras explica cada una', () {
+  test('cada palabra tachada se explica', () {
     final dictado = dictadoPorId('dic-101')!;
-    final c = corregirDictadoMarcado(dictado, 2, const ['campo', 'queso']);
+    final c = corregirDictadoMarcado(dictado, const ['campo', 'queso']);
 
     expect(c.explicadas.length, 2);
     expect(c.explicadas.first.esperado, 'campo');
     expect(c.explicadas.first.destrezaId, 'm_antes_p_b');
   });
 
-  test('si marca más palabras que faltas dijo, mandan las palabras', () {
+  test('también se puede tachar una palabra que no era de las difíciles', () {
+    // El niño puede fallar cualquier palabra, no solo las que el dictado pone a
+    // prueba. De esas la app no tiene regla que dar, pero sí cuentan.
     final dictado = dictadoPorId('dic-101')!;
-    final c = corregirDictadoMarcado(dictado, 1, const ['campo', 'queso', 'siempre']);
-    expect(c.faltas, 3);
+    final c = corregirDictadoMarcado(dictado, const ['mesa']);
+
+    expect(c.faltas, 1);
+    expect(c.explicadas.single.tipo, TipoFalta.ortografia);
+    expect(c.explicadas.single.destrezaId, isNull);
   });
 
-  test('sin faltas, el dictado es perfecto', () {
+  test('sin tachar nada, el dictado es perfecto', () {
     final dictado = dictadoPorId('dic-101')!;
-    final c = corregirDictadoMarcado(dictado, 0, const []);
+    final c = corregirDictadoMarcado(dictado, const []);
     expect(c.perfecto, isTrue);
     expect(c.aciertos, c.totalPalabras);
   });

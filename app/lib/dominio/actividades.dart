@@ -47,18 +47,13 @@ Guion guionDictado(Dictado dictado) {
 
 /// Repaso de un dictado que el niño acaba de corregirse él mismo.
 ///
-/// Si ha marcado en qué palabras ha fallado, se le explica la regla de cada
-/// una: es la parte que enseña. Si solo ha dicho cuántas, no se inventa nada
-/// —explicar la palabra equivocada es peor que no explicar ninguna— y se le
-/// dice qué hacer con ellas.
+/// Se le explica la regla de cada palabra que ha tachado: esa es la parte que
+/// enseña. Como las ha marcado sobre el texto, no hay nada que adivinar.
 Guion guionRepasoDictado(CorreccionDictado correccion) {
   final pasos = <Paso>[];
 
   if (correccion.perfecto) {
     pasos.add(const Habla(Frases.todoBien));
-  } else if (correccion.explicadas.isEmpty) {
-    pasos.add(Habla(Frases.cuantasFaltas(correccion.faltas)));
-    pasos.add(const Habla(Frases.apuntaLasFaltas));
   } else {
     final faltas = correccion.explicadas.take(maxFaltasARepasar).toList();
     pasos.add(Habla(Frases.resumenFallos(
@@ -108,6 +103,8 @@ Guion guionMatematicas(List<Operacion> operaciones) {
       // Un problema con enunciado tampoco se retiene a la primera: se lee dos
       // veces, igual que una frase de dictado.
       veces: op.esProblema ? 2 : 1,
+      // Pero no palabra a palabra: esto no se copia, se entiende.
+      palabraAPalabra: false,
       escrito: '${op.numero}.  ${op.problema ?? op.enunciado}',
     ));
   }

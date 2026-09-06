@@ -47,6 +47,10 @@ enum Velocidad {
       };
 }
 
+/// Cuánto se trocea al dictar: una frase de dictado se copia palabra por
+/// palabra; un enunciado de matemáticas se entiende de corrido.
+enum Corte { palabras, frases }
+
 /// La voz de la app.
 ///
 /// Usa el motor del propio teléfono, así que funciona sin conexión y sin coste.
@@ -227,22 +231,37 @@ class Locutora {
   /// Explica algo: instrucciones, preguntas, correcciones. Ritmo de conversar.
   Future<void> decir(String texto) => _hablar(texto, tasaAlExplicar);
 
-  /// Dicta algo para que el niño lo escriba, dejándole aire entre palabra y
-  /// palabra. Al ritmo que él haya pedido, o al que se indique en [a].
-  Future<void> dictar(String texto, {Velocidad? a}) async {
+  /// Dicta algo para que el niño lo escriba, al ritmo que él haya pedido o al
+  /// que se indique en [a].
+  ///
+  /// [corte] decide cuánto aire se deja. Una frase de dictado se copia palabra
+  /// por palabra, así que se dice palabra por palabra. Un problema de
+  /// matemáticas no se copia: se entiende, se decide qué cuenta hay que hacer y
+  /// se escribe esa. Trocearlo igual que un dictado lo vuelve ininteligible.
+  Future<void> dictar(String texto, {Velocidad? a, Corte corte = Corte.palabras}) async {
     if (muda) return;
     final ritmo = a ?? velocidad;
-    final trozos = enTrozos(texto);
+    final trozos = corte == Corte.palabras ? enTrozos(texto) : enFrases(texto);
+    final pausa = corte == Corte.palabras
+        ? ritmo.pausaEntrePalabras
+        : ritmo.pausaEntrePalabras ~/ 2;
 
     for (var i = 0; i < trozos.length; i++) {
       if (_cancelado) return;
       await _hablar(trozos[i], ritmo.tasa);
       if (i + 1 < trozos.length) {
-        await Future<void>.delayed(
-            Duration(milliseconds: ritmo.pausaEntrePalabras));
+        await Future<void>.delayed(Duration(milliseconds: pausa));
       }
     }
   }
+
+  /// Corta un texto por donde ya se respira al leerlo: comas, puntos y dos
+  /// puntos. Es como se dicta un enunciado, no palabra a palabra.
+  static List<String> enFrases(String texto) => texto
+      .split(RegExp(r'(?<=[,.;:?!])\s+'))
+      .map((t) => t.trim())
+      .where((t) => t.isNotEmpty)
+      .toList();
 
   /// Corta una frase en los trozos que se dicen de una tirada.
   ///

@@ -43,19 +43,16 @@ class PantallaRevision extends StatefulWidget {
   State<PantallaRevision> createState() => _PantallaRevisionState();
 }
 
-enum _Fase { marcando, faltasSueltas, guardando, resultado }
-
-/// Tope de la pregunta "¿cuántas faltas más?". Por encima de esto el número
-/// exacto da igual: lo que toca es repetir el dictado otro día, no contar.
-const int _maxFaltasQuePregunta = 5;
+enum _Fase { marcando, guardando, resultado }
 
 class _PantallaRevisionState extends State<PantallaRevision> {
   _Fase _fase = _Fase.marcando;
 
-  /// Dictado: qué palabras dice haber fallado, y cuántas faltas más ha tenido
-  /// en palabras que la app no señala.
-  final Set<String> _palabrasFalladas = {};
-  int _faltasSueltas = 0;
+  /// Dictado: en qué palabras del texto ha pinchado.
+  ///
+  /// Se guarda la posición y no la palabra: en "la ventana del salón" hay dos
+  /// "la", y tachar una no puede tachar la otra.
+  final Set<int> _tachadas = {};
   CorreccionDictado? _correccionDictado;
 
   /// Matemáticas: qué ejercicios dice que le han salido bien.
@@ -103,8 +100,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       case ContenidoDictado(:final dictado):
         final correccion = corregirDictadoMarcado(
           dictado,
-          _palabrasFalladas.length + _faltasSueltas,
-          _palabrasFalladas.toList(),
+          [for (final i in _tachadas.toList()..sort()) palabrasDe(dictado.texto)[i]],
         );
         _correccionDictado = correccion;
         aciertos = correccion.aciertos;
@@ -176,18 +172,6 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     _repaso!.arrancar();
   }
 
-  /// Marcadas las palabras, queda saber si se le ha escapado alguna más: las
-  /// palabras señaladas son las trampas del dictado, no todas las palabras.
-  void _preguntarPorLasDemas() {
-    setState(() => _fase = _Fase.faltasSueltas);
-    unawaited(context.read<AppEstado>().voz.decir(Frases.algunaFaltaMas));
-  }
-
-  void _responderFaltasSueltas(int cuantas) {
-    _faltasSueltas = cuantas;
-    _corregir();
-  }
-
   /// Volver a hacer lo que ha salido mal.
   ///
   /// Corregir sin poder arreglarlo se queda a medias: lo que enseña de verdad
@@ -256,18 +240,16 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       );
     }
 
-    if (_fase == _Fase.faltasSueltas) {
-      return _FaltasSueltas(onResponder: _responderFaltasSueltas);
-    }
-
     return switch (widget.contenido) {
       ContenidoDictado(:final dictado) => _MarcarDictado(
           dictado: dictado,
-          seleccionadas: _palabrasFalladas,
-          onCambiar: (palabra, marcada) => setState(() {
-            marcada ? _palabrasFalladas.add(palabra) : _palabrasFalladas.remove(palabra);
+          tachadas: _tachadas,
+          onTachar: (posicion) => setState(() {
+            _tachadas.contains(posicion)
+                ? _tachadas.remove(posicion)
+                : _tachadas.add(posicion);
           }),
-          onListo: _preguntarPorLasDemas,
+          onListo: _corregir,
         ),
       ContenidoOperaciones(:final operaciones) => _MarcarOperaciones(
           operaciones: operaciones,
@@ -286,84 +268,117 @@ class _PantallaRevisionState extends State<PantallaRevision> {
 
 // ------------------------------------------------------ marcar el dictado ---
 
-/// El dictado escrito con letra de cuaderno, para compararlo con la hoja.
+/// El dictado con letra de cuaderno, palabra por palabra y cada una tocable.
+///
+/// Se corrige sobre el texto y no en una lista aparte, que es como se corrige
+/// una hoja de verdad: se tacha lo que está mal, donde está. Y así se puede
+/// marcar cualquier palabra, no solo las difíciles, que era lo que obligaba a
+/// preguntar después "¿alguna falta más?" y a fiarse de un número.
 class _TextoDelDictado extends StatelessWidget {
-  const _TextoDelDictado({required this.dictado, this.resaltadas = const {}});
+  const _TextoDelDictado({
+    required this.dictado,
+    required this.tachadas,
+    this.onTachar,
+  });
 
   final Dictado dictado;
 
-  /// Palabras que se pintan en rojo: las que el niño ha dicho que falló.
-  final Set<String> resaltadas;
+  /// Posiciones de las palabras tachadas dentro del texto.
+  final Set<int> tachadas;
+
+  /// Si es null, el texto solo se lee: es el de después de corregir.
+  final void Function(int posicion)? onTachar;
 
   @override
   Widget build(BuildContext context) {
+    // La numeración tiene que coincidir con la de palabrasDe(texto), que es de
+    // donde sale luego la palabra que se corrige.
+    var posicion = -1;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 20),
       decoration: Tema.cajaTarjeta,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final frase in dictado.fragmentos)
             Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _Frase(
-                frase: frase,
-                clave: dictado.palabrasClave,
-                resaltadas: resaltadas,
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  for (final trozo in frase.split(RegExp(r'\s+')))
+                    if (palabrasDe(trozo).isNotEmpty)
+                      _Palabra(
+                        trozo: trozo,
+                        tachada: tachadas.contains(++posicion),
+                        dificil:
+                            dictado.palabrasClave.any((p) => _esLaMisma(trozo, p)),
+                        onTocar: onTachar == null
+                            ? null
+                            : _alTocar(onTachar!, posicion),
+                      ),
+                ],
               ),
             ),
         ],
       ),
     );
   }
+
+  /// La posición hay que atraparla ahora: cuando se ejecute el callback, el
+  /// contador ya estará en otra palabra.
+  static VoidCallback _alTocar(void Function(int) onTachar, int posicion) =>
+      () => onTachar(posicion);
 }
 
-/// Una frase del dictado. Las palabras difíciles van subrayadas —son las que la
-/// app sabe explicar— y las que el niño marca como falladas, en rojo.
-class _Frase extends StatelessWidget {
-  const _Frase({required this.frase, required this.clave, required this.resaltadas});
+/// Una palabra del dictado. Tocarla la tacha; volver a tocarla la destacha.
+class _Palabra extends StatelessWidget {
+  const _Palabra({
+    required this.trozo,
+    required this.tachada,
+    required this.dificil,
+    required this.onTocar,
+  });
 
-  final String frase;
-  final List<String> clave;
-  final Set<String> resaltadas;
+  final String trozo;
+  final bool tachada;
+
+  /// Una de las palabras que este dictado pone a prueba. Va en negrita: es un
+  /// "mira bien esta", no un botón distinto de los demás.
+  final bool dificil;
+
+  final VoidCallback? onTocar;
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(children: [for (final trozo in frase.split(' ')) _palabra(trozo)]),
-    );
-  }
-
-  /// Las palabras difíciles van subrayadas —son las que hay que marcar— y las
-  /// que el niño ha marcado, en rojo.
-  TextSpan _palabra(String trozo) {
-    final normal = Tema.deCuaderno(tamano: 32);
-    if (!clave.any((p) => _esLaMisma(trozo, p))) {
-      return TextSpan(text: '$trozo ', style: normal);
-    }
-
-    // El subrayado señala la palabra, no la coma que va detrás.
-    final partes = _signosSueltos.firstMatch(trozo)!;
-    return TextSpan(children: [
-      TextSpan(text: partes.group(1), style: normal),
-      TextSpan(
-        text: partes.group(2),
-        style: Tema.deCuaderno(
-          tamano: 32,
-          color: resaltadas.any((p) => _esLaMisma(trozo, p))
-              ? Tema.fallo
-              : Tema.tinta,
-          peso: FontWeight.w700,
-          subrayado: TextDecoration.underline,
+    return GestureDetector(
+      onTap: onTocar,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        // El hueco que se toca es más grande que la palabra: un niño apunta con
+        // el dedo, no con un ratón.
+        margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+        decoration: tachada
+            ? BoxDecoration(
+                color: Tema.falloSuave,
+                borderRadius: BorderRadius.circular(8),
+              )
+            : null,
+        child: Text(
+          trozo,
+          style: Tema.deCuaderno(
+            tamano: 32,
+            color: tachada ? Tema.fallo : Tema.tinta,
+            peso: dificil ? FontWeight.w700 : FontWeight.w400,
+            decoracion: tachada ? TextDecoration.lineThrough : null,
+          ),
         ),
       ),
-      TextSpan(text: '${partes.group(3)} ', style: normal),
-    ]);
+    );
   }
 }
-
-/// Los signos pegados a una palabra, delante y detrás.
-final RegExp _signosSueltos = RegExp(r'^([¿¡«"(]*)(.*?)([.,;:!?»")]*)$');
 
 /// Compara una palabra suelta del texto con una palabra clave, sin que la
 /// puntuación pegada estropee la comparación ("campo." es "campo").
@@ -372,22 +387,18 @@ bool _esLaMisma(String enElTexto, String clave) {
   return limpia == clave.toLowerCase();
 }
 
-/// El dictado con sus palabras difíciles, para tocar las que haya fallado.
-///
-/// Todo a la vez y sin prisa: lee su hoja, la compara con la pantalla y va
-/// tocando. Se pregunta por las palabras y no por un número de faltas porque
-/// una palabra se puede explicar —"había lleva hache"— y un número no.
+/// La hoja del dictado, para tachar encima lo que ha salido mal.
 class _MarcarDictado extends StatelessWidget {
   const _MarcarDictado({
     required this.dictado,
-    required this.seleccionadas,
-    required this.onCambiar,
+    required this.tachadas,
+    required this.onTachar,
     required this.onListo,
   });
 
   final Dictado dictado;
-  final Set<String> seleccionadas;
-  final void Function(String palabra, bool marcada) onCambiar;
+  final Set<int> tachadas;
+  final void Function(int posicion) onTachar;
   final VoidCallback onListo;
 
   @override
@@ -401,28 +412,14 @@ class _MarcarDictado extends StatelessWidget {
               Text(dictado.titulo, style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 6),
               const Text(
-                'Compáralo con tu hoja, sin prisa.',
-                style: TextStyle(color: Tema.tintaSuave, fontSize: 16),
+                'Compáralo con tu hoja y toca las palabras que hayas escrito mal.',
+                style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
               ),
               const SizedBox(height: 18),
-              _TextoDelDictado(dictado: dictado, resaltadas: seleccionadas),
-              const SizedBox(height: 24),
-              Text(
-                'Toca las que hayas escrito mal',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final palabra in dictado.palabrasClave)
-                    _ChipPalabra(
-                      palabra: palabra,
-                      marcada: seleccionadas.contains(palabra),
-                      onCambiar: (v) => onCambiar(palabra, v),
-                    ),
-                ],
+              _TextoDelDictado(
+                dictado: dictado,
+                tachadas: tachadas,
+                onTachar: onTachar,
               ),
             ],
           ),
@@ -430,7 +427,11 @@ class _MarcarDictado extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
           child: BotonGrande(
-            texto: seleccionadas.isEmpty ? 'No he fallado ninguna' : 'Ya está',
+            texto: switch (tachadas.length) {
+              0 => 'No he fallado ninguna',
+              1 => 'Corregir, con una falta',
+              final n => 'Corregir, con $n faltas',
+            },
             onPressed: onListo,
           ),
         ),
@@ -438,125 +439,6 @@ class _MarcarDictado extends StatelessWidget {
     );
   }
 }
-
-/// Las faltas en palabras que la app no señala.
-///
-/// Las palabras clave son las trampas del dictado, pero no son todas: sin esta
-/// pregunta, quien se deja una tilde en cualquier otra palabra saca un diez.
-class _FaltasSueltas extends StatelessWidget {
-  const _FaltasSueltas({required this.onResponder});
-
-  final void Function(int cuantas) onResponder;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '¿Alguna falta más?',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'En otras palabras, de las que no te he señalado.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
-          ),
-          const SizedBox(height: 26),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              BotonComando(
-                texto: 'Ninguna',
-                icono: Icons.check_rounded,
-                onPressed: () => onResponder(0),
-              ),
-              for (var i = 1; i <= _maxFaltasQuePregunta; i++)
-                _BotonNumero(numero: i, onPressed: () => onResponder(i)),
-              BotonComando(
-                texto: 'Más de $_maxFaltasQuePregunta',
-                onPressed: () => onResponder(_maxFaltasQuePregunta + 1),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BotonNumero extends StatelessWidget {
-  const _BotonNumero({required this.numero, required this.onPressed});
-
-  final int numero;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 68,
-      height: 68,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          backgroundColor: Tema.tarjeta,
-          side: const BorderSide(color: Tema.borde, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        child: Text(
-          '$numero',
-          style: Tema.deNumeros(tamano: 28, peso: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChipPalabra extends StatelessWidget {
-  const _ChipPalabra({
-    required this.palabra,
-    required this.marcada,
-    required this.onCambiar,
-  });
-
-  final String palabra;
-  final bool marcada;
-  final ValueChanged<bool> onCambiar;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onCambiar(!marcada),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        decoration: BoxDecoration(
-          color: marcada ? Tema.falloSuave : Tema.tarjeta,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: marcada ? Tema.fallo : Tema.borde,
-            width: marcada ? 2 : 1.5,
-          ),
-        ),
-        child: Text(
-          palabra,
-          style: Tema.deCuaderno(
-            tamano: 28,
-            color: marcada ? Tema.fallo : Tema.tinta,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// -------------------------------------------------- marcar las operaciones ---
 
 class _MarcarOperaciones extends StatelessWidget {
   const _MarcarOperaciones({
