@@ -1,6 +1,6 @@
 import '../contenido/dictados.dart';
 import '../contenido/matematicas.dart';
-import '../correccion/alinear.dart';
+import '../correccion/dictado.dart';
 import '../correccion/matematicas.dart';
 import '../voz/frases.dart';
 import 'asignaturas.dart';
@@ -25,10 +25,11 @@ Guion guionDictado(Dictado dictado) {
       indice: i,
       texto: texto,
       pausaSegundos: pausaSegundos(texto, dictado.nivel),
+      veces: vecesPorFrase,
     ));
   }
 
-  pasos.add(const PedirFoto(Frases.dictadoFin));
+  pasos.add(const Revisar(Frases.dictadoFin));
 
   return Guion(
     asignatura: Asignatura.dictado,
@@ -44,20 +45,30 @@ Guion guionDictado(Dictado dictado) {
   );
 }
 
-Guion guionRepasoDictado(Correccion correccion) {
+/// Repaso de un dictado que el niño acaba de corregirse él mismo.
+///
+/// Si ha marcado en qué palabras ha fallado, se le explica la regla de cada
+/// una: es la parte que enseña. Si solo ha dicho cuántas, no se inventa nada
+/// —explicar la palabra equivocada es peor que no explicar ninguna— y se le
+/// dice qué hacer con ellas.
+Guion guionRepasoDictado(CorreccionDictado correccion) {
   final pasos = <Paso>[];
-  final faltas = correccion.faltas.take(maxFaltasARepasar).toList();
 
-  if (correccion.faltas.isEmpty) {
+  if (correccion.perfecto) {
     pasos.add(const Habla(Frases.todoBien));
+  } else if (correccion.explicadas.isEmpty) {
+    pasos.add(Habla(Frases.cuantasFaltas(correccion.faltas)));
+    pasos.add(const Habla(Frases.apuntaLasFaltas));
   } else {
-    final palabras =
-        faltas.map((f) => f.esperado).where((p) => p.isNotEmpty).toList();
-    pasos.add(Habla(Frases.resumenFallos(correccion.faltas.length, palabras)));
+    final faltas = correccion.explicadas.take(maxFaltasARepasar).toList();
+    pasos.add(Habla(Frases.resumenFallos(
+      correccion.faltas,
+      faltas.map((f) => f.esperado).toList(),
+    )));
     for (final falta in faltas) {
-      pasos.add(Habla(explicarFalta(falta)));
+      pasos.add(Habla(explicarPalabra(falta)));
     }
-    if (correccion.faltas.length > maxFaltasARepasar) {
+    if (correccion.faltas > maxFaltasARepasar) {
       pasos.add(const Habla(Frases.animo));
     }
   }
@@ -74,13 +85,15 @@ Guion guionRepasoDictado(Correccion correccion) {
 
 /// Cuánto se sugiere callar tras dictar una operación. No es un límite: la
 /// tanda no avanza sola, solo indica cuánto se espera antes de ofrecer ayuda.
-int pausaParaCopiar(Operacion op) => (6 + op.enunciado.length * 0.6).round();
+int pausaParaCopiar(Operacion op) => (6 + op.dictado.length * 0.6).round();
 
 Guion guionMatematicas(List<Operacion> operaciones) {
+  final conProblemas = operaciones.any((op) => op.esProblema);
+
   final pasos = <Paso>[
-    Habla(Frases.matematicasIntro(operaciones.length)),
+    Habla(Frases.matematicasIntro(operaciones.length, conProblemas: conProblemas)),
     const Espera(Frases.prepararPapel, [Comando.listo]),
-    const Habla(Frases.empezamos),
+    const Habla(Frases.empezamosMates),
   ];
 
   for (final op in operaciones) {
@@ -90,20 +103,24 @@ Guion guionMatematicas(List<Operacion> operaciones) {
       pausaSegundos: pausaParaCopiar(op),
       // La tanda espera al niño: se pasa a la siguiente cuando él lo dice.
       avanzaSolo: false,
+      // Un problema con enunciado tampoco se retiene a la primera: se lee dos
+      // veces, igual que una frase de dictado.
+      veces: op.esProblema ? 2 : 1,
+      escrito: '${op.numero}.  ${op.problema ?? op.enunciado}',
     ));
   }
 
-  pasos.add(PedirFoto(Frases.matematicasFin(operaciones.length)));
+  pasos.add(Revisar(Frases.matematicasFin(operaciones.length)));
 
   return Guion(
     asignatura: Asignatura.matematicas,
-    titulo: 'Operaciones',
+    titulo: conProblemas ? 'Ejercicios' : 'Operaciones',
     pasos: pasos,
     comandosGlobales: const [Comando.repite, Comando.masDespacio, Comando.continua],
   );
 }
 
-/// Repaso de una tanda de operaciones.
+/// Repaso de una tanda de matemáticas.
 ///
 /// Con `modoPistas` la voz no da la solución de entrada: suelta una pista y
 /// pregunta si ya lo ve. Solo si el niño pide una segunda pista y sigue sin
@@ -128,10 +145,6 @@ Guion guionRepasoMatematicas(
       final op = fallo.operacion;
       pasos.add(Habla(Frases.fallasteEn(op.numero)));
 
-      if (fallo.motivo == MotivoFallo.copia) {
-        pasos.add(Habla('Ojo, que la has copiado mal. Era ${op.dictado}.'));
-        continue;
-      }
       if (!modoPistas) {
         pasos.add(Habla('${Frases.solucion(op.respuesta)} ${op.explicacion}'));
         continue;

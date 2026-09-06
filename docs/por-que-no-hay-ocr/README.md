@@ -1,7 +1,11 @@
-# Hojas de prueba del OCR
+# Por qué la app no lee el cuaderno con la cámara
 
-Imágenes generadas con ChatGPT que imitan la letra de un niño de Primaria, usadas
-para medir qué lee ML Kit y en qué se rompe la interpretación.
+Registro de las pruebas que llevaron a quitar la foto y el OCR. Las imágenes,
+generadas con ChatGPT, imitan la letra de un niño de Primaria y sirvieron para
+medir qué lee ML Kit y dónde se rompe la interpretación.
+
+**La app ya no hace fotos.** Al terminar, el niño ve la solución en pantalla con
+letra de cuaderno y dice qué le ha salido. Lo de abajo es por qué.
 
 | Hoja | Qué mide |
 |---|---|
@@ -44,6 +48,18 @@ nombre —una tilde, una b por una uve, una hache que se deja—, mientras que u
 mal reconocimiento devuelve palabras que no encajan en ninguna regla. Cuando la
 mayoría de las faltas no tienen regla, la app deja de puntuar y enseña lo que ha
 leído para que se corrija.
+
+## La decisión
+
+Se puede detectar cuándo el reconocimiento ha fallado, pero eso deja una app que
+a veces corrige y a veces se disculpa, y que en letra ligada —la que se enseña
+en Primaria— se disculpa la mitad de las veces. Corregir con la cámara solo
+funcionaba bien en el caso que menos se da.
+
+Lo que la sustituye es más simple y no puede equivocarse: la app enseña el
+dictado y las soluciones en pantalla, con letra ligada para el texto y
+manuscrita clara para los números, y el niño marca qué ha fallado. Comparar su
+hoja con la buena es, además, parte de aprender a corregirse.
 
 ## Aviso sobre la validez de estas pruebas
 

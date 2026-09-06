@@ -348,8 +348,8 @@ class Repositorio {
         whereArgs: [actividadId],
       );
 
-      // Corregir es idempotente: si el niño arregla lo que el OCR leyó mal y
-      // se vuelve a corregir, las faltas de la vez anterior no pueden quedarse
+      // Corregir es idempotente: si el niño se equivoca al marcar y vuelve a
+      // corregir la actividad, las faltas de la vez anterior no pueden quedarse
       // contadas dos veces.
       final previas = await txn.query(
         'faltas',
@@ -373,7 +373,10 @@ class Repositorio {
           'destreza_id': falta.destrezaId,
           'tipo': falta.tipo,
           'esperado': falta.esperado,
-          'escrito': falta.escrito,
+          // Columna heredada de cuando la hoja se leía con la cámara. Se deja
+          // vacía en lugar de tocar el esquema: cambiarlo obligaría a migrar
+          // las bases de datos que ya están en los móviles de las familias.
+          'escrito': '',
           'creado_en': _ahora(),
         });
         await txn.rawInsert(

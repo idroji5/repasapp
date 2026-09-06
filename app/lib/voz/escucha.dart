@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:speech_to_text/speech_to_text.dart';
 
-import '../correccion/alinear.dart' show sinTildes;
+import '../correccion/ortografia.dart' show sinTildes;
 import '../dominio/guion.dart';
 
 /// Escucha las palabras que el niño puede decir en voz alta ("listo", "repite",

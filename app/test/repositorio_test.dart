@@ -77,10 +77,8 @@ void main() {
       aciertos: 8,
       total: 10,
       faltas: const [
-        FaltaGuardable(
-            destrezaId: 'tilde_agudas', tipo: 'tilde', esperado: 'balón', escrito: 'balon'),
-        FaltaGuardable(
-            destrezaId: 'tilde_agudas', tipo: 'tilde', esperado: 'cayó', escrito: 'cayo'),
+        FaltaGuardable(destrezaId: 'tilde_agudas', tipo: 'tilde', esperado: 'balón'),
+        FaltaGuardable(destrezaId: 'tilde_agudas', tipo: 'tilde', esperado: 'cayó'),
       ],
       duracionSegundos: 240,
     );
@@ -221,7 +219,7 @@ void main() {
       aciertos: 7,
       total: 10,
       faltas: const [
-        FaltaGuardable(destrezaId: 'b_v_reglas', tipo: 'b_v', esperado: 'bien', escrito: 'vien'),
+        FaltaGuardable(destrezaId: 'b_v_reglas', tipo: 'bV', esperado: 'bien'),
       ],
       duracionSegundos: 300,
     );

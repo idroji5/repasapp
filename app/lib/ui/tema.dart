@@ -36,6 +36,49 @@ class Tema {
 
   static const double radio = 20;
 
+  /// Letra ligada, la del cuaderno, para enseñarle al niño el texto del
+  /// dictado. Ver escrito "había" con la misma letra con la que él acaba de
+  /// escribirlo hace la comparación inmediata; en tipografía de pantalla es un
+  /// texto más que hay que traducir mentalmente.
+  static const String caligrafica = 'Caligrafica';
+
+  /// Manuscrita sin ligar para números y cuentas. La ligada es preciosa para
+  /// una frase y un desastre para un 4, un 7 o un 1: en una corrección el niño
+  /// tiene que leer la cifra sin dudar ni un segundo.
+  static const String manuscrita = 'Manuscrita';
+
+  /// Texto de dictado, con la letra del cuaderno.
+  static TextStyle deCuaderno({
+    double tamano = 30,
+    Color color = tinta,
+    FontWeight peso = FontWeight.w400,
+    TextDecoration? subrayado,
+  }) =>
+      TextStyle(
+        fontFamily: caligrafica,
+        fontSize: tamano,
+        height: 1.5,
+        color: color,
+        fontWeight: peso,
+        decoration: subrayado,
+        decorationColor: color,
+        decorationThickness: 2,
+      );
+
+  /// Cuentas y resultados, con la manuscrita legible.
+  static TextStyle deNumeros({
+    double tamano = 26,
+    Color color = tinta,
+    FontWeight peso = FontWeight.w400,
+  }) =>
+      TextStyle(
+        fontFamily: manuscrita,
+        fontSize: tamano,
+        height: 1.35,
+        color: color,
+        fontWeight: peso,
+      );
+
   static ThemeData construir() {
     const base = ColorScheme.light(
       primary: accion,

@@ -75,7 +75,7 @@ const List<Dictado> dictados = [
       'Mi maestra se llama Carmen.',
       'Siempre jugamos en el patio.',
     ],
-    palabrasClave: ['cuaderno', 'maestra', 'siempre', 'colegio'],
+    palabrasClave: ['cuaderno', 'Carmen', 'siempre', 'colegio'],
   ),
 
   // ------------------------------------------------------------- nivel 2 ---
@@ -116,7 +116,7 @@ const List<Dictado> dictados = [
       '¿Se ha escondido en el armario?',
       'Hoy no la hemos visto.',
     ],
-    palabrasClave: ['gordo', 'alfombra', 'escondido', 'hemos', 'hoy'],
+    palabrasClave: ['gordo', 'alfombra', 'ha', 'hemos', 'hoy'],
   ),
 
   // ------------------------------------------------------------- nivel 3 ---
@@ -180,14 +180,14 @@ const List<Dictado> dictados = [
     id: 'dic-402',
     titulo: 'El árbol del jardín',
     nivel: 4,
-    destrezas: ['tilde_llanas', 'tilde_esdrujulas', 'g_j', 'mayuscula_inicial'],
+    destrezas: ['tilde_llanas', 'tilde_esdrujulas', 'g_j', 'g_gu', 'mayuscula_inicial'],
     fragmentos: [
       'En el jardín hay un árbol muy antiguo.',
       'Sus ramas dan una sombra agradable.',
       'Los pájaros hacen allí su nido.',
       'Es el lugar más tranquilo de la casa.',
     ],
-    palabrasClave: ['jardín', 'árbol', 'agradable', 'pájaros', 'allí'],
+    palabrasClave: ['jardín', 'árbol', 'antiguo', 'pájaros', 'allí'],
   ),
   Dictado(
     id: 'dic-403',
@@ -250,24 +250,35 @@ final Map<String, Dictado> _porId = {for (final d in dictados) d.id: d};
 
 Dictado? dictadoPorId(String id) => _porId[id];
 
-/// Cuánto callar tras un fragmento para que al niño le dé tiempo a escribirlo.
+/// Veces que se lee cada frase antes de callar para que el niño escriba.
+///
+/// Dos: la primera para enterarse, la segunda —más despacio— para escribirla.
+const int vecesPorFrase = 2;
+
+/// Cuánto callar tras las lecturas de un fragmento para que le dé tiempo a
+/// escribirlo.
 ///
 /// Un niño de nivel 1 escribe bastante más despacio que uno de nivel 5, así que
 /// la pausa no es fija: depende del número de palabras y del nivel.
 int pausaSegundos(String fragmento, int nivel) {
   final palabras =
       fragmento.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
-  final segundosPorPalabra = nivel <= 2 ? 2.4 : (nivel <= 3 ? 2.0 : 1.6);
-  return (palabras * segundosPorPalabra + 1.5).round();
+  final segundosPorPalabra = nivel <= 2 ? 2.8 : (nivel <= 3 ? 2.4 : 2.0);
+  return (palabras * segundosPorPalabra + 2).round();
 }
 
 /// Duración estimada de la actividad completa, para encajarla en la sesión diaria.
+///
+/// Cada frase se lee [vecesPorFrase] veces y la segunda va más despacio, así que
+/// el tiempo de voz cuenta doble largo. Quedarse corto aquí no alarga el
+/// dictado: hace que el planificador meta otra actividad detrás que no cabe.
 int duracionEstimadaSegundos(Dictado d) {
   var total = 0.0;
   for (final f in d.fragmentos) {
-    total += pausaSegundos(f, d.nivel) + f.split(RegExp(r'\s+')).length * 0.6;
+    final palabras = f.split(RegExp(r'\s+')).length;
+    total += pausaSegundos(f, d.nivel) + palabras * 0.8 * vecesPorFrase;
   }
-  return (total + 40).round(); // + preparación y foto
+  return (total + 45).round(); // + preparación y corrección
 }
 
 /// Elige un dictado del nivel pedido que además sea apropiado para el curso.

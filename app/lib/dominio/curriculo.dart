@@ -61,6 +61,15 @@ const List<Destreza> destrezas = [
   Destreza('div_resto_1cifra', 'Divisiones con resto entre una cifra', Asignatura.matematicas, 4),
   Destreza('div_2cifras', 'Dividir entre dos cifras', Asignatura.matematicas, 5),
   Destreza('decimales_suma_resta', 'Sumar y restar decimales', Asignatura.matematicas, 5),
+
+  // Problemas con enunciado. Van como destrezas aparte porque lo que ejercitan
+  // no es la cuenta —esa ya está en las de arriba— sino decidir qué cuenta
+  // hay que hacer, que es lo que de verdad se atraganta en Primaria.
+  Destreza('problema_suma_resta', 'Problemas de sumar y restar', Asignatura.matematicas, 2),
+  Destreza('problema_multiplicacion', 'Problemas de multiplicar', Asignatura.matematicas, 3),
+  Destreza('problema_division', 'Problemas de repartir', Asignatura.matematicas, 4),
+  Destreza('problema_dos_pasos', 'Problemas de dos operaciones', Asignatura.matematicas, 5),
+  Destreza('problema_dinero', 'Problemas con dinero', Asignatura.matematicas, 5),
 ];
 
 final Map<String, Destreza> _porId = {for (final d in destrezas) d.id: d};

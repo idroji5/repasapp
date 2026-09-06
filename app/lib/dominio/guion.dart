@@ -41,10 +41,27 @@ class Fragmento extends Paso {
     required this.texto,
     required this.pausaSegundos,
     this.avanzaSolo = true,
+    this.veces = 1,
+    this.escrito,
   });
 
   final int indice;
   final String texto;
+
+  /// Cómo se escribe esto en el cuaderno, si no se escribe como se dice.
+  ///
+  /// Una cuenta se dicta "setecientos cuarenta y dos entre siete" y se escribe
+  /// "742 : 7"; un problema se lee entero y se escribe con sus cifras. Es lo
+  /// que se enseña cuando el niño pide verlo.
+  final String? escrito;
+
+  /// Cuántas veces seguidas se dice antes de callar.
+  ///
+  /// Un maestro que dicta no lee la frase una sola vez: la dice, deja un
+  /// respiro, y la repite algo más despacio para quien se ha quedado atrás. Con
+  /// una sola lectura el niño escribe a la carrera y pide "repite" cada frase,
+  /// que es la manera lenta de hacer lo mismo.
+  final int veces;
 
   /// Cuánto se calla antes de seguir. Solo cuenta si [avanzaSolo].
   final int pausaSegundos;
@@ -78,9 +95,9 @@ class RamaPregunta {
   final List<Paso> pasos;
 }
 
-/// Pide la foto del cuaderno y termina el guion.
-class PedirFoto extends Paso {
-  const PedirFoto(this.texto);
+/// Termina el guion y pasa a corregir con el niño delante de la pantalla.
+class Revisar extends Paso {
+  const Revisar(this.texto);
   final String texto;
 }
 

@@ -54,7 +54,10 @@ class ActividadPlanificada {
 
 /// Operaciones por tanda. Cinco es lo que cabe en una hoja y en la cabeza.
 const int operacionesPorTanda = 5;
-const int _segundosPorOperacion = 55;
+
+/// Un problema con enunciado se lee más despacio y hay que pensarlo antes de
+/// empezar a escribir, así que la tanda mixta se estima algo más larga.
+const int _segundosPorOperacion = 65;
 
 /// Por debajo de esto no cabe ninguna actividad que valga la pena.
 const int _minimoUtilSegundos = 100;
@@ -69,6 +72,74 @@ List<Asignatura> _rotacion(Asignatura? ultima) {
   ];
 }
 
+/// A qué familia de cuentas pertenece una destreza. Sirve para que una tanda no
+/// se convierta en cinco divisiones seguidas.
+String familiaDe(String destrezaId) {
+  if (destrezaId.startsWith('problema_')) return 'problema';
+  if (destrezaId.startsWith('suma')) return 'suma';
+  if (destrezaId.startsWith('resta')) return 'resta';
+  if (destrezaId.startsWith('mult') || destrezaId.startsWith('tablas')) {
+    return 'multiplicacion';
+  }
+  if (destrezaId.startsWith('div')) return 'division';
+  return destrezaId;
+}
+
+/// Cuántas destrezas flojas caben en una tanda.
+///
+/// Dos. Repasar lo que falla es el objetivo, pero una tanda entera de lo que
+/// peor se te da no es repasar: es castigar.
+const int _maxFlojas = 2;
+
+/// Elige las destrezas de una tanda de matemáticas.
+///
+/// Antes se cogían "las dos últimas del curso", que son las dos más avanzadas
+/// del catálogo, y por eso a un niño de 5.º le salían cinco divisiones un día
+/// detrás de otro. Ahora se coge una destreza por familia —sumar, restar,
+/// multiplicar, dividir, decimales— y siempre entra un problema con enunciado,
+/// que es lo que de verdad cuesta y lo que nunca tocaba.
+///
+/// Función pura y sembrada: con el mismo azar sale la misma selección, así que
+/// se puede probar.
+List<String> elegirDestrezasDeMates(
+  List<String> delCurso,
+  List<String> flojas,
+  int cuantas,
+  Random azar,
+) {
+  final elegidas = <String>[];
+
+  void anadir(Iterable<String> candidatas) {
+    for (final id in candidatas) {
+      if (elegidas.length >= cuantas) return;
+      if (!elegidas.contains(id)) elegidas.add(id);
+    }
+  }
+
+  // 1. Lo que falla, primero, pero sin llenar la tanda.
+  anadir((delCurso.where(flojas.contains).toList()..shuffle(azar)).take(_maxFlojas));
+
+  // 2. Un problema con enunciado. Si el curso tiene varios, el más avanzado de
+  //    los que el niño ya puede hacer.
+  final problemas = delCurso.where((id) => familiaDe(id) == 'problema').toList();
+  if (problemas.isNotEmpty && !elegidas.any((id) => familiaDe(id) == 'problema')) {
+    anadir([problemas.last]);
+  }
+
+  // 3. Una de cada familia, la más avanzada del curso, en orden aleatorio: las
+  //    familias van sin repetir hasta que se agotan.
+  final porFamilia = <String, String>{};
+  for (final id in delCurso.where((id) => familiaDe(id) != 'problema')) {
+    porFamilia[familiaDe(id)] = id; // delCurso viene de menos a más avanzado
+  }
+  anadir(porFamilia.values.toList()..shuffle(azar));
+
+  // 4. Si aún falta, cualquier otra del curso antes que repetir destreza.
+  anadir(delCurso.reversed);
+
+  return elegidas;
+}
+
 ActividadPlanificada? _planificarMatematicas(
   ContextoPlan ctx,
   int segundosDisponibles,
@@ -80,17 +151,11 @@ ActividadPlanificada? _planificarMatematicas(
       .toList();
   if (delCurso.isEmpty) return null;
 
-  // Las destrezas flojas van primero; el resto rellena.
-  final flojas = delCurso.where(ctx.destrezasFlojas.contains).toList();
-  final resto = delCurso.where((id) => !ctx.destrezasFlojas.contains(id)).toList();
-  // Las dos últimas del curso son las más avanzadas: son las que toca practicar.
-  final elegidas = [
-    ...flojas,
-    ...resto.skip(resto.length > 2 ? resto.length - 2 : 0),
-  ].take(2).toList();
-
   final cuantas = min(operacionesPorTanda, segundosDisponibles ~/ _segundosPorOperacion);
   if (cuantas < 2) return null;
+
+  final elegidas =
+      elegirDestrezasDeMates(delCurso, ctx.destrezasFlojas, cuantas, azar);
 
   return ActividadPlanificada(
     asignatura: Asignatura.matematicas,
@@ -211,7 +276,11 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
   }
 }
 
-String tituloDe(Map<String, dynamic> contenido) =>
-    contenido['tipo'] == 'dictado'
-        ? dictadoPorId(contenido['dictadoId'] as String)?.titulo ?? 'Dictado'
-        : '${contenido['cuantas']} operaciones';
+String tituloDe(Map<String, dynamic> contenido) {
+  if (contenido['tipo'] == 'dictado') {
+    return dictadoPorId(contenido['dictadoId'] as String)?.titulo ?? 'Dictado';
+  }
+  final destrezas = (contenido['destrezas'] as List?)?.cast<String>() ?? const [];
+  final conProblemas = destrezas.any((id) => familiaDe(id) == 'problema');
+  return '${contenido['cuantas']} ${conProblemas ? "ejercicios" : "operaciones"}';
+}

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../datos/modelos.dart';
@@ -26,7 +25,6 @@ class PantallaActividad extends StatefulWidget {
 class _PantallaActividadState extends State<PantallaActividad> {
   late final ContenidoActividad _contenido;
   late final ReproductorGuion _reproductor;
-  final _camara = ImagePicker();
   final _comenzado = DateTime.now();
 
   @override
@@ -47,35 +45,7 @@ class _PantallaActividadState extends State<PantallaActividad> {
     );
 
     estado.repo.marcarEnCurso(widget.actividad.id);
-    _recuperarFotoPerdida().then((recuperada) {
-      if (!recuperada && mounted) _reproductor.arrancar();
-    });
-  }
-
-  /// Android puede matar la app mientras la cámara está en primer plano —en
-  /// móviles justos de memoria pasa— y entonces la foto se pierde por el
-  /// camino. `image_picker` la guarda para el siguiente arranque; sin esto, el
-  /// niño hace la foto, la app se reinicia sola y su trabajo se evapora.
-  Future<bool> _recuperarFotoPerdida() async {
-    try {
-      final perdida = await _camara.retrieveLostData();
-      final fichero = perdida.file;
-      if (fichero == null || !mounted) return false;
-
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => PantallaRevision(
-            actividad: widget.actividad,
-            contenido: _contenido,
-            rutaFoto: fichero.path,
-            duracionSegundos: 0,
-          ),
-        ),
-      );
-      return true;
-    } catch (_) {
-      return false;
-    }
+    _reproductor.arrancar();
   }
 
   @override
@@ -84,24 +54,14 @@ class _PantallaActividadState extends State<PantallaActividad> {
     super.dispose();
   }
 
-  /// La foto puede venir de la cámara o del carrete: el padre puede haber
-  /// fotografiado la hoja antes, o el niño tener las manos llenas de lápiz.
-  Future<void> _hacerFoto({ImageSource origen = ImageSource.camera}) async {
-    final foto = await _camara.pickImage(
-      source: origen,
-      // La foto no se guarda en ningún sitio: se reconoce y se descarta. Estos
-      // límites son solo para que ML Kit trabaje rápido.
-      maxWidth: 2000,
-      imageQuality: 88,
-    );
-    if (foto == null || !mounted) return;
-
+  /// A corregir. No hay foto ni reconocimiento: el niño ve la solución en
+  /// pantalla y compara con su cuaderno.
+  Future<void> _corregir() async {
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => PantallaRevision(
           actividad: widget.actividad,
           contenido: _contenido,
-          rutaFoto: foto.path,
           duracionSegundos: DateTime.now().difference(_comenzado).inSeconds,
         ),
       ),
@@ -144,11 +104,7 @@ class _PantallaActividadState extends State<PantallaActividad> {
               child: Column(
                 children: [
                   Expanded(child: _Escenario(reproductor: r)),
-                  _Controles(
-                    reproductor: r,
-                    onFoto: () => _hacerFoto(),
-                    onElegirFoto: () => _hacerFoto(origen: ImageSource.gallery),
-                  ),
+                  _Controles(reproductor: r, onCorregir: _corregir),
                 ],
               ),
             ),
@@ -306,9 +262,11 @@ class _Escribiendo extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                r.texto,
+                r.escritoActual ?? r.texto,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: r.escritoActual != null
+                    ? Tema.deNumeros(tamano: 24, peso: FontWeight.w700)
+                    : Theme.of(context).textTheme.titleLarge,
               ),
             ),
           ],
@@ -321,40 +279,22 @@ class _Escribiendo extends StatelessWidget {
 /// La barra de abajo: botones para todo lo que también se puede decir en voz
 /// alta. La voz es un atajo; el botón es la garantía.
 class _Controles extends StatelessWidget {
-  const _Controles({
-    required this.reproductor,
-    required this.onFoto,
-    required this.onElegirFoto,
-  });
+  const _Controles({required this.reproductor, required this.onCorregir});
 
   final ReproductorGuion reproductor;
-  final VoidCallback onFoto;
-  final VoidCallback onElegirFoto;
+  final VoidCallback onCorregir;
 
   @override
   Widget build(BuildContext context) {
     final r = reproductor;
 
-    if (r.fase == Fase.foto) {
+    if (r.fase == Fase.revisar) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
-        child: Column(
-          children: [
-            BotonGrande(
-              texto: 'Hacer la foto',
-              icono: Icons.photo_camera_rounded,
-              onPressed: onFoto,
-            ),
-            TextButton.icon(
-              onPressed: onElegirFoto,
-              icon: const Icon(Icons.photo_library_outlined, size: 19),
-              label: const Text('Elegir una foto que ya tengo'),
-              style: TextButton.styleFrom(
-                foregroundColor: Tema.tintaSuave,
-                minimumSize: const Size(0, 48),
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: BotonGrande(
+          texto: 'Ya lo tengo, corregir',
+          icono: Icons.check_circle_outline_rounded,
+          onPressed: onCorregir,
         ),
       );
     }
@@ -406,7 +346,7 @@ class _Controles extends StatelessWidget {
                 ),
               if (r.permiteRevelar && r.enFragmento && !r.revelado)
                 BotonComando(
-                  texto: 'Ver la cuenta',
+                  texto: 'Verlo escrito',
                   icono: Icons.visibility_outlined,
                   onPressed: r.revelar,
                 ),

@@ -4,9 +4,9 @@ import 'package:sqflite/sqflite.dart';
 /// Base de datos local. Todo se queda en el dispositivo: no hay servidor, no
 /// hay cuenta, y los datos del niño no salen del teléfono de la familia.
 ///
-/// NOTA DE PRIVACIDAD: no hay ninguna tabla de fotos, y es deliberado. La foto
-/// del cuaderno se procesa en memoria, se reconoce con ML Kit y se descarta.
-/// De cada foto solo sobrevive el resultado (qué se escribió mal).
+/// NOTA DE PRIVACIDAD: la app no hace fotos ni pide cámara. El cuaderno se
+/// corrige mirando la solución en pantalla, así que lo único que se guarda es
+/// el resultado: qué destreza se falló y cuál era la palabra correcta.
 class BaseDatos {
   static const String _nombreFichero = 'repasapp.db';
   static const int _version = 1;
@@ -82,6 +82,8 @@ class BaseDatos {
         destreza_id  text    not null,
         tipo         text    not null,
         esperado     text    not null,
+        -- Herencia de la versión que leía la hoja con la cámara: hoy siempre
+        -- va vacía. Se mantiene para no migrar las bases de datos existentes.
         escrito      text    not null,
         creado_en    text    not null
       )

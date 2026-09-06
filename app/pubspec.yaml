@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.9.2
@@ -36,8 +36,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_tts: ^4.2.5
   speech_to_text: ^7.4.0
-  image_picker: ^1.2.2
-  google_mlkit_text_recognition: ^0.16.0
   sqflite: ^2.4.2
   path: ^1.9.1
   path_provider: ^2.1.5
@@ -66,6 +64,23 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Las dos letras con las que el niño ve la corrección. Van dentro del APK: la
+  # app funciona sin conexión y una fuente que no carga deja la pantalla que
+  # más importa en una tipografía cualquiera.
+  fonts:
+    # Caveat (SIL OFL 1.1) — ligada, para el texto del dictado.
+    - family: Caligrafica
+      fonts:
+        - asset: assets/fuentes/Caveat-Regular.ttf
+        - asset: assets/fuentes/Caveat-Bold.ttf
+          weight: 700
+    # Andika (SIL OFL 1.1) — pensada para quien aprende a leer, para los números.
+    - family: Manuscrita
+      fonts:
+        - asset: assets/fuentes/Andika-Regular.ttf
+        - asset: assets/fuentes/Andika-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

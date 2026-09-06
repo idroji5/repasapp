@@ -1,160 +1,95 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../correccion/alinear.dart';
-import '../../correccion/interpretar.dart';
+import '../../contenido/dictados.dart';
+import '../../contenido/matematicas.dart';
+import '../../correccion/dictado.dart';
 import '../../correccion/matematicas.dart' as mat;
-import '../../correccion/ocr.dart';
+import '../../correccion/ortografia.dart';
 import '../../datos/modelos.dart';
 import '../../dominio/actividades.dart';
 import '../../dominio/planificador.dart';
 import '../../estado.dart';
+import '../../voz/frases.dart';
 import '../reproductor.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
 
-/// Lee la foto del cuaderno, corrige y explica los fallos de viva voz.
+/// Corrección: el niño ve en pantalla lo que tenía que salir y dice qué le ha
+/// salido a él.
 ///
-/// La foto NO se guarda: se pasa por ML Kit, se saca el texto y se descarta.
-/// De todo esto solo sobrevive el resultado (qué se escribió mal), que es lo
-/// único que hace falta para enseñar y para las estadísticas del padre.
+/// Aquí no hay cámara ni reconocimiento de escritura. Se probó y el problema no
+/// era la precisión: era que cuando el reconocimiento fallaba, la app acusaba
+/// al niño de faltas que no había cometido, y eso destruye la confianza más
+/// rápido que cualquier otra cosa. Enseñarle la solución con letra de cuaderno
+/// y que sea él quien compare es más simple, no se equivoca nunca, y comparar
+/// su hoja con la buena ya es parte de aprender a corregirse.
 class PantallaRevision extends StatefulWidget {
   const PantallaRevision({
     super.key,
     required this.actividad,
     required this.contenido,
-    required this.rutaFoto,
     required this.duracionSegundos,
   });
 
   final ActividadGuardada actividad;
   final ContenidoActividad contenido;
-  final String rutaFoto;
   final int duracionSegundos;
 
   @override
   State<PantallaRevision> createState() => _PantallaRevisionState();
 }
 
-enum _Fase { leyendo, resultado, corrigiendoLectura, error }
+enum _Fase { marcando, palabras, guardando, resultado }
+
+/// Tope de la pregunta "¿cuántas faltas?". Por encima de esto el número exacto
+/// da igual: lo que toca es repetir el dictado otro día, no contar.
+const int _maxFaltasQuePregunta = 5;
 
 class _PantallaRevisionState extends State<PantallaRevision> {
-  _Fase _fase = _Fase.leyendo;
-  String _mensajeError = '';
+  _Fase _fase = _Fase.marcando;
 
-  /// Lo que el OCR ha leído. Editable: ML Kit se equivoca con la letra
-  /// manuscrita y el niño tiene que poder decir "yo no escribí eso".
-  late final TextEditingController _leido = TextEditingController();
-  final Map<int, TextEditingController> _resultados = {};
+  /// Dictado: cuántas faltas dice el niño que ha tenido, y en qué palabras.
+  int _faltas = 0;
+  final Set<String> _palabrasFalladas = {};
+  CorreccionDictado? _correccionDictado;
 
-  Correccion? _correccionDictado;
+  /// Matemáticas: qué ejercicios dice que le han salido bien.
+  final Map<int, bool> _marcas = {};
   List<mat.ResultadoOperacion>? _correccionMates;
+
   CambioDeNivel? _cambioNivel;
   ReproductorGuion? _repaso;
 
   @override
   void initState() {
     super.initState();
-    _leerFoto();
+    // Se lee la instrucción en voz alta: el niño sigue con el cuaderno delante
+    // y la pantalla es lo que mira de reojo.
+    final voz = context.read<AppEstado>().voz;
+    unawaited(voz.decir(switch (widget.contenido) {
+      ContenidoDictado() => Frases.comparaDictado,
+      ContenidoOperaciones() => Frases.comparaOperaciones,
+    }));
   }
 
   @override
   void dispose() {
-    _leido.dispose();
-    for (final c in _resultados.values) {
-      c.dispose();
-    }
     _repaso?.dispose();
     super.dispose();
   }
 
-  Future<void> _leerFoto() async {
-    final ocr = OcrMlKit();
-    try {
-      final lineas = await ocr.leer(widget.rutaFoto);
-      for (final l in lineas) {
-        debugPrint('[OCR] "${l.texto}" y=${l.y.round()} alto=${l.alto.round()} '
-            'x=${l.x.round()} ancho=${l.ancho.round()}');
-      }
-
-      switch (widget.contenido) {
-        case ContenidoDictado(:final dictado):
-          _leido.text = transcripcionDeLineas(lineas);
-          if (_ilegible(dictado.texto, _leido.text)) return _noSeLee();
-          if (_lecturaDudosa(corregirDictado(dictado.texto, _leido.text))) {
-            return _noSeLee(
-              'He leído la hoja, pero no me fío de lo que he sacado: la letra '
-              'ligada se me da mal. Mira si es esto lo que escribiste.',
-              true,
-            );
-          }
-        case ContenidoOperaciones(:final operaciones):
-          final lecturas = interpretarTanda(lineas, operaciones);
-          for (final lectura in lecturas) {
-            _resultados[lectura.numero] =
-                TextEditingController(text: lectura.resultadoEscrito);
-          }
-          final leidos = lecturas.where((l) => l.resultadoEscrito.isNotEmpty).length;
-          if (leidos == 0) return _noSeLee();
-      }
-      await _corregir();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _fase = _Fase.error;
-        _mensajeError = 'No he podido leer la foto. Prueba con más luz y '
-            'que la hoja se vea entera.';
-      });
-    } finally {
-      await ocr.cerrar();
-    }
-  }
-
-  /// ¿La foto es ilegible?
-  ///
-  /// Si el OCR apenas saca palabras, lo que ha fallado es la foto, no el niño.
-  /// Sin esta comprobación, una hoja borrosa o mal encuadrada se corrige como
-  /// si hubiera escrito mal TODAS las palabras: le pinta un muro rojo que no ha
-  /// merecido y, peor todavía, ese cero cuenta para bajarle de nivel.
-  static bool _ilegible(String referencia, String leido) {
-    final esperadas = palabrasDe(referencia).length;
-    final leidas = palabrasDe(leido).length;
-    if (esperadas == 0) return false;
-    return leidas < esperadas * 0.3;
-  }
-
-  /// ¿La corrección describe faltas de un niño, o basura de un mal reconocimiento?
-  ///
-  /// Un niño falla de maneras concretas y con nombre: una tilde, una b por una
-  /// uve, una hache que se deja. El OCR, cuando no puede con la letra, devuelve
-  /// palabras que no se parecen a nada —"tormenta" leído como "tomnta",
-  /// "fuerte" como "unte"— y esas caen todas en el cajón de "ortografía", que
-  /// es el de las que no encajan en ninguna regla.
-  ///
-  /// Así que una avalancha de faltas sin regla no describe a un niño que
-  /// escribe mal: describe una hoja que no se ha sabido leer. Decírselo al niño
-  /// sería acusarle de faltas que no ha cometido, que es la peor cosa que puede
-  /// hacer esta app.
-  static bool _lecturaDudosa(Correccion c) {
-    if (c.faltas.length < 3) return false;
-    final sinRegla = c.faltas
-        .where((f) => f.tipo == TipoFalta.ortografia || f.tipo == TipoFalta.adicion)
-        .length;
-    return sinRegla >= c.faltas.length * 0.6;
-  }
-
-  void _noSeLee([String? mensaje, bool alEditor = false]) {
-    if (!mounted) return;
-    setState(() {
-      _fase = alEditor ? _Fase.corrigiendoLectura : _Fase.error;
-      _mensajeError = mensaje ??
-          'No he conseguido leer la hoja. Prueba otra vez con más luz, la hoja '
-          'plana y que se vea entera.';
-    });
-  }
+  // ------------------------------------------------------------- corregir ---
 
   Future<void> _corregir() async {
-    if (!mounted) return;
+    // Guardar tarda lo que tarde la base de datos y el motor de voz en
+    // responder. Sin este estado, el niño puede volver a tocar "Corregir" y
+    // arrancar dos repasos que hablan a la vez.
+    if (_fase == _Fase.guardando) return;
+    setState(() => _fase = _Fase.guardando);
+
     final estado = context.read<AppEstado>();
     final nino = estado.activo;
 
@@ -164,30 +99,28 @@ class _PantallaRevisionState extends State<PantallaRevision> {
 
     switch (widget.contenido) {
       case ContenidoDictado(:final dictado):
-        final correccion = corregirDictado(dictado.texto, _leido.text);
+        final correccion = corregirDictadoMarcado(
+          dictado,
+          _faltas,
+          _palabrasFalladas.toList(),
+        );
         _correccionDictado = correccion;
         aciertos = correccion.aciertos;
         total = correccion.totalPalabras;
         faltas = [
-          for (final f in correccion.faltas)
+          for (final f in correccion.explicadas)
             if (f.destrezaId case final id?)
-              FaltaGuardable(
-                destrezaId: id,
-                tipo: f.tipo.name,
-                esperado: f.esperado,
-                escrito: f.escrito,
-              ),
+              FaltaGuardable(destrezaId: id, tipo: f.tipo.name, esperado: f.esperado),
         ];
 
       case ContenidoOperaciones(:final operaciones):
-        final resultados = mat.corregirTanda(operaciones, [
-          for (final op in operaciones)
-            mat.LecturaEjercicio(
-              numero: op.numero,
-              operacionEscrita: op.enunciado,
-              resultadoEscrito: _resultados[op.numero]?.text ?? '',
-            ),
-        ]);
+        final resultados = mat.corregirTanda(
+          operaciones,
+          {
+            for (final entrada in _marcas.entries)
+              if (!entrada.value) entrada.key,
+          },
+        );
         _correccionMates = resultados;
         aciertos = resultados.where((r) => r.correcta).length;
         total = resultados.length;
@@ -196,9 +129,8 @@ class _PantallaRevisionState extends State<PantallaRevision> {
             if (!r.correcta)
               FaltaGuardable(
                 destrezaId: r.operacion.destrezaId,
-                tipo: r.motivo?.name ?? 'resultado',
+                tipo: 'resultado',
                 esperado: r.operacion.respuesta,
-                escrito: r.escrito,
               ),
         ];
     }
@@ -223,14 +155,36 @@ class _PantallaRevisionState extends State<PantallaRevision> {
         ),
     };
 
+    // Por si la instrucción de arriba aún estaba sonando: el repaso empieza
+    // hablando y dos voces a la vez no se entienden. Con tope, porque un motor
+    // de voz atascado no puede dejar la corrección a medias con el niño
+    // esperando delante de la pantalla.
+    await estado.voz
+        .parar()
+        .timeout(const Duration(seconds: 1), onTimeout: () {});
+    if (!mounted) return;
+
     _repaso?.dispose();
     _repaso = ReproductorGuion(guion: guion, voz: estado.voz, oido: estado.oido);
 
     setState(() {
-      _cambioNivel = cambio ?? _cambioNivel;
+      _cambioNivel = cambio;
       _fase = _Fase.resultado;
     });
     _repaso!.arrancar();
+  }
+
+  void _responderFaltas(int cuantas) {
+    setState(() {
+      _faltas = cuantas;
+      // Sin faltas no hay nada que marcar ni nada que explicar.
+      if (cuantas == 0) {
+        _palabrasFalladas.clear();
+      } else {
+        _fase = _Fase.palabras;
+      }
+    });
+    if (cuantas == 0) _corregir();
   }
 
   @override
@@ -240,52 +194,13 @@ class _PantallaRevisionState extends State<PantallaRevision> {
         title: const Text('Corrección'),
         automaticallyImplyLeading: false,
       ),
-      body: SafeArea(
-        child: switch (_fase) {
-          _Fase.leyendo => const _Leyendo(),
-          _Fase.error => _Error(
-              mensaje: _mensajeError,
-              onReintentar: _repetirFoto,
-              onEscribirlo: () => setState(() => _fase = _Fase.corrigiendoLectura),
-              onSalir: _salir,
-            ),
-          _Fase.corrigiendoLectura => _EditorDeLectura(
-              contenido: widget.contenido,
-              leido: _leido,
-              resultados: _resultados,
-              onAceptar: () {
-                setState(() => _fase = _Fase.leyendo);
-                _repaso?.dispose();
-                _repaso = null;
-                _corregir();
-              },
-            ),
-          _Fase.resultado => _Resultado(
-              contenido: widget.contenido,
-              dictado: _correccionDictado,
-              mates: _correccionMates,
-              cambioNivel: _cambioNivel,
-              repaso: _repaso,
-              onEditarLectura: () => setState(() => _fase = _Fase.corrigiendoLectura),
-              onTerminar: _salir,
-            ),
-        },
-      ),
+      body: SafeArea(child: _cuerpo()),
     );
   }
 
-  /// Vuelve a la actividad para repetir la foto. La actividad sigue sin
-  /// corregir, así que el niño no pierde nada de lo que había hecho.
-  void _repetirFoto() => Navigator.of(context).pop();
-
-  void _salir() => Navigator.of(context).pop();
-}
-
-class _Leyendo extends StatelessWidget {
-  const _Leyendo();
-
-  @override
-  Widget build(BuildContext context) => const Center(
+  Widget _cuerpo() {
+    if (_fase == _Fase.guardando) {
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -295,81 +210,552 @@ class _Leyendo extends StatelessWidget {
           ],
         ),
       );
+    }
+
+    if (_fase == _Fase.resultado) {
+      return _Resultado(
+        dictado: _correccionDictado,
+        mates: _correccionMates,
+        cambioNivel: _cambioNivel,
+        repaso: _repaso,
+        onTerminar: () => Navigator.of(context).pop(),
+      );
+    }
+
+    return switch (widget.contenido) {
+      ContenidoDictado(:final dictado) when _fase == _Fase.marcando =>
+        _MarcarDictado(dictado: dictado, onResponder: _responderFaltas),
+      ContenidoDictado(:final dictado) => _MarcarPalabras(
+          dictado: dictado,
+          seleccionadas: _palabrasFalladas,
+          onCambiar: (palabra, marcada) => setState(() {
+            marcada ? _palabrasFalladas.add(palabra) : _palabrasFalladas.remove(palabra);
+          }),
+          onListo: _corregir,
+          onNoMeAcuerdo: () {
+            _palabrasFalladas.clear();
+            _corregir();
+          },
+        ),
+      ContenidoOperaciones(:final operaciones) => _MarcarOperaciones(
+          operaciones: operaciones,
+          marcas: _marcas,
+          onMarcar: (numero, correcta) => setState(() => _marcas[numero] = correcta),
+          onTodasBien: () => setState(() {
+            for (final op in operaciones) {
+              _marcas[op.numero] = true;
+            }
+          }),
+          onCorregir: _corregir,
+        ),
+    };
+  }
 }
 
-class _Error extends StatelessWidget {
-  const _Error({
-    required this.mensaje,
-    required this.onReintentar,
-    required this.onEscribirlo,
-    required this.onSalir,
-  });
+// ------------------------------------------------------ marcar el dictado ---
 
-  final String mensaje;
-  final VoidCallback onReintentar;
-  final VoidCallback onEscribirlo;
-  final VoidCallback onSalir;
+/// El dictado escrito con letra de cuaderno, para compararlo con la hoja.
+class _TextoDelDictado extends StatelessWidget {
+  const _TextoDelDictado({required this.dictado, this.resaltadas = const {}});
+
+  final Dictado dictado;
+
+  /// Palabras que se pintan en rojo: las que el niño ha dicho que falló.
+  final Set<String> resaltadas;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.no_photography_outlined, size: 48, color: Tema.tintaSuave),
-            const SizedBox(height: 18),
-            Text(
-              mensaje,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            BotonGrande(
-              texto: 'Hacer otra foto',
-              icono: Icons.photo_camera_rounded,
-              onPressed: onReintentar,
-            ),
-            const SizedBox(height: 10),
-            TextButton.icon(
-              onPressed: onEscribirlo,
-              icon: const Icon(Icons.edit_outlined, size: 19),
-              label: const Text('Prefiero escribirlo yo'),
-              style: TextButton.styleFrom(
-                foregroundColor: Tema.tintaSuave,
-                minimumSize: const Size(0, 48),
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+      decoration: Tema.cajaTarjeta,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final frase in dictado.fragmentos)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _Frase(
+                frase: frase,
+                clave: dictado.palabrasClave,
+                resaltadas: resaltadas,
               ),
             ),
-            TextButton(
-              onPressed: onSalir,
-              style: TextButton.styleFrom(
-                foregroundColor: Tema.tintaSuave,
-                minimumSize: const Size(0, 44),
-              ),
-              child: const Text('Dejarlo para luego'),
-            ),
-          ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
+
+/// Una frase del dictado. Las palabras difíciles van subrayadas —son las que la
+/// app sabe explicar— y las que el niño marca como falladas, en rojo.
+class _Frase extends StatelessWidget {
+  const _Frase({required this.frase, required this.clave, required this.resaltadas});
+
+  final String frase;
+  final List<String> clave;
+  final Set<String> resaltadas;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final trozo in frase.split(' '))
+            TextSpan(
+              text: '$trozo ',
+              style: Tema.deCuaderno(
+                tamano: 32,
+                color: resaltadas.any((p) => _esLaMisma(trozo, p))
+                    ? Tema.fallo
+                    : Tema.tinta,
+                peso: clave.any((p) => _esLaMisma(trozo, p))
+                    ? FontWeight.w700
+                    : FontWeight.w400,
+                subrayado: clave.any((p) => _esLaMisma(trozo, p))
+                    ? TextDecoration.underline
+                    : null,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compara una palabra suelta del texto con una palabra clave, sin que la
+/// puntuación pegada estropee la comparación ("campo." es "campo").
+bool _esLaMisma(String enElTexto, String clave) {
+  final limpia = palabrasDe(enElTexto).join(' ').toLowerCase();
+  return limpia == clave.toLowerCase();
+}
+
+class _MarcarDictado extends StatelessWidget {
+  const _MarcarDictado({required this.dictado, required this.onResponder});
+
+  final Dictado dictado;
+  final void Function(int faltas) onResponder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            children: [
+              Text(dictado.titulo, style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 6),
+              const Text(
+                'Compáralo con tu hoja, sin prisa.',
+                style: TextStyle(color: Tema.tintaSuave, fontSize: 16),
+              ),
+              const SizedBox(height: 18),
+              _TextoDelDictado(dictado: dictado),
+            ],
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+          decoration: const BoxDecoration(
+            color: Tema.tarjeta,
+            border: Border(top: BorderSide(color: Tema.borde)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                '¿Cuántas faltas has tenido?',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (var i = 0; i <= _maxFaltasQuePregunta; i++)
+                    _BotonNumero(numero: i, onPressed: () => onResponder(i)),
+                  BotonComando(
+                    texto: 'Más de $_maxFaltasQuePregunta',
+                    onPressed: () => onResponder(_maxFaltasQuePregunta + 1),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BotonNumero extends StatelessWidget {
+  const _BotonNumero({required this.numero, required this.onPressed});
+
+  final int numero;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ninguna = numero == 0;
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          backgroundColor: ninguna ? Tema.accionSuave : Tema.tarjeta,
+          side: BorderSide(color: ninguna ? Tema.accion : Tema.borde, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Text(
+          '$numero',
+          style: Tema.deNumeros(
+            tamano: 28,
+            peso: FontWeight.w700,
+            color: ninguna ? Tema.accion : Tema.tinta,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// En cuáles de las palabras difíciles ha fallado.
+///
+/// Es opcional a propósito. Marcarlas es lo que permite explicarle la regla
+/// —"había lleva hache"— y lo que alimenta los errores frecuentes de la zona de
+/// padres, pero obligar a un niño de nueve años a clasificar sus propias faltas
+/// al final de un dictado es la manera de que deje de hacer dictados.
+class _MarcarPalabras extends StatelessWidget {
+  const _MarcarPalabras({
+    required this.dictado,
+    required this.seleccionadas,
+    required this.onCambiar,
+    required this.onListo,
+    required this.onNoMeAcuerdo,
+  });
+
+  final Dictado dictado;
+  final Set<String> seleccionadas;
+  final void Function(String palabra, bool marcada) onCambiar;
+  final VoidCallback onListo;
+  final VoidCallback onNoMeAcuerdo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            children: [
+              Text('¿En cuáles?', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 6),
+              const Text(
+                'Toca las palabras que hayas escrito mal y te explico por qué '
+                'se escriben así.',
+                style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final palabra in dictado.palabrasClave)
+                    _ChipPalabra(
+                      palabra: palabra,
+                      marcada: seleccionadas.contains(palabra),
+                      onCambiar: (v) => onCambiar(palabra, v),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _TextoDelDictado(dictado: dictado, resaltadas: seleccionadas),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+          child: Column(
+            children: [
+              BotonGrande(texto: 'Corregir', onPressed: onListo),
+              TextButton(
+                onPressed: onNoMeAcuerdo,
+                style: TextButton.styleFrom(
+                  foregroundColor: Tema.tintaSuave,
+                  minimumSize: const Size(0, 48),
+                ),
+                child: const Text('No me acuerdo de cuáles'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChipPalabra extends StatelessWidget {
+  const _ChipPalabra({
+    required this.palabra,
+    required this.marcada,
+    required this.onCambiar,
+  });
+
+  final String palabra;
+  final bool marcada;
+  final ValueChanged<bool> onCambiar;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onCambiar(!marcada),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: marcada ? Tema.falloSuave : Tema.tarjeta,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: marcada ? Tema.fallo : Tema.borde,
+            width: marcada ? 2 : 1.5,
+          ),
+        ),
+        child: Text(
+          palabra,
+          style: Tema.deCuaderno(
+            tamano: 28,
+            color: marcada ? Tema.fallo : Tema.tinta,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------------------------------------- marcar las operaciones ---
+
+class _MarcarOperaciones extends StatelessWidget {
+  const _MarcarOperaciones({
+    required this.operaciones,
+    required this.marcas,
+    required this.onMarcar,
+    required this.onTodasBien,
+    required this.onCorregir,
+  });
+
+  final List<Operacion> operaciones;
+  final Map<int, bool> marcas;
+  final void Function(int numero, bool correcta) onMarcar;
+  final VoidCallback onTodasBien;
+  final VoidCallback onCorregir;
+
+  @override
+  Widget build(BuildContext context) {
+    final faltanPorMarcar = operaciones.any((op) => !marcas.containsKey(op.numero));
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Las soluciones',
+                            style: Theme.of(context).textTheme.headlineMedium),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Mira tu cuaderno y marca cuáles te han salido.',
+                          style: TextStyle(color: Tema.tintaSuave, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (faltanPorMarcar)
+                    TextButton(
+                      onPressed: onTodasBien,
+                      style: TextButton.styleFrom(foregroundColor: Tema.acierto),
+                      child: const Text('Todas bien'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              for (final op in operaciones)
+                _TarjetaSolucion(
+                  operacion: op,
+                  marca: marcas[op.numero],
+                  onMarcar: (correcta) => onMarcar(op.numero, correcta),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
+          child: BotonGrande(
+            texto: faltanPorMarcar ? 'Marca todas para seguir' : 'Corregir',
+            onPressed: faltanPorMarcar ? null : onCorregir,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Un ejercicio con su solución, y los dos botones para decir si salió.
+class _TarjetaSolucion extends StatelessWidget {
+  const _TarjetaSolucion({
+    required this.operacion,
+    required this.marca,
+    required this.onMarcar,
+  });
+
+  final Operacion operacion;
+  final bool? marca;
+  final void Function(bool correcta) onMarcar;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (marca) {
+      true => Tema.acierto,
+      false => Tema.fallo,
+      null => Tema.borde,
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      decoration: BoxDecoration(
+        color: Tema.tarjeta,
+        borderRadius: BorderRadius.circular(Tema.radio),
+        border: Border.all(color: color, width: marca == null ? 1 : 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${operacion.numero}',
+              style: const TextStyle(
+                color: Tema.tintaSuave,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              )),
+          if (operacion.problema case final enunciado?) ...[
+            const SizedBox(height: 6),
+            Text(enunciado, style: Tema.deCuaderno(tamano: 26)),
+            const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 4),
+          // Cuenta y resultado en un solo párrafo: la respuesta puede llevar
+          // unidad ("55 euros", "32 resto 12") y en columnas separadas se parte
+          // por donde no debe.
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: operacion.enunciado,
+                  style: Tema.deNumeros(tamano: 28, peso: FontWeight.w700),
+                ),
+                TextSpan(
+                  text: '  =  ',
+                  style: Tema.deNumeros(tamano: 28, color: Tema.tintaSuave),
+                ),
+                TextSpan(
+                  text: operacion.respuesta,
+                  style: Tema.deNumeros(
+                    tamano: 28,
+                    peso: FontWeight.w700,
+                    color: Tema.acierto,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _BotonMarca(
+                  texto: 'Me ha salido',
+                  icono: Icons.check_rounded,
+                  color: Tema.acierto,
+                  activo: marca == true,
+                  onPressed: () => onMarcar(true),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _BotonMarca(
+                  texto: 'No me ha salido',
+                  icono: Icons.close_rounded,
+                  color: Tema.fallo,
+                  activo: marca == false,
+                  onPressed: () => onMarcar(false),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BotonMarca extends StatelessWidget {
+  const _BotonMarca({
+    required this.texto,
+    required this.icono,
+    required this.color,
+    required this.activo,
+    required this.onPressed,
+  });
+
+  final String texto;
+  final IconData icono;
+  final Color color;
+  final bool activo;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icono, size: 22),
+      label: Text(texto, textAlign: TextAlign.center),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: activo ? Colors.white : color,
+        backgroundColor: activo ? color : Tema.tarjeta,
+        minimumSize: const Size(0, 54),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        side: BorderSide(color: color, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------- resultado ---
 
 /// Lo que ha salido, con la voz explicando los fallos uno a uno.
 class _Resultado extends StatelessWidget {
   const _Resultado({
-    required this.contenido,
     required this.dictado,
     required this.mates,
     required this.cambioNivel,
     required this.repaso,
-    required this.onEditarLectura,
     required this.onTerminar,
   });
 
-  final ContenidoActividad contenido;
-  final Correccion? dictado;
+  final CorreccionDictado? dictado;
   final List<mat.ResultadoOperacion>? mates;
   final CambioDeNivel? cambioNivel;
   final ReproductorGuion? repaso;
-  final VoidCallback onEditarLectura;
   final VoidCallback onTerminar;
 
   int get _aciertos => dictado?.aciertos ?? mates!.where((r) => r.correcta).length;
@@ -406,21 +792,7 @@ class _Resultado extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-          child: Column(
-            children: [
-              BotonGrande(texto: 'Terminar', onPressed: onTerminar),
-              const SizedBox(height: 6),
-              TextButton.icon(
-                onPressed: onEditarLectura,
-                icon: const Icon(Icons.edit_outlined, size: 19),
-                label: const Text('Yo no escribí eso'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Tema.tintaSuave,
-                  minimumSize: const Size(0, 48),
-                ),
-              ),
-            ],
-          ),
+          child: BotonGrande(texto: 'Terminar', onPressed: onTerminar),
         ),
       ],
     );
@@ -445,7 +817,7 @@ class _Marcador extends StatelessWidget {
         children: [
           Text(
             '$aciertos de $total',
-            style: TextStyle(fontSize: 42, fontWeight: FontWeight.w700, color: color),
+            style: Tema.deNumeros(tamano: 44, peso: FontWeight.w700, color: color),
           ),
           const SizedBox(height: 6),
           Text(
@@ -545,52 +917,44 @@ class _LoQueDice extends StatelessWidget {
   }
 }
 
+/// Las palabras que ha marcado, con la regla que explica cada una.
 class _FaltasDeDictado extends StatelessWidget {
   const _FaltasDeDictado({required this.correccion});
 
-  final Correccion correccion;
+  final CorreccionDictado correccion;
 
   @override
   Widget build(BuildContext context) {
-    if (correccion.faltas.isEmpty) return const SizedBox.shrink();
+    if (correccion.explicadas.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Lo que hay que repasar',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Cómo se escriben', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
-        for (final falta in correccion.faltas)
+        for (final falta in correccion.explicadas)
           Container(
             margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Tema.falloSuave,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (falta.escrito.isNotEmpty)
-                  Text(
-                    falta.escrito,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Tema.fallo,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                if (falta.escrito.isNotEmpty && falta.esperado.isNotEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Icon(Icons.arrow_forward_rounded, size: 17, color: Tema.tintaSuave),
-                  ),
                 Text(
-                  falta.esperado.isEmpty ? '(sobra)' : falta.esperado,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                  falta.esperado,
+                  style: Tema.deCuaderno(
+                    tamano: 34,
+                    peso: FontWeight.w700,
                     color: Tema.acierto,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _capitalizar(razonDe(falta)),
+                  style: const TextStyle(fontSize: 15.5, height: 1.4, color: Tema.tinta),
                 ),
               ],
             ),
@@ -599,6 +963,9 @@ class _FaltasDeDictado extends StatelessWidget {
     );
   }
 }
+
+String _capitalizar(String s) =>
+    s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
 class _FaltasDeMates extends StatelessWidget {
   const _FaltasDeMates({required this.resultados});
@@ -610,7 +977,7 @@ class _FaltasDeMates extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Las operaciones', style: Theme.of(context).textTheme.titleMedium),
+        Text('Los ejercicios', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         for (final r in resultados)
           Container(
@@ -622,6 +989,7 @@ class _FaltasDeMates extends StatelessWidget {
               border: Border.all(color: r.correcta ? Tema.borde : Tema.falloSuave),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
                   r.correcta ? Icons.check_circle_rounded : Icons.cancel_rounded,
@@ -630,131 +998,27 @@ class _FaltasDeMates extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    r.operacion.enunciado,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${r.operacion.enunciado}  =  ',
+                          style: Tema.deNumeros(tamano: 21, peso: FontWeight.w700),
+                        ),
+                        TextSpan(
+                          text: r.operacion.respuesta,
+                          style: Tema.deNumeros(
+                            tamano: 21,
+                            color: r.correcta ? Tema.tintaSuave : Tema.fallo,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                if (!r.correcta)
-                  Text(
-                    r.motivo == mat.MotivoFallo.sinHacer
-                        ? 'sin hacer'
-                        : '${r.escrito.isEmpty ? "—" : r.escrito} → ${r.operacion.respuesta}',
-                    style: const TextStyle(fontSize: 15.5, color: Tema.fallo),
-                  )
-                else
-                  Text(r.operacion.respuesta,
-                      style: const TextStyle(fontSize: 16, color: Tema.tintaSuave)),
               ],
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// Arreglar lo que el OCR leyó mal.
-///
-/// ML Kit está hecho para texto impreso: con letra ligada se equivoca a menudo.
-/// Sin esta pantalla, un fallo del reconocimiento se convertiría en una falta
-/// de ortografía que el niño no ha cometido, y eso destruye la confianza en la
-/// app mucho más rápido que cualquier otra cosa.
-class _EditorDeLectura extends StatelessWidget {
-  const _EditorDeLectura({
-    required this.contenido,
-    required this.leido,
-    required this.resultados,
-    required this.onAceptar,
-  });
-
-  final ContenidoActividad contenido;
-  final TextEditingController leido;
-  final Map<int, TextEditingController> resultados;
-  final VoidCallback onAceptar;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            children: [
-              Text('Esto es lo que he leído',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              const Text(
-                'Escríbelo igual que está en tu hoja, con las faltas incluidas. '
-                'Así te corrijo bien.',
-                style: TextStyle(color: Tema.tintaSuave, fontSize: 15.5, height: 1.45),
-              ),
-              const SizedBox(height: 20),
-              switch (contenido) {
-                ContenidoDictado() => TextField(
-                    controller: leido,
-                    maxLines: null,
-                    minLines: 6,
-                    style: const TextStyle(fontSize: 18, height: 1.5),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Tema.tarjeta,
-                      contentPadding: const EdgeInsets.all(16),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Tema.borde),
-                      ),
-                    ),
-                  ),
-                ContenidoOperaciones(:final operaciones) => Column(
-                    children: [
-                      for (final op in operaciones)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${op.numero}.  ${op.enunciado}',
-                                  style: const TextStyle(
-                                      fontSize: 17, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 130,
-                                child: TextField(
-                                  controller: resultados[op.numero],
-                                  textAlign: TextAlign.center,
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                    signed: true,
-                                    decimal: true,
-                                  ),
-                                  style: const TextStyle(fontSize: 18),
-                                  decoration: InputDecoration(
-                                    hintText: '—',
-                                    filled: true,
-                                    fillColor: Tema.tarjeta,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(vertical: 14),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: const BorderSide(color: Tema.borde),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-              },
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          child: BotonGrande(texto: 'Corregir otra vez', onPressed: onAceptar),
-        ),
       ],
     );
   }

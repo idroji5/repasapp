@@ -7,7 +7,7 @@ import '../dominio/guion.dart';
 import '../voz/escucha.dart';
 import '../voz/locutora.dart';
 
-enum Fase { inicial, hablando, escribiendo, esperando, preguntando, foto, terminado }
+enum Fase { inicial, hablando, escribiendo, esperando, preguntando, revisar, terminado }
 
 /// Recorre un guion: dice cada paso, calla lo que haga falta y atiende a lo que
 /// el niño pida por voz o por botón.
@@ -19,14 +19,14 @@ class ReproductorGuion extends ChangeNotifier {
     required this.guion,
     required this.voz,
     required this.oido,
-    this.alPedirFoto,
+    this.alRevisar,
     this.alTerminar,
   });
 
   final Guion guion;
   final Locutora voz;
   final Escucha oido;
-  final VoidCallback? alPedirFoto;
+  final VoidCallback? alRevisar;
   final VoidCallback? alTerminar;
 
   Fase fase = Fase.inicial;
@@ -57,8 +57,14 @@ class ReproductorGuion extends ChangeNotifier {
   /// niño lo revele, y revelar solo se permite donde no es hacer trampa.
   bool enFragmento = false;
 
+  /// Cómo se escribe lo que se está dictando, cuando no se escribe igual que
+  /// se dice. Es lo que se enseña al revelar: al cuaderno va "742 : 7", no
+  /// "setecientos cuarenta y dos entre siete".
+  String? escritoActual;
+
   /// Lo que se está diciendo, o null si no debe verse.
-  String? get textoVisible => (!enFragmento || revelado) ? texto : null;
+  String? get textoVisible =>
+      (!enFragmento || revelado) ? (escritoActual ?? texto) : null;
 
   bool _cancelado = false;
   Timer? _cuentaAtras;
@@ -72,7 +78,7 @@ class ReproductorGuion extends ChangeNotifier {
     await _ejecutarLista(guion.pasos);
 
     if (_cancelado) return;
-    if (fase != Fase.foto) {
+    if (fase != Fase.revisar) {
       _cambiar(Fase.terminado);
       alTerminar?.call();
     }
@@ -89,18 +95,27 @@ class ReproductorGuion extends ChangeNotifier {
     switch (paso) {
       case Habla(:final texto):
         enFragmento = false;
+        escritoActual = null;
         await _decir(texto, Fase.hablando, const []);
 
-      case Fragmento(:final texto, :final indice, :final pausaSegundos, :final avanzaSolo):
+      case Fragmento(
+          :final texto,
+          :final indice,
+          :final pausaSegundos,
+          :final avanzaSolo,
+          :final veces,
+          :final escrito
+        ):
         fragmentoActual = indice + 1;
         revelado = false;
         enFragmento = true;
+        escritoActual = escrito;
 
         // Se repite tantas veces como el niño pida, cada vez a la velocidad
         // que tenga puesta en ese momento.
         var repetir = true;
         while (repetir && !_cancelado) {
-          await _decir(texto, Fase.hablando, guion.comandosGlobales);
+          await _leerFragmento(texto, veces);
           if (_cancelado) return;
           final accion = await _pausaParaEscribir(pausaSegundos, avanzaSolo);
           repetir = accion == _AccionPausa.repetir;
@@ -108,12 +123,14 @@ class ReproductorGuion extends ChangeNotifier {
 
       case Espera(:final texto, :final comandos):
         enFragmento = false;
+        escritoActual = null;
         await _decir(texto, Fase.esperando, comandos);
         if (_cancelado) return;
         await _esperarComando(comandos, Fase.esperando);
 
       case Pregunta(:final texto, :final opciones):
         enFragmento = false;
+        escritoActual = null;
         final posibles = opciones.map((o) => o.comando).toList();
         await _decir(texto, Fase.preguntando, posibles);
         if (_cancelado) return;
@@ -125,20 +142,49 @@ class ReproductorGuion extends ChangeNotifier {
         );
         await _ejecutarLista(rama.pasos);
 
-      case PedirFoto(:final texto):
+      case Revisar(:final texto):
         enFragmento = false;
+        escritoActual = null;
         await _decir(texto, Fase.hablando, const []);
         if (_cancelado) return;
-        _cambiar(Fase.foto);
-        alPedirFoto?.call();
+        _cambiar(Fase.revisar);
+        alRevisar?.call();
     }
   }
 
-  Future<void> _decir(String queDecir, Fase nueva, List<Comando> disponibles) async {
+  /// Cuánto se calla entre las dos lecturas de la misma frase. Lo justo para
+  /// que el niño oiga que empieza otra vez y no las junte en una sola.
+  static const Duration _respiroEntreLecturas = Duration(milliseconds: 1400);
+
+  /// Lee una frase [veces] veces seguidas.
+  ///
+  /// La segunda va un punto más despacio que la primera: así es como repite
+  /// quien dicta de verdad, y así la repetición sirve para escribir y no solo
+  /// para volver a oír lo mismo al mismo ritmo.
+  Future<void> _leerFragmento(String queDecir, int veces) async {
+    for (var vez = 0; vez < veces && !_cancelado; vez++) {
+      await _decir(
+        queDecir,
+        Fase.hablando,
+        guion.comandosGlobales,
+        a: vez == 0 ? null : voz.velocidad.masLenta,
+      );
+      if (vez + 1 < veces && !_cancelado) {
+        await Future<void>.delayed(_respiroEntreLecturas);
+      }
+    }
+  }
+
+  Future<void> _decir(
+    String queDecir,
+    Fase nueva,
+    List<Comando> disponibles, {
+    Velocidad? a,
+  }) async {
     texto = queDecir;
     comandos = disponibles;
     _cambiar(nueva);
-    await voz.decir(queDecir);
+    await voz.decir(queDecir, a: a);
   }
 
   // ------------------------------------------------- pausa para escribir ---

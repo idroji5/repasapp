@@ -88,18 +88,19 @@ class CambioDeNivel {
 
 /// Un fallo tal y como se guarda: sirve para las estadísticas del padre y para
 /// que el planificador insista en lo que se le atraganta.
+/// Una falta tal y como se guarda: la destreza a la que se imputa y qué era lo
+/// correcto. Ya no se guarda qué escribió el niño porque ya no se sabe: la
+/// corrección la hace él mirando la solución, no una cámara leyendo su hoja.
 class FaltaGuardable {
   const FaltaGuardable({
     required this.destrezaId,
     required this.tipo,
     required this.esperado,
-    required this.escrito,
   });
 
   final String destrezaId;
   final String tipo;
   final String esperado;
-  final String escrito;
 }
 
 class ResumenAsignatura {

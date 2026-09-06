@@ -2,11 +2,10 @@
 
 App audio-first para que niños de Primaria repasen sus asignaturas: **escuchan,
 trabajan en papel, y solo usan el móvil** para iniciar la actividad, pedir
-repeticiones y fotografiar el cuaderno al terminar.
+repeticiones y corregirse al terminar.
 
-**Todo funciona en local.** No hay servidor, ni cuenta, ni conexión: el
-contenido, la voz, el reconocimiento de la foto y los datos viven en el
-dispositivo de la familia.
+**Todo funciona en local.** No hay servidor, ni cuenta, ni conexión, ni cámara:
+el contenido, la voz y los datos viven en el dispositivo de la familia.
 
 ## Descargar
 
@@ -15,9 +14,9 @@ orígenes desconocidos" la primera vez):
 
 | Descarga | Para |
 |---|---|
-| [**RepasApp-arm64-v8a.apk**](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-arm64-v8a.apk) (29 MB) | Casi cualquier móvil de los últimos años |
-| [RepasApp-armeabi-v7a.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-armeabi-v7a.apk) (23 MB) | Móviles antiguos de 32 bits |
-| [RepasApp-universal.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-universal.apk) (77 MB) | Si las anteriores dan error de compatibilidad |
+| [**RepasApp-arm64-v8a.apk**](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-arm64-v8a.apk) (17 MB) | Casi cualquier móvil de los últimos años |
+| [RepasApp-armeabi-v7a.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-armeabi-v7a.apk) (14 MB) | Móviles antiguos de 32 bits |
+| [RepasApp-universal.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-universal.apk) (48 MB) | Si las anteriores dan error de compatibilidad |
 
 Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 
@@ -28,14 +27,15 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Edad objetivo | 6–12 (Primaria). Contenido del MVP: 3.º–6.º |
 | Currículo | España (LOMLOE), indexado por **microdestreza**, no por curso |
 | Idiomas | Castellano. La arquitectura admite añadir catalán e inglés |
-| Contenido | Matemáticas: generador determinista. Dictado: banco curado a mano |
-| Corrección | Foto por tanda + OCR en el dispositivo (ML Kit) |
+| Contenido | Matemáticas: generador determinista de cuentas y problemas. Dictado: banco curado a mano |
+| Corrección | El niño ve la solución en pantalla y marca qué le ha salido |
 | Feedback | Pistas antes que solución (configurable por el padre) |
 | Zona de padres | Sí, protegida con PIN |
 | Sesión diaria | "N minutos al día" → plan generado automáticamente |
 | Nivel | 1–5 **independiente por asignatura**, con autoajuste |
 | Voz | Motor del propio teléfono (`flutter_tts`), es-ES, voz femenina si la hay |
-| Fotos | **Nunca se guardan.** Se reconocen en memoria y se descartan |
+| Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
+| Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
 
 ## Arquitectura
 
@@ -44,18 +44,19 @@ app/lib/
   contenido/    Qué se le plantea al niño
     numeros.dart      742 → "setecientos cuarenta y dos"
     dictados.dart     Banco de dictados revisados a mano
-    matematicas.dart  Generador determinista de operaciones + narración
+    generador.dart    Azar determinista y piezas comunes de los ejercicios
+    matematicas.dart  Generador de cuentas + narración paso a paso
+    problemas.dart    Problemas con enunciado ("Ana compra 3 cajas de 12…")
   dominio/      Las reglas, sin depender de nada
     curriculo.dart    Microdestrezas y en qué curso se introducen
     niveles.dart      Cuándo sube o baja el nivel de una asignatura
-    planificador.dart "15 minutos" → sesión concreta
+    planificador.dart "15 minutos" → sesión concreta, variada por familias
     guion.dart        Qué dice la voz, cuánto calla, qué espera
     actividades.dart  Construye el guion de cada tipo de actividad
   correccion/   Qué hizo el niño
-    alinear.dart      Compara lo escrito con lo dictado y clasifica las faltas
-    matematicas.dart  Compara resultados; distingue calcular mal de copiar mal
-    ocr.dart          ML Kit (adaptador aislado)
-    interpretar.dart  Qué significa lo que el OCR ha leído
+    ortografia.dart   Qué regla se juega en cada palabra y cómo se explica
+    dictado.dart      Las faltas que el niño dice haber tenido → nota y repaso
+    matematicas.dart  Los ejercicios que marca como fallados
   voz/          locutora (hablar), escucha (comandos), frases (qué se dice)
   datos/        SQLite local + repositorio
   ui/           Tema, reproductor de guiones y pantallas
@@ -63,15 +64,32 @@ app/lib/
 
 El principio que ordena todo: **la pedagogía vive en el guion, no en las
 pantallas**. La interfaz solo sabe reproducir pasos (`Habla`, `Fragmento`,
-`Espera`, `Pregunta`, `PedirFoto`), así que cambiar cómo enseña la app no
+`Espera`, `Pregunta`, `Revisar`), así que cambiar cómo enseña la app no
 obliga a tocar la interfaz.
+
+## Cómo se corrige
+
+Al terminar, la app enseña en pantalla lo que tenía que salir, con **letra
+caligráfica**: el texto del dictado en letra ligada, como la del cuaderno, y las
+cuentas en manuscrita clara, porque en cursiva un 4 y un 7 se confunden.
+
+- **Dictado**: el niño compara con su hoja, dice cuántas faltas ha tenido y, si
+  quiere, toca en cuáles de las palabras difíciles. Cada una que marque se le
+  explica: *"había: lleva hache, aunque no se oiga al pronunciarla"*.
+- **Matemáticas**: cada ejercicio con su solución, y dos botones para decir si
+  le ha salido. Los que no, se repasan de viva voz con pistas.
+
+Marcarse uno mismo es menos automático que leer la hoja con la cámara, y es
+mejor: comparar su cuenta con la buena y decidir si coinciden ya es corregir.
+Además nunca se equivoca al leer su letra, que era [el problema que hundía la
+confianza en la app](docs/por-que-no-hay-ocr/README.md).
 
 ## Arrancar
 
 ```bash
 cd app
 flutter pub get
-flutter test          # 40 pruebas de la lógica pura y del repositorio
+flutter test          # 56 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 
@@ -80,10 +98,14 @@ Requiere JDK 17 para compilar en Android:
 
 ## Límites conocidos
 
-- **El OCR de caligrafía infantil falla.** ML Kit está entrenado con texto
-  impreso: va bien con números y letra de imprenta, y regular con letra ligada.
-  Por eso la pantalla de resultado siempre ofrece *"Yo no escribí eso"* para
-  arreglar lo que se ha leído mal y volver a corregir.
+- **La nota la pone el niño.** Si dice que ha tenido dos faltas cuando ha
+  tenido cuatro, la app se lo cree. No es grave: el nivel necesita varias
+  actividades seguidas para moverse, así que una autoevaluación imperfecta no
+  descarrila el progreso, y contar las propias faltas obliga a releerse.
+- **Marcar en qué palabras es opcional.** Si el niño no lo hace, la app no
+  puede explicarle la regla ni apuntar la destreza para la zona de padres. Se
+  deja opcional a propósito: obligarle a clasificar sus faltas al terminar un
+  dictado es la manera de que deje de hacer dictados.
 - **La voz depende del teléfono.** Se busca la mejor voz `es-ES` instalada. Si
   el dispositivo solo trae voz latinoamericana, el dictado de palabras con
   *c/z* pierde sentido para un niño español.

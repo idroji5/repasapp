@@ -45,10 +45,6 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>RepasApp usa la cámara para fotografiar el cuaderno y corregir los ejercicios. La foto se procesa en el propio dispositivo y no se guarda.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Puedes elegir una foto del cuaderno ya hecha para corregirla. La foto se procesa en el dispositivo y no se guarda.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>El micrófono permite decir en voz alta "listo" o "repite" sin soltar el lápiz. También puedes usar los botones.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

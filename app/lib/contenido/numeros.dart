@@ -103,3 +103,66 @@ const _ordinalesFemeninos = [
 String ordinalFemenino(int n) => n >= 1 && n <= _ordinalesFemeninos.length
     ? _ordinalesFemeninos[n - 1]
     : 'número ${enteroALetras(n)}';
+
+// ------------------------------------- números dentro de una frase escrita ---
+
+final RegExp _milesConPunto = RegExp(r'\b(\d{1,3})(?:\.(\d{3}))+\b');
+final RegExp _importeEnEuros = RegExp(r'(\d+),(\d{2})\s*€');
+final RegExp _enEuros = RegExp(r'(\d+)\s+(euros?)');
+final RegExp _eurosRedondos = RegExp(r'(\d+)\s*€');
+final RegExp _cualquierNumero = RegExp(r'\d+(?:,\d+)?');
+
+/// Un numeral que va delante de un nombre concuerda con él: son "veintiún
+/// cromos", "veintiuna canicas" y "doscientas galletas", nunca "veintiuno
+/// galletas". La app le está enseñando a escribir al niño; no puede hablarle
+/// mal.
+String numeralAnteNombre(String numeral, {bool femenino = false}) {
+  if (femenino) {
+    final t = numeral.replaceAll('cientos', 'cientas');
+    return t.endsWith('uno') ? '${t.substring(0, t.length - 3)}una' : t;
+  }
+  if (numeral.endsWith('veintiuno')) {
+    return '${numeral.substring(0, numeral.length - 9)}veintiún';
+  }
+  return numeral.endsWith('uno')
+      ? '${numeral.substring(0, numeral.length - 3)}un'
+      : numeral;
+}
+
+/// "dos euros con cuarenta céntimos", que es como se dice un precio.
+String importeALetras(int euros, int centimos) {
+  final parte =
+      '${numeralAnteNombre(enteroALetras(euros))} ${euros == 1 ? "euro" : "euros"}';
+  if (centimos == 0) return parte;
+  return '$parte con ${enteroALetras(centimos)} céntimos';
+}
+
+/// Reescribe una frase para leerla en voz alta, pasando a letras los números
+/// que lleva en cifras.
+///
+/// Un problema con enunciado se enseña escrito —"Ana compra 3 cajas de 12
+/// lápices"— porque en la pantalla las cifras se leen de un vistazo. Pero al
+/// oído hay que decirlo con todas las letras: si se le pasa "12" al motor de
+/// voz, cada teléfono lo lee a su manera y no controlamos qué oye el niño.
+///
+/// `femenino` es el género de aquello que se está contando, para que los
+/// numerales concuerden: "doscientas galletas", no "doscientos galletas".
+String numerosALetras(String texto, {bool femenino = false}) {
+  var t = texto.replaceAllMapped(
+      _milesConPunto, (m) => m.group(0)!.replaceAll('.', ''));
+  t = t.replaceAllMapped(
+      _importeEnEuros,
+      (m) => importeALetras(int.parse(m.group(1)!), int.parse(m.group(2)!)));
+  t = t.replaceAllMapped(_eurosRedondos,
+      (m) => importeALetras(int.parse(m.group(1)!), 0));
+  t = t.replaceAllMapped(
+      _enEuros, (m) => '${enteroALetras(int.parse(m.group(1)!))} ${m.group(2)}');
+  return t.replaceAllMapped(_cualquierNumero, (m) {
+    final valor = num.parse(m.group(0)!.replaceAll(',', '.'));
+    final letras = numeroALetras(valor);
+    // Solo los enteros van delante de un nombre; un decimal se lee tal cual.
+    return valor is int || valor == valor.truncate()
+        ? numeralAnteNombre(letras, femenino: femenino)
+        : letras;
+  });
+}

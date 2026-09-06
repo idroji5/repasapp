@@ -1,12 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- La cámara es para fotografiar el cuaderno. La foto se reconoce en el
-         propio móvil y se descarta: no se guarda ni sale del dispositivo. -->
-    <uses-permission android:name="android.permission.CAMERA"/>
     <!-- El micrófono es para los comandos por voz ("listo", "repite"). Todo
          comando tiene también su botón, así que negar el permiso no rompe nada. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="repasapp"
         android:name="${applicationName}"

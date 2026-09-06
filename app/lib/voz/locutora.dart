@@ -7,14 +7,19 @@ import 'package:path_provider/path_provider.dart';
 
 /// Velocidades a las que la app dicta. El niño puede pedir "más despacio" en
 /// cualquier momento y el cambio se aplica al siguiente fragmento.
+///
+/// Las tres van por debajo del ritmo de conversación a propósito. Quien dicta a
+/// un niño de Primaria no habla como habla con un adulto: articula, separa las
+/// palabras y le da tiempo a que la mano llegue. Lo que en una app de lectura
+/// sería insoportablemente lento, aquí es el ritmo correcto.
 enum Velocidad {
-  lenta(0.34),
-  normal(0.48),
-  rapida(0.60);
+  lenta(0.26),
+  normal(0.36),
+  rapida(0.48);
 
   const Velocidad(this.tasa);
 
-  /// Tasa de habla de flutter_tts, donde ~0,5 es el ritmo natural.
+  /// Tasa de habla de flutter_tts, donde ~0,5 es el ritmo natural de un adulto.
   final double tasa;
 
   Velocidad get masLenta => switch (this) {
