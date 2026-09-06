@@ -4,8 +4,21 @@ import 'package:repasapp/voz/locutora.dart';
 
 /// Un motor de voz de mentira que apunta a qué ritmo se le ha pedido hablar.
 class _MotorEspia extends FlutterTts {
+  _MotorEspia({this.comoHabla = _normal, this.voces = 1});
+
+  /// Cuánto tarda de verdad en decir algo. Cambia mucho de un teléfono a otro,
+  /// y ahí está la gracia: hay motores que ignoran la velocidad que se les pide.
+  final Duration Function(String texto) comoHabla;
+
+  /// Cuántas voces castellanas ofrece el teléfono.
+  final int voces;
+
+  static Duration _normal(String texto) =>
+      Duration(milliseconds: 400 * texto.split(' ').length);
+
   final List<double> ritmos = [];
   final List<String> dicho = [];
+  final List<String> vocesPuestas = [];
 
   void limpiar() {
     ritmos.clear();
@@ -23,11 +36,15 @@ class _MotorEspia extends FlutterTts {
 
   @override
   Future<dynamic> get getVoices async => <Map<String, String>>[
-        {'name': 'es-es-x-eea-local', 'locale': 'es-ES', 'network_required': '0'},
+        for (var i = 0; i < voces; i++)
+          {'name': 'es-es-voz-$i', 'locale': 'es-ES', 'network_required': '0'},
       ];
 
   @override
-  Future<dynamic> setVoice(Map<String, String> voice) async => 1;
+  Future<dynamic> setVoice(Map<String, String> voice) async {
+    vocesPuestas.add(voice['name']!);
+    return 1;
+  }
 
   @override
   Future<dynamic> setSpeechRate(double rate) async {
@@ -38,9 +55,7 @@ class _MotorEspia extends FlutterTts {
   @override
   Future<dynamic> speak(String text, {bool focus = false}) async {
     dicho.add(text);
-    // Se tarda algo en hablar: si volviera al instante, la locutora creería
-    // que la voz está muda y cambiaría de voz para repetirlo.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(comoHabla(text));
     return 1;
   }
 
@@ -158,6 +173,63 @@ void main() {
     expect(Velocidad.normal.masLenta.pausaEntrePalabras,
         greaterThan(Velocidad.normal.pausaEntrePalabras),
         reason: 'y con más silencio entre palabras');
+  });
+
+  test('un motor que ignora la velocidad no se toma por mudo', () async {
+    // El fallo que dejaba mudas las matemáticas y el inglés: la app medía si la
+    // voz había sonado comparando con el ritmo lento que ella había pedido. En
+    // los teléfonos que ignoran ese ritmo y hablan normal, cada frase parecía
+    // muda y la app se ponía a cambiar de voz hasta dar con una que no sonaba.
+    // El dictado se libraba porque va palabra a palabra, y las palabras sueltas
+    // no entran en esa cuenta.
+    final motor = _MotorEspia(
+      voces: 3,
+      // Habla a ritmo de adulto con prisa, se le pida lo que se le pida.
+      comoHabla: (t) => Duration(milliseconds: 250 * t.split(' ').length),
+    );
+    final locutora = Locutora(motor: motor);
+
+    await locutora.dictar(
+      'Primera: setecientos cuarenta y dos dividido entre siete.',
+      corte: Corte.frases,
+    );
+
+    expect(motor.vocesPuestas.toSet(), hasLength(1),
+        reason: 'no había ningún motivo para cambiar de voz');
+    expect(motor.dicho.where((t) => t.contains('setecientos')), hasLength(1),
+        reason: 'y por tanto tampoco para repetir la frase');
+  });
+
+  test('una voz que de verdad no suena se cambia, pero solo una vez', () async {
+    final motor = _MotorEspia(
+      voces: 3,
+      comoHabla: (_) => const Duration(milliseconds: 5),
+    );
+    final locutora = Locutora(motor: motor);
+
+    await locutora.decir('Vamos a hacer cinco operaciones muy fáciles.');
+    expect(motor.vocesPuestas.toSet(), hasLength(2), reason: 'se prueba otra voz');
+
+    await locutora.decir('Prepara papel y lápiz para empezar.');
+    expect(motor.vocesPuestas.toSet(), hasLength(2),
+        reason: 'si la segunda tampoco suena, el problema no es la voz');
+  });
+
+  test('en cuanto una voz suena, ya no se cambia', () async {
+    var rapido = false;
+    final motor = _MotorEspia(
+      voces: 3,
+      comoHabla: (t) => rapido
+          ? const Duration(milliseconds: 5)
+          : Duration(milliseconds: 400 * t.split(' ').length),
+    );
+    final locutora = Locutora(motor: motor);
+
+    await locutora.decir('Esta frase se oye perfectamente, sin ningún problema.');
+    rapido = true; // ahora el motor devuelve el control al instante
+    await locutora.decir('Esta otra vuelve enseguida, pero la voz es la buena.');
+
+    expect(motor.vocesPuestas.toSet(), hasLength(1));
   });
 
   test('el tope de espera crece cuando la voz va más lenta', () {

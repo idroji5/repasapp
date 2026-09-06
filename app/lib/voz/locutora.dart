@@ -247,22 +247,45 @@ class Locutora {
     await _tts.setVoice({'name': vozElegida, 'locale': voz['locale'] ?? 'es-ES'});
   }
 
-  /// Pasa a la siguiente voz de la lista. Devuelve false si no quedan.
+  /// Si la voz que se está usando ha sonado alguna vez de verdad.
+  ///
+  /// En cuanto se la oye una vez, no se cambia nunca más: una detección
+  /// equivocada después de eso solo puede empeorar las cosas, cambiando una voz
+  /// que funciona por otra que a lo mejor no.
+  bool _estaVozHaSonado = false;
+
+  /// Solo se cambia de voz una vez por sesión. Si la segunda tampoco suena, el
+  /// problema no es la voz, y seguir bajando por la lista es ir a peor.
+  bool _yaSeCambioDeVoz = false;
+
+  /// Pasa a la siguiente voz de la lista. Devuelve false si no quedan o si ya
+  /// no toca cambiar.
   Future<bool> _probarSiguienteVoz() async {
+    if (_estaVozHaSonado || _yaSeCambioDeVoz) return false;
     if (_indiceVoz + 1 >= _candidatas.length) return false;
+
+    _yaSeCambioDeVoz = true;
     await _usarCandidata(_indiceVoz + 1);
     debugPrint('[RepasApp] cambio de voz a: $vozElegida');
     return true;
   }
 
-  /// Una voz que no suena puede devolver el control casi al instante: el motor
-  /// "termina" de decir una frase de tres segundos en una décima. Es una señal
-  /// débil —muchas voces mudas tardan lo normal— pero cuando aparece es
-  /// inequívoca, así que sirve de último recurso.
-  static bool _pareceMuda(String texto, Duration estimada, Duration real) {
+  /// Una voz que no suena devuelve el control casi al instante: el motor
+  /// "termina" de decir una frase de tres segundos en una décima.
+  ///
+  /// La comparación se hace contra lo que tardaría un adulto hablando deprisa,
+  /// NO contra el ritmo lento que la app ha pedido. Hay motores que ignoran la
+  /// velocidad y lo dicen todo a ritmo normal: si se midiera contra lo pedido,
+  /// esos teléfonos parecerían mudos en cada frase y la app se pondría a
+  /// cambiar de voz hasta dar con una que de verdad no suena. Eso es justo lo
+  /// que pasaba en matemáticas y en inglés y no en el dictado: el dictado se
+  /// dice palabra a palabra, y las palabras sueltas no entran en esta cuenta.
+  static bool _pareceMuda(String texto, Duration real) {
     final palabras = texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
-    if (palabras < 3) return false; // en frases cortas el margen no distingue
-    return real < estimada * 0.35;
+    if (palabras < 5) return false; // en frases cortas el margen no distingue
+
+    final deprisa = duracionEstimada(texto, 0.5);
+    return real < deprisa * 0.35;
   }
 
   /// Aproximadamente cuánto se tarda en leer un texto en voz alta. Sirve para
@@ -403,7 +426,11 @@ class Locutora {
     // Red de seguridad para el caso raro en que una voz marcada como
     // instalada devuelva el control al instante: se cambia de voz y se repite
     // la frase, para que el niño pierda un segundo y no el dictado entero.
-    if (_pareceMuda(texto, estimada, reloj.elapsed) && await _probarSiguienteVoz()) {
+    if (!_pareceMuda(texto, reloj.elapsed)) {
+      _estaVozHaSonado = true;
+      return;
+    }
+    if (await _probarSiguienteVoz()) {
       try {
         await _tts.speak(texto).timeout(tope);
       } on TimeoutException {

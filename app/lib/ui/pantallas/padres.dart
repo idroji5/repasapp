@@ -576,6 +576,19 @@ class _SelectorDeVozState extends State<_SelectorDeVoz> {
                 onTocar: () => estado.elegirVoz(v['name'] ?? ''),
               ),
 
+          // El inglés se dice con voz inglesa. Sin ninguna instalada los
+          // ejercicios se hacen igual, pero "butterfly" leído por una voz
+          // española no se parece a nada, y eso hay que saberlo.
+          if (estado.voz.vozInglesaAusente) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'No hay ninguna voz inglesa instalada, así que los ejercicios de '
+              'inglés se leen con la voz española y se pronuncian mal. Se añade '
+              'desde Ajustes → Idiomas → Texto a voz → Instalar datos de voz.',
+              style: TextStyle(color: Tema.logro, fontSize: 14, height: 1.45),
+            ),
+          ],
+
           if (voces.isNotEmpty) ...[
             const Divider(height: 28),
             TextButton.icon(

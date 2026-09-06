@@ -176,7 +176,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 101 pruebas de la lógica pura y del repositorio
+flutter test          # 104 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 
@@ -194,7 +194,10 @@ Requiere JDK 17 para compilar en Android:
   lo que el dictado está construido, más las tildes, que se ven en la palabra.
 - **La voz depende del teléfono.** Se busca la mejor voz `es-ES` instalada. Si
   el dispositivo solo trae voz latinoamericana, el dictado de palabras con
-  *c/z* pierde sentido para un niño español.
+  *c/z* pierde sentido para un niño español. Y hay motores que ignoran la
+  velocidad que se les pide: el dictado suena más rápido de lo previsto y no
+  hay manera de evitarlo desde la app. La zona de padres deja elegir voz y
+  comprobar si suena.
 - **El banco de dictados es finito**: 60 textos, 12 por nivel. No repite
   ninguno de los 20 últimos, así que dan para unas semanas antes de reciclar.
   Los de inglés son 123. Las matemáticas sí son infinitas.
