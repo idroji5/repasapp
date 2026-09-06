@@ -33,6 +33,7 @@ class Tema {
 
   static const Color dictado = Color(0xFF4F46E5);
   static const Color matematicas = Color(0xFF0F766E);
+  static const Color ingles = Color(0xFFB45309);
 
   static const double radio = 20;
 
@@ -129,8 +130,11 @@ class Tema {
     );
   }
 
-  static Color colorDe(String asignatura) =>
-      asignatura == 'dictado' ? dictado : matematicas;
+  static Color colorDe(String asignatura) => switch (asignatura) {
+        'dictado' => dictado,
+        'ingles' => ingles,
+        _ => matematicas,
+      };
 
   static BoxDecoration get cajaTarjeta => BoxDecoration(
         color: tarjeta,

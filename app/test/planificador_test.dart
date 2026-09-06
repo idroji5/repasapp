@@ -43,7 +43,7 @@ void main() {
     expect(conDivision, lessThan(50));
   });
 
-  test('siempre entra un problema con enunciado en cuanto el curso lo permite', () {
+  test('siempre entra un planteamiento con enunciado en cuanto el curso lo permite', () {
     for (var curso = 2; curso <= 6; curso++) {
       for (var semilla = 0; semilla < 30; semilla++) {
         final elegidas =
@@ -78,6 +78,65 @@ void main() {
     }
   });
 
+  test('el día se reparte entre las tres asignaturas', () {
+    for (var semilla = 0; semilla < 20; semilla++) {
+      final plan = planificarSesion(
+        const ContextoPlan(
+          curso: 5,
+          minutosDiarios: 15,
+          niveles: {
+            Asignatura.matematicas: 3,
+            Asignatura.dictado: 3,
+            Asignatura.ingles: 3,
+          },
+        ),
+        azar: Random(semilla),
+      );
+
+      expect(plan.map((p) => p.asignatura).toSet(), Asignatura.values.toSet(),
+          reason: 'falta alguna asignatura con la semilla $semilla');
+      expect(plan, hasLength(3));
+
+      // Y cabe en el día: quince minutos son quince minutos.
+      final total = plan.fold(0, (s, p) => s + p.duracionEstimadaSegundos);
+      expect(total, lessThanOrEqualTo(15 * 60), reason: 'se pasa de tiempo');
+    }
+  });
+
+  test('con poco tiempo, la primera no se lo come todo', () {
+    // Cinco minutos no dan para tres actividades, pero sí para más de una: lo
+    // que no puede pasar es que el dictado se quede con los cinco minutos.
+    final plan = planificarSesion(
+      const ContextoPlan(
+        curso: 3,
+        minutosDiarios: 6,
+        niveles: {
+          Asignatura.matematicas: 2,
+          Asignatura.dictado: 2,
+          Asignatura.ingles: 2,
+        },
+      ),
+      azar: Random(4),
+    );
+
+    expect(plan.length, greaterThan(1));
+    expect(plan.map((p) => p.asignatura).toSet().length, plan.length,
+        reason: 'una de cada, no dos de la misma');
+  });
+
+  test('la asignatura que tocó ayer no vuelve a abrir hoy', () {
+    final plan = planificarSesion(
+      const ContextoPlan(
+        curso: 5,
+        minutosDiarios: 15,
+        niveles: {},
+        ultimaAsignatura: Asignatura.dictado,
+      ),
+      azar: Random(1),
+    );
+    expect(plan.first.asignatura, isNot(Asignatura.dictado));
+  });
+
   test('la sesión del día trae una tanda variada de verdad', () {
     final plan = planificarSesion(
       const ContextoPlan(
@@ -98,6 +157,6 @@ void main() {
     );
 
     expect(tanda.map((op) => op.destrezaId).toSet().length, greaterThan(2));
-    expect(tanda.any((op) => op.esProblema), isTrue);
+    expect(tanda.any((op) => op.tienePlanteamiento), isTrue);
   });
 }

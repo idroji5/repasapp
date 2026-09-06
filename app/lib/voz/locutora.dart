@@ -51,6 +51,23 @@ enum Velocidad {
 /// palabra; un enunciado de matemáticas se entiende de corrido.
 enum Corte { palabras, frases }
 
+/// Un trozo de texto con el idioma en el que hay que decirlo.
+class TrozoHablado {
+  const TrozoHablado(this.texto, {required this.ingles});
+  final String texto;
+  final bool ingles;
+
+  @override
+  String toString() => ingles ? '«$texto»' : texto;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrozoHablado && other.texto == texto && other.ingles == ingles;
+
+  @override
+  int get hashCode => Object.hash(texto, ingles);
+}
+
 /// La voz de la app.
 ///
 /// Usa el motor del propio teléfono, así que funciona sin conexión y sin coste.
@@ -82,6 +99,14 @@ class Locutora {
 
   /// Queda a true cuando no se ha encontrado ninguna voz en español de España.
   bool vozCastellanaAusente = false;
+
+  /// Queda a true cuando no hay ninguna voz inglesa instalada. Los ejercicios
+  /// de inglés se dicen igual, con la voz castellana, pero pronunciados por una
+  /// voz española "butterfly" no se parece a nada: el padre tiene que saberlo.
+  bool vozInglesaAusente = false;
+
+  /// La voz con la que se dice lo que va en inglés.
+  Map<String, String>? _vozInglesa;
 
   /// Nombre de la voz que se está usando, para poder diagnosticarlo.
   String vozElegida = '';
@@ -177,6 +202,7 @@ class Locutora {
       }
 
       _candidatas.sort((a, b) => puntuacion(b).compareTo(puntuacion(a)));
+      _elegirVozInglesa(voces);
 
       // Si el padre eligió una a mano, esa manda: es el único que puede oír si
       // funciona de verdad en este teléfono.
@@ -186,6 +212,30 @@ class Locutora {
     } catch (e) {
       debugPrint('[RepasApp] no se pudo elegir voz: $e');
     }
+  }
+
+  /// La mejor voz inglesa que haya, para los ejercicios de inglés.
+  ///
+  /// Se prefiere británica: es el inglés que se enseña en el colegio en España
+  /// y el que va a oír en clase.
+  void _elegirVozInglesa(List<dynamic> voces) {
+    final inglesas = voces
+        .cast<Map>()
+        .map((v) => v.map((k, val) => MapEntry(k.toString(), val.toString())))
+        .where((v) => (v['locale'] ?? '').toLowerCase().startsWith('en'))
+        .where((v) => !(v['features'] ?? '').contains('notInstalled'))
+        .toList();
+
+    int puntos(Map<String, String> voz) {
+      final locale = (voz['locale'] ?? '').toLowerCase();
+      return (locale.startsWith('en-gb') ? 10 : 0) +
+          (voz['network_required'] == '0' ? 5 : 0);
+    }
+
+    inglesas.sort((a, b) => puntos(b).compareTo(puntos(a)));
+    vozInglesaAusente = inglesas.isEmpty;
+    _vozInglesa = inglesas.firstOrNull;
+    debugPrint('[RepasApp] voz inglesa: ${_vozInglesa?['name'] ?? "ninguna"}');
   }
 
   Future<void> _usarCandidata(int indice) async {
@@ -229,7 +279,12 @@ class Locutora {
   }
 
   /// Explica algo: instrucciones, preguntas, correcciones. Ritmo de conversar.
-  Future<void> decir(String texto) => _hablar(texto, tasaAlExplicar);
+  Future<void> decir(String texto) async {
+    for (final trozo in enIdiomas(texto)) {
+      if (_cancelado) return;
+      await _hablar(trozo.texto, tasaAlExplicar, ingles: trozo.ingles);
+    }
+  }
 
   /// Dicta algo para que el niño lo escriba, al ritmo que él haya pedido o al
   /// que se indique en [a].
@@ -248,11 +303,38 @@ class Locutora {
 
     for (var i = 0; i < trozos.length; i++) {
       if (_cancelado) return;
-      await _hablar(trozos[i], ritmo.tasa);
+      for (final parte in enIdiomas(trozos[i])) {
+        if (_cancelado) return;
+        await _hablar(parte.texto, ritmo.tasa, ingles: parte.ingles);
+      }
       if (i + 1 < trozos.length) {
         await Future<void>.delayed(Duration(milliseconds: pausa));
       }
     }
+  }
+
+  /// Parte un texto en trozos por idioma.
+  ///
+  /// Lo que va entre comillas angulares se dice en inglés: «What's your name?».
+  /// Una frase de un ejercicio de inglés mezcla los dos idiomas —"traduce al
+  /// español: «my sister is tall»"— y leerla entera con la voz castellana
+  /// convierte el inglés en una ristra de sonidos que no se parecen a nada.
+  static List<TrozoHablado> enIdiomas(String texto) {
+    final salida = <TrozoHablado>[];
+    for (final trozo in texto.split(RegExp(r'(?=«)|(?<=»)'))) {
+      final limpio = trozo.trim();
+      // Detrás de una frase entrecomillada suele quedar el punto solo. Decirlo
+      // aparte es cambiar de idioma para no decir nada.
+      if (!RegExp(r'[a-záéíóúüñ0-9]', caseSensitive: false).hasMatch(limpio)) {
+        continue;
+      }
+      final ingles = limpio.startsWith('«') && limpio.endsWith('»');
+      salida.add(TrozoHablado(
+        ingles ? limpio.substring(1, limpio.length - 1) : limpio,
+        ingles: ingles,
+      ));
+    }
+    return salida;
   }
 
   /// Corta un texto por donde ya se respira al leerlo: comas, puntos y dos
@@ -298,10 +380,11 @@ class Locutora {
   /// avisar nunca de que ha terminado, y entonces la actividad se queda
   /// congelada para siempre en el primer paso. Es preferible seguir en silencio
   /// —el texto está en pantalla— que dejar al niño mirando una pantalla muerta.
-  Future<void> _hablar(String texto, double tasa) async {
+  Future<void> _hablar(String texto, double tasa, {bool ingles = false}) async {
     if (muda) return;
     _cancelado = false;
     await preparar();
+    await _cambiarDeIdioma(ingles);
     await _tts.setSpeechRate(tasa);
 
     final estimada = duracionEstimada(texto, tasa);
@@ -380,6 +463,24 @@ class Locutora {
       return bytes.skip(44).any((b) => b != 0 && b != 255);
     } catch (_) {
       return false;
+    }
+  }
+
+  /// En qué idioma está hablando ahora mismo el motor.
+  bool _hablandoEnIngles = false;
+
+  Future<void> _cambiarDeIdioma(bool ingles) async {
+    if (ingles == _hablandoEnIngles) return;
+    _hablandoEnIngles = ingles;
+
+    final voz = ingles ? _vozInglesa : null;
+    if (ingles && voz == null) return; // sin voz inglesa, se dice como se pueda
+
+    await _tts.setLanguage(ingles ? (voz!['locale'] ?? 'en-GB') : 'es-ES');
+    if (ingles) {
+      await _tts.setVoice({'name': voz!['name']!, 'locale': voz['locale'] ?? 'en-GB'});
+    } else if (vozElegida.isNotEmpty) {
+      await _tts.setVoice({'name': vozElegida, 'locale': 'es-ES'});
     }
   }
 

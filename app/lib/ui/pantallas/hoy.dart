@@ -235,11 +235,7 @@ class _TarjetaActividad extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
-                    hecha
-                        ? Icons.check_rounded
-                        : actividad.asignatura == Asignatura.dictado
-                            ? Icons.hearing_rounded
-                            : Icons.calculate_outlined,
+                    hecha ? Icons.check_rounded : _icono(actividad.asignatura),
                     color: hecha ? Tema.acierto : color,
                   ),
                 ),
@@ -274,6 +270,12 @@ class _TarjetaActividad extends StatelessWidget {
     );
   }
 }
+
+IconData _icono(Asignatura asignatura) => switch (asignatura) {
+      Asignatura.dictado => Icons.hearing_rounded,
+      Asignatura.matematicas => Icons.calculate_outlined,
+      Asignatura.ingles => Icons.translate_rounded,
+    };
 
 class _Aviso extends StatelessWidget {
   const _Aviso({required this.titulo, required this.detalle});

@@ -1,7 +1,7 @@
 import '../contenido/dictados.dart';
 import '../contenido/matematicas.dart';
 import '../correccion/dictado.dart';
-import '../correccion/matematicas.dart';
+import '../correccion/tanda.dart';
 import '../voz/frases.dart';
 import 'asignaturas.dart';
 import 'guion.dart';
@@ -82,51 +82,66 @@ Guion guionRepasoDictado(CorreccionDictado correccion) {
 
 /// Cuánto se sugiere callar tras dictar una operación. No es un límite: la
 /// tanda no avanza sola, solo indica cuánto se espera antes de ofrecer ayuda.
-int pausaParaCopiar(Operacion op) => (6 + op.dictado.length * 0.6).round();
+int pausaParaCopiar(Ejercicio op) => (6 + op.dictado.length * 0.6).round();
 
-Guion guionMatematicas(List<Operacion> operaciones) {
-  final conProblemas = operaciones.any((op) => op.esProblema);
+/// Una tanda de ejercicios: matemáticas o inglés.
+///
+/// Las dos funcionan igual —se plantea uno, el niño lo escribe y lo resuelve, y
+/// se pasa al siguiente cuando él lo dice—, así que comparten guion. Lo único
+/// que cambia es cómo se presenta y que un enunciado de inglés lleva dentro
+/// trozos que hay que decir en inglés.
+Guion guionTanda(Asignatura asignatura, List<Ejercicio> ejercicios) {
+  final conProblemas = ejercicios.any((op) => op.tienePlanteamiento);
+  final esIngles = asignatura == Asignatura.ingles;
 
   final pasos = <Paso>[
-    Habla(Frases.matematicasIntro(operaciones.length, conProblemas: conProblemas)),
+    Habla(esIngles
+        ? Frases.inglesIntro(ejercicios.length)
+        : Frases.matematicasIntro(ejercicios.length, conProblemas: conProblemas)),
     const Espera(Frases.prepararPapel, [Comando.listo]),
     const Habla(Frases.empezamosMates),
   ];
 
-  for (final op in operaciones) {
+  for (final op in ejercicios) {
     pasos.add(Fragmento(
       indice: op.numero - 1,
-      texto: Frases.operacion(op.numero, op.dictado),
+      texto: Frases.ejercicioNumero(op.numero, op.dictado),
       pausaSegundos: pausaParaCopiar(op),
       // La tanda espera al niño: se pasa a la siguiente cuando él lo dice.
       avanzaSolo: false,
-      // Un problema con enunciado tampoco se retiene a la primera: se lee dos
+      // Un planteamiento con enunciado tampoco se retiene a la primera: se lee dos
       // veces, igual que una frase de dictado.
-      veces: op.esProblema ? 2 : 1,
+      veces: op.tienePlanteamiento ? 2 : 1,
       // Pero no palabra a palabra: esto no se copia, se entiende.
       palabraAPalabra: false,
-      escrito: '${op.numero}.  ${op.problema ?? op.enunciado}',
+      escrito: '${op.numero}.  ${op.planteamiento ?? op.enunciado}',
     ));
   }
 
-  pasos.add(Revisar(Frases.matematicasFin(operaciones.length)));
+  pasos.add(Revisar(esIngles
+      ? Frases.inglesFin(ejercicios.length)
+      : Frases.matematicasFin(ejercicios.length)));
 
   return Guion(
-    asignatura: Asignatura.matematicas,
-    titulo: conProblemas ? 'Ejercicios' : 'Operaciones',
+    asignatura: asignatura,
+    titulo: switch (asignatura) {
+      Asignatura.ingles => 'Inglés',
+      _ => conProblemas ? 'Ejercicios' : 'Operaciones',
+    },
     pasos: pasos,
     comandosGlobales: const [Comando.repite, Comando.masDespacio, Comando.continua],
   );
 }
 
-/// Repaso de una tanda de matemáticas.
+/// Repaso de una tanda ya corregida, sea de matemáticas o de inglés.
 ///
 /// Con `modoPistas` la voz no da la solución de entrada: suelta una pista y
 /// pregunta si ya lo ve. Solo si el niño pide una segunda pista y sigue sin
 /// verlo se le da la respuesta. Es más lento y es el objetivo: quien corrige el
 /// ejercicio tiene que ser el niño.
-Guion guionRepasoMatematicas(
-  List<ResultadoOperacion> resultados,
+Guion guionRepasoTanda(
+  Asignatura asignatura,
+  List<ResultadoEjercicio> resultados,
   bool modoPistas,
 ) {
   final fallos = resultados.where((r) => !r.correcta).toList();
@@ -138,10 +153,10 @@ Guion guionRepasoMatematicas(
     pasos.add(Habla(fallos.length == 1
         ? Frases.casiTodoBien(1)
         : Frases.resumenFallos(
-            fallos.length, fallos.map((f) => f.operacion.enunciado).toList())));
+            fallos.length, fallos.map((f) => f.ejercicio.enunciado).toList())));
 
     for (final fallo in fallos.take(maxFaltasARepasar)) {
-      final op = fallo.operacion;
+      final op = fallo.ejercicio;
       pasos.add(Habla(Frases.fallasteEn(op.numero)));
 
       if (!modoPistas) {
@@ -174,7 +189,7 @@ Guion guionRepasoMatematicas(
   }
 
   return Guion(
-    asignatura: Asignatura.matematicas,
+    asignatura: asignatura,
     titulo: 'Repaso',
     pasos: pasos,
     comandosGlobales: const [Comando.repite, Comando.continua],

@@ -48,7 +48,7 @@ class Cuerpo {
     this.respuesta,
     this.pistas,
     this.explicacion, {
-    this.problema,
+    this.planteamiento,
     this.respuestaDicha,
   });
 
@@ -70,11 +70,11 @@ class Cuerpo {
   /// Explicación paso a paso, redactada para leerse en voz alta.
   final String explicacion;
 
-  /// El enunciado del problema, si esto es un problema y no una cuenta suelta.
+  /// El enunciado del planteamiento, si esto es un planteamiento y no una cuenta suelta.
   /// Cuando lo hay, [enunciado] es la operación que había que plantear.
-  final String? problema;
+  final String? planteamiento;
 
-  /// Un problema con enunciado.
+  /// Un planteamiento con enunciado.
   ///
   /// El texto se enseña escrito tal cual, con sus cifras, y se dicta con los
   /// números en letras: en la pantalla un "12" se lee de un vistazo, y al oído
@@ -89,7 +89,7 @@ class Cuerpo {
     required this.pistas,
     required this.explicacion,
     bool femenino = false,
-  })  : problema = texto,
+  })  : planteamiento = texto,
         dictado = numerosALetras(texto, femenino: femenino),
         respuestaDicha = numerosALetras(respuesta, femenino: femenino),
         enunciado = operacion;

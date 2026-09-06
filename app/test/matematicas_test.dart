@@ -9,7 +9,7 @@ List<int> _cifras(String enunciado) => RegExp(r'\d+')
 
 /// Recorre todos los niveles con muchas semillas: los rangos son aleatorios y
 /// un solo caso no prueba nada.
-void paraTodaLaTanda(String destreza, void Function(Operacion op, int nivel) comprobar) {
+void paraTodaLaTanda(String destreza, void Function(Ejercicio op, int nivel) comprobar) {
   for (var nivel = 1; nivel <= 5; nivel++) {
     for (var semilla = 0; semilla < 60; semilla++) {
       for (final op in generarTanda([destreza], nivel, 5, semilla * 7919 + nivel)) {

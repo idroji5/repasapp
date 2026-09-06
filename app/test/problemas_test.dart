@@ -9,7 +9,7 @@ num? valorDe(String respuesta) {
   return m == null ? null : num.parse(m.group(0)!.replaceAll(',', '.'));
 }
 
-/// Evalúa la cuenta a la que el problema tiene que llegar.
+/// Evalúa la cuenta a la que el planteamiento tiene que llegar.
 ///
 /// Se lee de izquierda a derecha, que es como están escritas: los problemas de
 /// dos pasos empiezan siempre por la multiplicación.
@@ -36,7 +36,7 @@ void main() {
 
   /// Recorre todos los niveles con muchas semillas: los enunciados llevan
   /// números al azar y un solo caso no prueba nada.
-  void paraTodosLosProblemas(void Function(Operacion op, int nivel) comprobar) {
+  void paraTodosLosProblemas(void Function(Ejercicio op, int nivel) comprobar) {
     for (final destreza in destrezas) {
       for (var nivel = 1; nivel <= 5; nivel++) {
         for (var semilla = 0; semilla < 40; semilla++) {
@@ -50,9 +50,9 @@ void main() {
 
   test('todo problema trae enunciado, cuenta, respuesta y dos pistas', () {
     paraTodosLosProblemas((op, _) {
-      expect(op.esProblema, isTrue, reason: op.destrezaId);
-      expect(op.problema, isNotNull);
-      expect(op.problema!.trim().endsWith('?'), isTrue, reason: op.problema);
+      expect(op.tienePlanteamiento, isTrue, reason: op.destrezaId);
+      expect(op.planteamiento, isNotNull);
+      expect(op.planteamiento!.trim().endsWith('?'), isTrue, reason: op.planteamiento);
       expect(op.enunciado, isNotEmpty);
       expect(op.respuesta, isNotEmpty);
       expect(op.pistas, hasLength(2));
@@ -66,23 +66,23 @@ void main() {
       final dada = valorDe(op.respuesta);
       expect(dada, isNotNull, reason: op.respuesta);
       expect((dada! - esperado).abs() < 0.005, isTrue,
-          reason: '${op.destrezaId}: "${op.problema}" '
+          reason: '${op.destrezaId}: "${op.planteamiento}" '
               '→ ${op.enunciado} = ${op.respuesta}');
     });
   });
 
   test('nunca sale un resultado negativo ni un reparto con resto', () {
     paraTodosLosProblemas((op, _) {
-      expect(valorDe(op.respuesta)!, greaterThan(0), reason: op.problema);
+      expect(valorDe(op.respuesta)!, greaterThan(0), reason: op.planteamiento);
       if (op.enunciado.contains(' : ')) {
-        expect(evaluar(op.enunciado) % 1, 0, reason: op.problema);
+        expect(evaluar(op.enunciado) % 1, 0, reason: op.planteamiento);
       }
     });
   });
 
   test('el enunciado está bien escrito', () {
     paraTodosLosProblemas((op, _) {
-      final texto = op.problema!;
+      final texto = op.planteamiento!;
       expect(texto.contains('  '), isFalse, reason: 'espacio doble: "$texto"');
       expect(texto[0], texto[0].toUpperCase(), reason: 'sin mayúscula: "$texto"');
       // Concordancia: preguntar "¿Cuántos galletas?" enseña a escribir mal.
@@ -97,8 +97,8 @@ void main() {
     paraTodosLosProblemas((op, _) {
       expect(RegExp(r'\d').hasMatch(op.dictado), isFalse,
           reason: '${op.destrezaId} dicta cifras: "${op.dictado}"');
-      expect(RegExp(r'\d').hasMatch(op.problema!), isTrue,
-          reason: '${op.destrezaId} enseña letras: "${op.problema}"');
+      expect(RegExp(r'\d').hasMatch(op.planteamiento!), isTrue,
+          reason: '${op.destrezaId} enseña letras: "${op.planteamiento}"');
     });
   });
 

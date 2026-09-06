@@ -35,7 +35,8 @@ class _PantallaActividadState extends State<PantallaActividad> {
     _contenido = reconstruir(widget.actividad.contenido, widget.actividad.nivel);
     final guion = switch (_contenido) {
       ContenidoDictado(:final dictado) => guionDictado(dictado),
-      ContenidoOperaciones(:final operaciones) => guionMatematicas(operaciones),
+      ContenidoEjercicios(:final ejercicios) =>
+        guionTanda(widget.actividad.asignatura, ejercicios),
     };
 
     _reproductor = ReproductorGuion(

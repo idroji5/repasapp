@@ -26,11 +26,12 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 |---|---|
 | Edad objetivo | 6–12 (Primaria). Contenido del MVP: 3.º–6.º |
 | Currículo | España (LOMLOE), indexado por **microdestreza**, no por curso |
-| Idiomas | Castellano. La arquitectura admite añadir catalán e inglés |
-| Contenido | Matemáticas: generador determinista de cuentas y problemas. Dictado: banco curado a mano |
+| Asignaturas | Dictado, Matemáticas e **Inglés**: una de cada al día |
+| Idiomas | Castellano, con el inglés como asignatura. La arquitectura admite añadir catalán |
+| Contenido | Matemáticas: generador determinista de cuentas y problemas. Dictado e inglés: bancos curados a mano |
 | Feedback | Pistas antes que solución (configurable por el padre) |
 | Zona de padres | Sí, protegida con PIN |
-| Sesión diaria | "N minutos al día" → plan generado automáticamente |
+| Sesión diaria | "N minutos al día" → una actividad de cada asignatura, repartiendo el tiempo a partes iguales |
 | Nivel | 1–5 **independiente por asignatura**, con autoajuste |
 | Voz | Motor del propio teléfono (`flutter_tts`), es-ES, voz femenina si la hay |
 | Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
@@ -46,7 +47,9 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 app/lib/
   contenido/    Qué se le plantea al niño
     numeros.dart      742 → "setecientos cuarenta y dos"
-    dictados.dart     Banco de dictados revisados a mano
+    dictados.dart     60 dictados revisados a mano, 12 por nivel
+    ingles.dart       Banco de ejercicios de inglés, por tema y nivel
+    ejercicio.dart    Lo que comparten una cuenta y una frase en inglés
     generador.dart    Azar determinista y piezas comunes de los ejercicios
     matematicas.dart  Generador de cuentas + narración paso a paso
     problemas.dart    Problemas con enunciado ("Ana compra 3 cajas de 12…")
@@ -58,8 +61,8 @@ app/lib/
     actividades.dart  Construye el guion de cada tipo de actividad
   correccion/   Qué hizo el niño
     ortografia.dart   Qué regla se juega en cada palabra y cómo se explica
-    dictado.dart      Las faltas que el niño dice haber tenido → nota y repaso
-    matematicas.dart  Los ejercicios que contesta que no le han salido
+    dictado.dart      Las palabras que tacha → nota y repaso
+    tanda.dart        Los ejercicios que marca como fallados
   voz/          locutora (hablar), escucha (comandos), frases (qué se dice)
   datos/        SQLite local + repositorio
   ui/           Tema, reproductor de guiones y pantallas
@@ -69,6 +72,32 @@ El principio que ordena todo: **la pedagogía vive en el guion, no en las
 pantallas**. La interfaz solo sabe reproducir pasos (`Habla`, `Fragmento`,
 `Espera`, `Pregunta`, `Revisar`), así que cambiar cómo enseña la app no
 obliga a tocar la interfaz.
+
+## Inglés
+
+Tercera asignatura, con el mismo esquema: se escucha, se escribe en el papel y
+se corrige en pantalla. Los ejercicios están escritos uno a uno —una frase en
+otro idioma o está bien escrita o enseña a escribir mal— y son de cinco clases
+distintas, porque traducir todo el rato cansa:
+
+| Tipo | Ejemplo |
+|---|---|
+| Vocabulario | *"Escribe en inglés: mariposa"* |
+| Traducir al inglés | *"Escribe en inglés: Mi padre es alto"* |
+| Traducir al español | *"Traduce: «The cat is under the table»"* |
+| Completar | *"Completa: «She ... my teacher»"* |
+| Contestar | *"Contesta en inglés: «What time is it?»"* |
+| Escribir | *"Escribe una frase con «There are»"* |
+
+Van por temas —saludos, colores, familia, la hora, rutinas— y por estructuras
+—*to be*, *have got*, plurales, presente continuo, pasado simple—, cada una
+atada al curso en que se da y con dificultad 1-5 dentro de ella.
+
+**La voz cambia de idioma a media frase.** Lo que va en inglés se dice con voz
+inglesa (británica, si el teléfono tiene una) y el resto en castellano: leer
+*"butterfly"* con voz española no se parece a nada y enseñaría a pronunciarlo
+mal. Si el móvil no trae voz inglesa, el ejercicio se hace igual y la zona de
+padres lo avisa.
 
 ## Cómo se corrige
 
@@ -142,7 +171,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 79 pruebas de la lógica pura y del repositorio
+flutter test          # 96 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 
@@ -161,8 +190,9 @@ Requiere JDK 17 para compilar en Android:
 - **La voz depende del teléfono.** Se busca la mejor voz `es-ES` instalada. Si
   el dispositivo solo trae voz latinoamericana, el dictado de palabras con
   *c/z* pierde sentido para un niño español.
-- **El banco de dictados es una semilla** (15 textos, 3 por nivel). Para
-  producción hacen falta ~30 por nivel. Las operaciones sí son infinitas.
+- **El banco de dictados es finito**: 60 textos, 12 por nivel. No repite
+  ninguno de los 20 últimos, así que dan para unas semanas antes de reciclar.
+  Los de inglés son ~110. Las matemáticas sí son infinitas.
 
 ## `backend/`
 

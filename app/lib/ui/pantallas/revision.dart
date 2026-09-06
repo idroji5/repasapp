@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../contenido/dictados.dart';
 import '../../contenido/matematicas.dart';
 import '../../correccion/dictado.dart';
-import '../../correccion/matematicas.dart' as mat;
+import '../../correccion/tanda.dart';
 import '../../correccion/ortografia.dart';
 import '../../datos/modelos.dart';
 import '../../dominio/actividades.dart';
@@ -21,7 +21,7 @@ import 'actividad.dart';
 /// Corrección: el niño ve en pantalla lo que tenía que salir y dice qué le ha
 /// salido a él.
 ///
-/// Aquí no hay cámara ni reconocimiento de escritura. Se probó y el problema no
+/// Aquí no hay cámara ni reconocimiento de escritura. Se probó y el planteamiento no
 /// era la precisión: era que cuando el reconocimiento fallaba, la app acusaba
 /// al niño de faltas que no había cometido, y eso destruye la confianza más
 /// rápido que cualquier otra cosa. Enseñarle la solución con letra de cuaderno
@@ -57,7 +57,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
 
   /// Matemáticas: qué ejercicios dice que le han salido bien.
   final Map<int, bool> _marcas = {};
-  List<mat.ResultadoOperacion>? _correccionMates;
+  List<ResultadoEjercicio>? _correccionMates;
 
   CambioDeNivel? _cambioNivel;
   ReproductorGuion? _repaso;
@@ -70,7 +70,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     final voz = context.read<AppEstado>().voz;
     unawaited(voz.decir(switch (widget.contenido) {
       ContenidoDictado() => Frases.comparaDictado,
-      ContenidoOperaciones() => Frases.comparaOperaciones,
+      ContenidoEjercicios() => Frases.comparaOperaciones,
     }));
   }
 
@@ -111,9 +111,9 @@ class _PantallaRevisionState extends State<PantallaRevision> {
               FaltaGuardable(destrezaId: id, tipo: f.tipo.name, esperado: f.esperado),
         ];
 
-      case ContenidoOperaciones(:final operaciones):
-        final resultados = mat.corregirTanda(
-          operaciones,
+      case ContenidoEjercicios(:final ejercicios):
+        final resultados = corregirTanda(
+          ejercicios,
           {
             for (final entrada in _marcas.entries)
               if (!entrada.value) entrada.key,
@@ -126,9 +126,9 @@ class _PantallaRevisionState extends State<PantallaRevision> {
           for (final r in resultados)
             if (!r.correcta)
               FaltaGuardable(
-                destrezaId: r.operacion.destrezaId,
+                destrezaId: r.ejercicio.destrezaId,
                 tipo: 'resultado',
-                esperado: r.operacion.respuesta,
+                esperado: r.ejercicio.respuesta,
               ),
         ];
     }
@@ -147,7 +147,8 @@ class _PantallaRevisionState extends State<PantallaRevision> {
 
     final guion = switch (widget.contenido) {
       ContenidoDictado() => guionRepasoDictado(_correccionDictado!),
-      ContenidoOperaciones() => guionRepasoMatematicas(
+      ContenidoEjercicios() => guionRepasoTanda(
+          widget.actividad.asignatura,
           _correccionMates!,
           nino?.modoPistas ?? true,
         ),
@@ -184,9 +185,9 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       widget.actividad.contenido,
       soloEstos: switch (widget.contenido) {
         ContenidoDictado() => null,
-        ContenidoOperaciones() => [
+        ContenidoEjercicios() => [
             for (final r in _correccionMates!)
-              if (!r.correcta) r.operacion.numero,
+              if (!r.correcta) r.ejercicio.numero,
           ],
       },
     );
@@ -251,12 +252,12 @@ class _PantallaRevisionState extends State<PantallaRevision> {
           }),
           onListo: _corregir,
         ),
-      ContenidoOperaciones(:final operaciones) => _MarcarOperaciones(
-          operaciones: operaciones,
+      ContenidoEjercicios(:final ejercicios) => _MarcarTanda(
+          ejercicios: ejercicios,
           marcas: _marcas,
           onMarcar: (numero, correcta) => setState(() => _marcas[numero] = correcta),
           onTodasBien: () => setState(() {
-            for (final op in operaciones) {
+            for (final op in ejercicios) {
               _marcas[op.numero] = true;
             }
           }),
@@ -440,16 +441,16 @@ class _MarcarDictado extends StatelessWidget {
   }
 }
 
-class _MarcarOperaciones extends StatelessWidget {
-  const _MarcarOperaciones({
-    required this.operaciones,
+class _MarcarTanda extends StatelessWidget {
+  const _MarcarTanda({
+    required this.ejercicios,
     required this.marcas,
     required this.onMarcar,
     required this.onTodasBien,
     required this.onCorregir,
   });
 
-  final List<Operacion> operaciones;
+  final List<Ejercicio> ejercicios;
   final Map<int, bool> marcas;
   final void Function(int numero, bool correcta) onMarcar;
   final VoidCallback onTodasBien;
@@ -457,7 +458,7 @@ class _MarcarOperaciones extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final faltanPorMarcar = operaciones.any((op) => !marcas.containsKey(op.numero));
+    final faltanPorMarcar = ejercicios.any((op) => !marcas.containsKey(op.numero));
 
     return Column(
       children: [
@@ -491,9 +492,9 @@ class _MarcarOperaciones extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              for (final op in operaciones)
+              for (final op in ejercicios)
                 _TarjetaSolucion(
-                  operacion: op,
+                  ejercicio: op,
                   marca: marcas[op.numero],
                   onMarcar: (correcta) => onMarcar(op.numero, correcta),
                 ),
@@ -515,12 +516,12 @@ class _MarcarOperaciones extends StatelessWidget {
 /// Un ejercicio con su solución, y los dos botones para decir si salió.
 class _TarjetaSolucion extends StatelessWidget {
   const _TarjetaSolucion({
-    required this.operacion,
+    required this.ejercicio,
     required this.marca,
     required this.onMarcar,
   });
 
-  final Operacion operacion;
+  final Ejercicio ejercicio;
   final bool? marca;
   final void Function(bool correcta) onMarcar;
 
@@ -543,13 +544,13 @@ class _TarjetaSolucion extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${operacion.numero}',
+          Text('${ejercicio.numero}',
               style: const TextStyle(
                 color: Tema.tintaSuave,
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               )),
-          if (operacion.problema case final enunciado?) ...[
+          if (ejercicio.planteamiento case final enunciado?) ...[
             const SizedBox(height: 6),
             Text(enunciado, style: Tema.deCuaderno(tamano: 26)),
             const SizedBox(height: 10),
@@ -562,7 +563,7 @@ class _TarjetaSolucion extends StatelessWidget {
             TextSpan(
               children: [
                 TextSpan(
-                  text: operacion.enunciado,
+                  text: ejercicio.enunciado,
                   style: Tema.deNumeros(tamano: 28, peso: FontWeight.w700),
                 ),
                 TextSpan(
@@ -570,7 +571,7 @@ class _TarjetaSolucion extends StatelessWidget {
                   style: Tema.deNumeros(tamano: 28, color: Tema.tintaSuave),
                 ),
                 TextSpan(
-                  text: operacion.respuesta,
+                  text: ejercicio.respuesta,
                   style: Tema.deNumeros(
                     tamano: 28,
                     peso: FontWeight.w700,
@@ -658,7 +659,7 @@ class _Resultado extends StatelessWidget {
   });
 
   final CorreccionDictado? dictado;
-  final List<mat.ResultadoOperacion>? mates;
+  final List<ResultadoEjercicio>? mates;
   final CambioDeNivel? cambioNivel;
   final ReproductorGuion? repaso;
   final VoidCallback onTerminar;
@@ -899,7 +900,7 @@ String _capitalizar(String s) =>
 class _FaltasDeMates extends StatelessWidget {
   const _FaltasDeMates({required this.resultados});
 
-  final List<mat.ResultadoOperacion> resultados;
+  final List<ResultadoEjercicio> resultados;
 
   @override
   Widget build(BuildContext context) {
@@ -931,11 +932,11 @@ class _FaltasDeMates extends StatelessWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: '${r.operacion.enunciado}  =  ',
+                          text: '${r.ejercicio.enunciado}  =  ',
                           style: Tema.deNumeros(tamano: 21, peso: FontWeight.w700),
                         ),
                         TextSpan(
-                          text: r.operacion.respuesta,
+                          text: r.ejercicio.respuesta,
                           style: Tema.deNumeros(
                             tamano: 21,
                             color: r.correcta ? Tema.tintaSuave : Tema.fallo,

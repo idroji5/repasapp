@@ -26,13 +26,20 @@ class Frases {
   // -------------------------------------------------------- matemáticas ---
   static String matematicasIntro(int cuantas, {bool conProblemas = false}) =>
       conProblemas
-          ? 'Vamos a hacer $cuantas ejercicios: hay cuentas y algún problema. '
+          ? 'Vamos a hacer $cuantas ejercicios: hay cuentas y algún planteamiento. '
               'Escríbelos en el cuaderno.'
           : 'Vamos a hacer $cuantas operaciones. Escríbelas en el cuaderno.';
   static const String empezamosMates =
       'Muy bien. Empezamos. Si necesitas oírlo otra vez, di: repite.';
-  static String operacion(int numero, String dictado) =>
+  static String ejercicioNumero(int numero, String dictado) =>
       '${_capitalizar(ordinalFemenino(numero))}: $dictado.';
+  // ------------------------------------------------------------- inglés ---
+  static String inglesIntro(int cuantas) =>
+      'Vamos con el inglés: $cuantas ejercicios. Escribe las respuestas en el '
+      'cuaderno, y fíjate bien en cómo se escriben las palabras.';
+  static String inglesFin(int cuantas) =>
+      'Esos son los $cuantas. Cuando los tengas, los corregimos juntos.';
+
   static String matematicasFin(int cuantas) =>
       'Esos son los $cuantas. Resuélvelos con calma y, cuando termines, '
       'los corregimos juntos.';

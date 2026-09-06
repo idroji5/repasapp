@@ -24,20 +24,20 @@ void main() {
 
   test('repetir se queda con las falladas y las renumera', () {
     final completa =
-        reconstruir(Map<String, dynamic>.from(tanda), 3) as ContenidoOperaciones;
+        reconstruir(Map<String, dynamic>.from(tanda), 3) as ContenidoEjercicios;
     final repeticion = reconstruir(
       {...tanda, 'solo': [2, 5]},
       3,
-    ) as ContenidoOperaciones;
+    ) as ContenidoEjercicios;
 
-    expect(repeticion.operaciones, hasLength(2));
+    expect(repeticion.ejercicios, hasLength(2));
     // Son exactamente las mismas cuentas, no otras nuevas.
-    expect(repeticion.operaciones[0].enunciado, completa.operaciones[1].enunciado);
-    expect(repeticion.operaciones[1].enunciado, completa.operaciones[4].enunciado);
+    expect(repeticion.ejercicios[0].enunciado, completa.ejercicios[1].enunciado);
+    expect(repeticion.ejercicios[1].enunciado, completa.ejercicios[4].enunciado);
     // Pero renumeradas: la voz dirá "la primera" y será la primera.
-    expect(repeticion.operaciones.map((o) => o.numero), [1, 2]);
+    expect(repeticion.ejercicios.map((o) => o.numero), [1, 2]);
     // Y con su destreza intacta, que es lo que va a las estadísticas.
-    expect(repeticion.operaciones[0].destrezaId, completa.operaciones[1].destrezaId);
+    expect(repeticion.ejercicios[0].destrezaId, completa.ejercicios[1].destrezaId);
   });
 
   test('repetir un recorte traduce los números a la tanda original', () {
@@ -53,8 +53,8 @@ void main() {
 
   test('la repetición se llama por lo que es', () {
     expect(tituloDe(Map<String, dynamic>.from(tanda)), '5 operaciones');
-    expect(tituloDe({...tanda, 'solo': [2, 5]}), 'Las 2 que fallaron');
-    expect(tituloDe({...tanda, 'solo': [2]}), 'La que falló, otra vez');
+    expect(tituloDe({...tanda, 'solo': [2, 5]}), 'Los 2 que fallaron');
+    expect(tituloDe({...tanda, 'solo': [2]}), 'El que falló, otra vez');
     expect(
       tituloDe({'tipo': 'dictado', 'dictadoId': 'dic-101', 'repetido': true}),
       'En el campo (otra vez)',

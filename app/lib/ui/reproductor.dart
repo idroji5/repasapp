@@ -48,9 +48,9 @@ class ReproductorGuion extends ChangeNotifier {
   bool esperaAlNino = false;
 
   /// En un dictado, enseñar el texto sería hacerle la trampa al niño. En una
-  /// tanda de operaciones no: lo que se practica es la cuenta, no copiarla al
-  /// oído, así que ahí sí se puede revelar si se atasca.
-  bool get permiteRevelar => guion.asignatura == Asignatura.matematicas;
+  /// tanda de cuentas o de inglés no: lo que se practica es resolverlo, no
+  /// retenerlo de oído, así que ahí sí se puede revelar si se atasca.
+  bool get permiteRevelar => guion.asignatura != Asignatura.dictado;
   bool revelado = false;
 
   /// true mientras se dicta un fragmento. Su texto no se enseña salvo que el

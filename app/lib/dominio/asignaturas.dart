@@ -1,7 +1,8 @@
 /// Asignaturas del MVP. Añadir una más es añadir un valor aquí y su contenido.
 enum Asignatura {
   dictado('Dictado'),
-  matematicas('Matemáticas');
+  matematicas('Matemáticas'),
+  ingles('Inglés');
 
   const Asignatura(this.nombre);
   final String nombre;

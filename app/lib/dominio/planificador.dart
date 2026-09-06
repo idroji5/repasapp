@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../contenido/dictados.dart';
+import '../contenido/ingles.dart';
 import '../contenido/matematicas.dart';
 import 'asignaturas.dart';
 import 'curriculo.dart';
@@ -55,15 +56,20 @@ class ActividadPlanificada {
 /// Operaciones por tanda. Cinco es lo que cabe en una hoja y en la cabeza.
 const int operacionesPorTanda = 5;
 
-/// Un problema con enunciado se dicta entero, palabra a palabra y dos veces, y
+/// Un planteamiento con enunciado se dicta entero, palabra a palabra y dos veces, y
 /// encima hay que pensarlo antes de escribir nada. La tanda mixta se estima
 /// larga a propósito: quedarse corto aquí es meter detrás otra actividad que
 /// no cabe en los minutos del día.
 const int _segundosPorOperacion = 85;
 
-/// Por debajo de esto no cabe ninguna actividad que valga la pena.
+/// Ejercicios de inglés por tanda, y lo que se tarda en cada uno: se dice, se
+/// escribe una frase corta y se pasa al siguiente.
+const int ejerciciosDeInglesPorTanda = 5;
+const int _segundosPorEjercicioIngles = 45;
+
+/// Por debajo de esto no cabe ninguna actividad que valga la pena, así que la
+/// asignatura se queda fuera ese día y su tiempo se lo reparten las demás.
 const int _minimoUtilSegundos = 100;
-const int _maxActividades = 3;
 
 List<Asignatura> _rotacion(Asignatura? ultima) {
   if (ultima == null) return Asignatura.values.toList();
@@ -98,7 +104,7 @@ const int _maxFlojas = 2;
 /// Antes se cogían "las dos últimas del curso", que son las dos más avanzadas
 /// del catálogo, y por eso a un niño de 5.º le salían cinco divisiones un día
 /// detrás de otro. Ahora se coge una destreza por familia —sumar, restar,
-/// multiplicar, dividir, decimales— y siempre entra un problema con enunciado,
+/// multiplicar, dividir, decimales— y siempre entra un planteamiento con enunciado,
 /// que es lo que de verdad cuesta y lo que nunca tocaba.
 ///
 /// Función pura y sembrada: con el mismo azar sale la misma selección, así que
@@ -121,7 +127,7 @@ List<String> elegirDestrezasDeMates(
   // 1. Lo que falla, primero, pero sin llenar la tanda.
   anadir((delCurso.where(flojas.contains).toList()..shuffle(azar)).take(_maxFlojas));
 
-  // 2. Un problema con enunciado. Si el curso tiene varios, el más avanzado de
+  // 2. Un planteamiento con enunciado. Si el curso tiene varios, el más avanzado de
   //    los que el niño ya puede hacer.
   final problemas = delCurso.where((id) => familiaDe(id) == 'problema').toList();
   if (problemas.isNotEmpty && !elegidas.any((id) => familiaDe(id) == 'problema')) {
@@ -173,6 +179,43 @@ ActividadPlanificada? _planificarMatematicas(
   );
 }
 
+ActividadPlanificada? _planificarIngles(
+  ContextoPlan ctx,
+  int segundosDisponibles,
+  Random azar,
+) {
+  final delCurso = destrezasHasta(ctx.curso, Asignatura.ingles)
+      .map((d) => d.id)
+      .where(hayEjerciciosDe)
+      .toList();
+  if (delCurso.isEmpty) return null;
+
+  final cuantas = min(
+    ejerciciosDeInglesPorTanda,
+    segundosDisponibles ~/ _segundosPorEjercicioIngles,
+  );
+  if (cuantas < 2) return null;
+
+  // Lo que falla primero, y el resto de temas en orden aleatorio: en inglés no
+  // hay familias que separar, hay temas, y todos valen cualquier día.
+  final flojas = delCurso.where(ctx.destrezasFlojas.contains).toList();
+  final resto = delCurso.where((id) => !ctx.destrezasFlojas.contains(id)).toList()
+    ..shuffle(azar);
+  final elegidas = [...flojas.take(2), ...resto].take(cuantas).toList();
+
+  return ActividadPlanificada(
+    asignatura: Asignatura.ingles,
+    nivel: ctx.nivelDe(Asignatura.ingles),
+    contenido: {
+      'tipo': 'tanda_ingles',
+      'destrezas': elegidas,
+      'cuantas': cuantas,
+      'semilla': azar.nextInt(1 << 31),
+    },
+    duracionEstimadaSegundos: cuantas * _segundosPorEjercicioIngles,
+  );
+}
+
 ActividadPlanificada? _planificarDictado(
   ContextoPlan ctx,
   int segundosDisponibles,
@@ -198,40 +241,36 @@ ActividadPlanificada? _planificarDictado(
   );
 }
 
+/// "Quince minutos al día" → una actividad de cada asignatura.
+///
+/// El día se reparte a partes iguales entre las tres, en vez de dejar que la
+/// primera se coma el tiempo: si el dictado ocupara los quince minutos, el
+/// inglés no se haría nunca. Cada asignatura decide cuántos ejercicios le caben
+/// en su parte, y lo que sobra de una se lo queda la siguiente.
 List<ActividadPlanificada> planificarSesion(ContextoPlan ctx, {Random? azar}) {
   final generador = azar ?? Random();
-  var restante = ctx.minutosDiarios * 60;
-  final plan = <ActividadPlanificada>[];
   final orden = _rotacion(ctx.ultimaAsignatura);
+  final total = ctx.minutosDiarios * 60;
+  final plan = <ActividadPlanificada>[];
 
-  for (var vuelta = 0; vuelta < 2 && plan.length < _maxActividades; vuelta++) {
-    for (final asignatura in orden) {
-      if (restante < _minimoUtilSegundos || plan.length >= _maxActividades) break;
+  var gastado = 0;
+  for (var i = 0; i < orden.length; i++) {
+    final asignatura = orden[i];
+    // Lo que le toca: su parte, más lo que hayan dejado sin usar las
+    // anteriores. Con quince minutos y tres asignaturas, cinco minutos cada
+    // una; si el dictado ocupa tres, el inglés hereda los dos que sobran.
+    final leToca = (total * (i + 1) ~/ orden.length) - gastado;
+    if (leToca < _minimoUtilSegundos) continue;
 
-      final ya = plan.where((p) => p.asignatura == asignatura).map((p) {
-        return p.contenido['dictadoId'] as String?;
-      }).whereType<String>();
+    final actividad = switch (asignatura) {
+      Asignatura.dictado => _planificarDictado(ctx, leToca, generador),
+      Asignatura.matematicas => _planificarMatematicas(ctx, leToca, generador),
+      Asignatura.ingles => _planificarIngles(ctx, leToca, generador),
+    };
 
-      final contexto = asignatura == Asignatura.dictado
-          ? ContextoPlan(
-              curso: ctx.curso,
-              minutosDiarios: ctx.minutosDiarios,
-              niveles: ctx.niveles,
-              // Dentro de la misma sesión tampoco se repite dictado.
-              dictadosHechos: [...ctx.dictadosHechos, ...ya],
-              destrezasFlojas: ctx.destrezasFlojas,
-              ultimaAsignatura: ctx.ultimaAsignatura,
-            )
-          : ctx;
-
-      final actividad = asignatura == Asignatura.dictado
-          ? _planificarDictado(contexto, restante, generador)
-          : _planificarMatematicas(contexto, restante, generador);
-
-      if (actividad != null) {
-        plan.add(actividad);
-        restante -= actividad.duracionEstimadaSegundos;
-      }
+    if (actividad != null) {
+      plan.add(actividad);
+      gastado += actividad.duracionEstimadaSegundos;
     }
   }
   return plan;
@@ -251,9 +290,9 @@ class ContenidoDictado extends ContenidoActividad {
   final Dictado dictado;
 }
 
-class ContenidoOperaciones extends ContenidoActividad {
-  const ContenidoOperaciones(this.operaciones);
-  final List<Operacion> operaciones;
+class ContenidoEjercicios extends ContenidoActividad {
+  const ContenidoEjercicios(this.ejercicios);
+  final List<Ejercicio> ejercicios;
 }
 
 ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
@@ -264,6 +303,21 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
         throw StateError('Dictado desconocido: ${contenido['dictadoId']}');
       }
       return ContenidoDictado(dictado);
+
+    case 'tanda_ingles':
+      final ejercicios = tandaDeIngles(
+        (contenido['destrezas'] as List).cast<String>(),
+        nivel,
+        contenido['cuantas'] as int,
+        contenido['semilla'] as int,
+      );
+      final soloIngles = (contenido['solo'] as List?)?.cast<int>();
+      if (soloIngles == null) return ContenidoEjercicios(ejercicios);
+      return ContenidoEjercicios([
+        for (final (i, e)
+            in ejercicios.where((e) => soloIngles.contains(e.numero)).indexed)
+          e.conNumero(i + 1),
+      ]);
 
     case 'tanda_operaciones':
       final tanda = generarTanda(
@@ -276,9 +330,9 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
       // los cinco igual —la semilla manda— y se queda con esos, renumerados,
       // para que la voz diga "la primera" y sea la primera de verdad.
       final solo = (contenido['solo'] as List?)?.cast<int>();
-      if (solo == null) return ContenidoOperaciones(tanda);
+      if (solo == null) return ContenidoEjercicios(tanda);
 
-      return ContenidoOperaciones([
+      return ContenidoEjercicios([
         for (final (i, op) in tanda.where((o) => solo.contains(o.numero)).indexed)
           op.conNumero(i + 1),
       ]);
@@ -323,8 +377,12 @@ String tituloDe(Map<String, dynamic> contenido) {
   final solo = (contenido['solo'] as List?)?.cast<int>();
   if (solo != null) {
     return solo.length == 1
-        ? 'La que falló, otra vez'
-        : 'Las ${solo.length} que fallaron';
+        ? 'El que falló, otra vez'
+        : 'Los ${solo.length} que fallaron';
+  }
+
+  if (contenido['tipo'] == 'tanda_ingles') {
+    return '${contenido['cuantas']} ejercicios de inglés';
   }
 
   final destrezas = (contenido['destrezas'] as List?)?.cast<String>() ?? const [];

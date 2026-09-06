@@ -1,6 +1,6 @@
 /// Problemas con enunciado, generados con plantillas paramétricas.
 ///
-/// Una cuenta suelta ejercita el algoritmo; un problema ejercita lo que de
+/// Una cuenta suelta ejercita el algoritmo; un planteamiento ejercita lo que de
 /// verdad cuesta en Primaria, que es decidir QUÉ cuenta hay que hacer. Por eso
 /// las pistas de aquí no hablan de llevadas ni de columnas: preguntan qué te
 /// están pidiendo.
@@ -8,7 +8,7 @@
 /// Mismo criterio que en las operaciones: plantillas y no un modelo de
 /// lenguaje. Con plantillas la respuesta es exacta por construcción, el
 /// enunciado nunca dice un disparate, y la misma semilla devuelve el mismo
-/// problema al corregir.
+/// planteamiento al corregir.
 library;
 
 import 'generador.dart';
@@ -214,7 +214,7 @@ Cuerpo _division(Azar azar, int nivel) {
 
   // Se construye desde el cociente para que el reparto salga exacto: repartir
   // con resto obliga a explicar qué se hace con lo que sobra, y eso es otra
-  // destreza distinta de la que este problema dice ejercitar.
+  // destreza distinta de la que este planteamiento dice ejercitar.
   final porGrupo = azar.entre(techo(nivel, 3, 8), techo(nivel, 9, 24));
   final cuantosGrupos = azar.entre(3, techo(nivel, 6, 12));
   final total = porGrupo * cuantosGrupos;

@@ -97,8 +97,8 @@ void main() {
   testWidgets('en matemáticas se marca ejercicio por ejercicio', (tester) async {
     final actividad = await actividadDe(Asignatura.matematicas);
     final operaciones =
-        (reconstruir(actividad.contenido, actividad.nivel) as ContenidoOperaciones)
-            .operaciones;
+        (reconstruir(actividad.contenido, actividad.nivel) as ContenidoEjercicios)
+            .ejercicios;
     await abrir(tester, actividad);
 
     // Sin marcar todo, no se puede corregir: media tanda corregida no dice nada.
@@ -118,6 +118,32 @@ void main() {
     // Y la destreza del ejercicio fallado queda apuntada como floja.
     expect(await repo.destrezasFlojas(ninoId),
         contains(operaciones.first.destrezaId));
+  });
+
+  testWidgets('el inglés se corrige como las mates, marcando cada uno',
+      (tester) async {
+    final actividad = await actividadDe(Asignatura.ingles);
+    final ejercicios =
+        (reconstruir(actividad.contenido, actividad.nivel) as ContenidoEjercicios)
+            .ejercicios;
+    await abrir(tester, actividad);
+
+    // La solución de cada ejercicio se ve escrita, que en inglés es justo lo
+    // que hay que comparar: cómo se escribe.
+    expect(find.textContaining(ejercicios.first.enunciado), findsWidgets);
+    expect(find.textContaining(ejercicios.first.respuesta), findsWidgets);
+
+    await tocar(tester, find.text('Todas bien'));
+    await tocar(tester, find.text('No me ha salido').first);
+    await tocar(tester, find.text('Corregir'));
+    await terminarDeGuardar(tester);
+
+    final guardada = (await repo.actividad(actividad.id))!;
+    expect(guardada.estado, EstadoActividad.corregida);
+    expect(guardada.total, ejercicios.length);
+    expect(guardada.aciertos, ejercicios.length - 1);
+    expect(await repo.destrezasFlojas(ninoId),
+        contains(ejercicios.first.destrezaId));
   });
 
   testWidgets('el dictado se corrige tachando sobre el propio texto',

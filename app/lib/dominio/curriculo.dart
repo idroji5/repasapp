@@ -70,6 +70,31 @@ const List<Destreza> destrezas = [
   Destreza('problema_division', 'Problemas de repartir', Asignatura.matematicas, 4),
   Destreza('problema_dos_pasos', 'Problemas de dos operaciones', Asignatura.matematicas, 5),
   Destreza('problema_dinero', 'Problemas con dinero', Asignatura.matematicas, 5),
+
+  // -------------------------------------------------------------- inglés ---
+  // El inglés de Primaria va por temas, no por reglas: cada destreza es un
+  // puñado de palabras o una estructura, y dentro de ella el nivel 1-5 gradúa
+  // desde reconocer una palabra suelta hasta escribir una frase entera.
+  Destreza('ingles_saludos', 'Saludar y despedirse', Asignatura.ingles, 1),
+  Destreza('ingles_colores', 'Los colores', Asignatura.ingles, 1),
+  Destreza('ingles_numeros', 'Los números y la edad', Asignatura.ingles, 1),
+  Destreza('ingles_familia', 'La familia', Asignatura.ingles, 2),
+  Destreza('ingles_animales', 'Los animales', Asignatura.ingles, 2),
+  Destreza('ingles_to_be', 'El verbo to be: am, is, are', Asignatura.ingles, 2),
+  Destreza('ingles_clase', 'Las cosas de clase', Asignatura.ingles, 3),
+  Destreza('ingles_plurales', 'El plural: -s, -es e irregulares', Asignatura.ingles, 3),
+  Destreza('ingles_have_got', 'Tener: have got, has got', Asignatura.ingles, 3),
+  Destreza('ingles_comida', 'La comida', Asignatura.ingles, 3),
+  Destreza('ingles_presente_simple', 'Presente simple', Asignatura.ingles, 4),
+  Destreza('ingles_hora', 'Decir la hora', Asignatura.ingles, 4),
+  Destreza('ingles_preposiciones', 'Dónde están las cosas: in, on, under', Asignatura.ingles, 4),
+  Destreza('ingles_adjetivos', 'Adjetivos y cómo se colocan', Asignatura.ingles, 4),
+  Destreza('ingles_presente_continuo', 'Lo que pasa ahora: -ing', Asignatura.ingles, 5),
+  Destreza('ingles_there_is', 'Hay: there is, there are', Asignatura.ingles, 5),
+  Destreza('ingles_rutinas', 'El día a día', Asignatura.ingles, 5),
+  Destreza('ingles_pasado_simple', 'El pasado: was, were, -ed', Asignatura.ingles, 6),
+  Destreza('ingles_comparativos', 'Comparar: -er than, more than', Asignatura.ingles, 6),
+  Destreza('ingles_preguntas', 'Preguntas: what, where, when, why', Asignatura.ingles, 6),
 ];
 
 final Map<String, Destreza> _porId = {for (final d in destrezas) d.id: d};

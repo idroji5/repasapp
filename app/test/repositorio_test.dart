@@ -60,7 +60,12 @@ void main() {
     final sesion = await repo.sesionDeHoy(id);
 
     for (final actividad in sesion.actividades) {
-      final esperado = actividad.asignatura == Asignatura.matematicas ? 4 : 2;
+      final esperado = switch (actividad.asignatura) {
+        Asignatura.matematicas => 4,
+        Asignatura.dictado => 2,
+        // A inglés no se le puso nivel al crear a Pedro: se queda en el 3.
+        Asignatura.ingles => 3,
+      };
       expect(actividad.nivel, esperado, reason: 'en ${actividad.asignatura.name}');
     }
   });

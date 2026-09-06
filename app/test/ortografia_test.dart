@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:repasapp/contenido/dictados.dart';
 import 'package:repasapp/correccion/dictado.dart';
 import 'package:repasapp/correccion/ortografia.dart';
+import 'package:repasapp/dominio/curriculo.dart';
 import 'package:repasapp/voz/frases.dart';
 
 void main() {
@@ -106,6 +107,43 @@ void main() {
     final c = corregirDictadoMarcado(dictado, const []);
     expect(c.perfecto, isTrue);
     expect(c.aciertos, c.totalPalabras);
+  });
+
+  test('el banco tiene textos de sobra para no repetirse en semanas', () {
+    for (var nivel = 1; nivel <= 5; nivel++) {
+      final delNivel = dictados.where((d) => d.nivel == nivel).length;
+      expect(delNivel, greaterThanOrEqualTo(10),
+          reason: 'el nivel $nivel se queda corto y se repetirá enseguida');
+    }
+    expect(dictados.map((d) => d.id).toSet(), hasLength(dictados.length),
+        reason: 'hay ids repetidos');
+  });
+
+  test('las palabras difíciles están de verdad en el texto', () {
+    // Si una palabra clave no aparece en el dictado, no se puede tocar para
+    // marcarla: el aviso en negrita señalaría a algo que no existe.
+    final fantasmas = <String>[];
+    for (final dictado in dictados) {
+      final texto = palabrasDe(dictado.texto).map((p) => p.toLowerCase()).toSet();
+      for (final clave in dictado.palabrasClave) {
+        if (!texto.contains(clave.toLowerCase())) {
+          fantasmas.add('${dictado.id}: $clave');
+        }
+      }
+    }
+    expect(fantasmas, isEmpty);
+  });
+
+  test('cada dictado solo usa destrezas que existen', () {
+    final conocidas = destrezas.map((d) => d.id).toSet();
+    for (final dictado in dictados) {
+      for (final id in dictado.destrezas) {
+        expect(conocidas, contains(id), reason: '${dictado.id}: $id');
+      }
+      expect(dictado.fragmentos.length, greaterThanOrEqualTo(3),
+          reason: '${dictado.id} es demasiado corto');
+      expect(dictado.palabrasClave, isNotEmpty, reason: dictado.id);
+    }
   });
 
   test('las palabras clave de todos los dictados se saben explicar', () {

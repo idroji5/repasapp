@@ -1,9 +1,3 @@
-import 'generador.dart';
-import 'numeros.dart';
-import 'problemas.dart';
-
-export 'generador.dart' show Azar;
-
 /// Generador determinista de operaciones y problemas.
 ///
 /// No usa IA a propósito: las cuentas se describen mejor con plantillas
@@ -14,65 +8,16 @@ export 'generador.dart' show Azar;
 /// Dada la misma semilla y el mismo nivel sale exactamente la misma tanda, así
 /// que basta guardar `{destrezas, semilla}` para reconstruir el ejercicio al
 /// corregir.
-class Operacion {
-  const Operacion({
-    required this.numero,
-    required this.destrezaId,
-    required this.enunciado,
-    required this.dictado,
-    required this.respuesta,
-    required this.pistas,
-    required this.explicacion,
-    this.problema,
-    this.respuestaDicha,
-  });
+library;
 
-  /// Posición dentro de la tanda, empezando en 1.
-  final int numero;
-  final String destrezaId;
+import 'ejercicio.dart';
+import 'generador.dart';
+import 'numeros.dart';
+import 'problemas.dart';
 
-  /// Cómo se escribe en el cuaderno: "742 : 7".
-  final String enunciado;
+export 'ejercicio.dart';
+export 'generador.dart' show Azar;
 
-  /// Cómo lo dice la voz: "setecientos cuarenta y dos dividido entre siete".
-  final String dictado;
-
-  /// Respuesta correcta, ya normalizada como texto: "106", "32 resto 12".
-  final String respuesta;
-
-  /// Cómo se dice la respuesta en voz alta. Si no se dice de una forma
-  /// concreta, se leen las cifras tal cual.
-  final String? respuestaDicha;
-
-  /// La respuesta, para leerla al corregir.
-  String get respuestaEnVozAlta => respuestaDicha ?? numerosALetras(respuesta);
-
-  /// Dos pistas graduales, antes de dar la solución.
-  final List<String> pistas;
-
-  /// Explicación paso a paso, redactada para leerse en voz alta.
-  final String explicacion;
-
-  /// El enunciado, si es un problema con texto en lugar de una cuenta suelta.
-  /// Cuando lo hay, [enunciado] es la operación a la que había que llegar.
-  final String? problema;
-
-  bool get esProblema => problema != null;
-
-  /// La misma operación en otro sitio de la tanda. Al repetir solo las que
-  /// salieron mal, la tercera y la quinta pasan a ser la primera y la segunda.
-  Operacion conNumero(int otro) => Operacion(
-        numero: otro,
-        destrezaId: destrezaId,
-        enunciado: enunciado,
-        dictado: dictado,
-        respuesta: respuesta,
-        pistas: pistas,
-        explicacion: explicacion,
-        problema: problema,
-        respuestaDicha: respuestaDicha,
-      );
-}
 
 // --------------------------------------------------------------- narración ---
 
@@ -316,7 +261,7 @@ bool tienePlantilla(String destrezaId) => _plantillas.containsKey(destrezaId);
 
 /// Genera una tanda de operaciones. La semilla se guarda con la actividad para
 /// poder reconstruir exactamente lo mismo al corregir.
-List<Operacion> generarTanda(
+List<Ejercicio> generarTanda(
   List<String> destrezas,
   int nivel,
   int cuantas,
@@ -333,7 +278,7 @@ List<Operacion> generarTanda(
     // destrezas sale 3 y 2, y no 5 de la misma por mala suerte.
     final destrezaId = disponibles[i % disponibles.length];
     final cuerpo = _plantillas[destrezaId]!(azar, nivel);
-    return Operacion(
+    return Ejercicio(
       numero: i + 1,
       destrezaId: destrezaId,
       enunciado: cuerpo.enunciado,
@@ -341,7 +286,7 @@ List<Operacion> generarTanda(
       respuesta: cuerpo.respuesta,
       pistas: cuerpo.pistas,
       explicacion: cuerpo.explicacion,
-      problema: cuerpo.problema,
+      planteamiento: cuerpo.planteamiento,
       respuestaDicha: cuerpo.respuestaDicha,
     );
   });

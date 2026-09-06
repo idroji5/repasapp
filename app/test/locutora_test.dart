@@ -102,6 +102,21 @@ void main() {
     expect(motor.dicho, ['Cada caja trae doce lápices.', '¿Cuántos hay?']);
   });
 
+  test('lo que va en inglés se dice en inglés, y el resto no', () {
+    expect(
+      Locutora.enIdiomas('Traduce al español: «The cat is here».'),
+      const [
+        TrozoHablado('Traduce al español:', ingles: false),
+        TrozoHablado('The cat is here', ingles: true),
+      ],
+      reason: 'el punto que queda suelto detrás no se dice aparte',
+    );
+    expect(
+      Locutora.enIdiomas('Escribe en inglés: perro.'),
+      const [TrozoHablado('Escribe en inglés: perro.', ingles: false)],
+    );
+  });
+
   test('se corta por donde se respira', () {
     expect(Locutora.enFrases('Hay 30 galletas, y son para tres niños. ¿Cuántas?'),
         ['Hay 30 galletas,', 'y son para tres niños.', '¿Cuántas?']);
