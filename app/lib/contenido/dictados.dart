@@ -269,14 +269,16 @@ int pausaSegundos(String fragmento, int nivel) {
 
 /// Duración estimada de la actividad completa, para encajarla en la sesión diaria.
 ///
-/// Cada frase se lee [vecesPorFrase] veces y la segunda va más despacio, así que
-/// el tiempo de voz cuenta doble largo. Quedarse corto aquí no alarga el
-/// dictado: hace que el planificador meta otra actividad detrás que no cabe.
+/// Cada frase se lee [vecesPorFrase] veces, la segunda más despacio, y entre
+/// palabra y palabra se calla. Con eso, decir una frase cuesta bastante más que
+/// leerla. Quedarse corto aquí no alarga el dictado: hace que el planificador
+/// meta otra actividad detrás que no cabe.
 int duracionEstimadaSegundos(Dictado d) {
   var total = 0.0;
   for (final f in d.fragmentos) {
     final palabras = f.split(RegExp(r'\s+')).length;
-    total += pausaSegundos(f, d.nivel) + palabras * 1.0 * vecesPorFrase + 2;
+    // Por palabra: lo que se tarda en decirla más el silencio de después.
+    total += pausaSegundos(f, d.nivel) + palabras * 1.7 * vecesPorFrase + 2;
   }
   return (total + 45).round(); // + preparación y corrección
 }

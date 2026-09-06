@@ -149,6 +149,39 @@ void main() {
     expect(find.textContaining('de ${dictado.numeroDePalabras}'), findsOneWidget);
   });
 
+  testWidgets('desde el resultado se puede volver a hacer lo fallado',
+      (tester) async {
+    final actividad = await actividadDe(Asignatura.matematicas);
+    await abrir(tester, actividad);
+
+    await tocar(tester, find.text('Todas bien'));
+    await tocar(tester, find.text('No me ha salido').first);
+    await tocar(tester, find.text('Corregir'));
+    await terminarDeGuardar(tester);
+
+    expect(find.text('Volver a hacer la que fallé'), findsOneWidget);
+    await tocar(tester, find.text('Volver a hacer la que fallé'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    // Queda una actividad nueva en la sesión de hoy, con solo la fallada.
+    final sesion = await repo.sesionDeHoy(ninoId);
+    expect(sesion.actividades.last.contenido['solo'], [1]);
+    expect(sesion.actividades.last.estado, EstadoActividad.enCurso);
+  });
+
+  testWidgets('sin fallos no se ofrece repetir nada', (tester) async {
+    final actividad = await actividadDe(Asignatura.matematicas);
+    await abrir(tester, actividad);
+
+    await tocar(tester, find.text('Todas bien'));
+    await tocar(tester, find.text('Corregir'));
+    await terminarDeGuardar(tester);
+
+    expect(find.textContaining('Volver a hacer'), findsNothing);
+    expect(find.text('Terminar'), findsOneWidget);
+  });
+
   testWidgets('las faltas de otras palabras se cuentan aparte', (tester) async {
     final actividad = await actividadDe(Asignatura.dictado);
     final dictado = dictadoPorId(actividad.contenido['dictadoId'] as String)!;

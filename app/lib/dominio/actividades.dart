@@ -73,6 +73,8 @@ Guion guionRepasoDictado(CorreccionDictado correccion) {
     }
   }
 
+  if (!correccion.perfecto) pasos.add(const Habla(Frases.puedesRepetir));
+
   return Guion(
     asignatura: Asignatura.dictado,
     titulo: 'Repaso',
@@ -171,6 +173,7 @@ Guion guionRepasoMatematicas(
         ]),
       ]));
     }
+    pasos.add(const Habla(Frases.puedesRepetir));
   }
 
   return Guion(

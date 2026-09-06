@@ -77,7 +77,10 @@ class BotonComando extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icono != null) ...[Icon(icono, size: 22), const SizedBox(width: 8)],
-          Text(texto),
+          // Flexible y no Text a secas: con una etiqueta larga —"volver a hacer
+          // las que fallé"— el botón se sale de la pantalla en un móvil
+          // estrecho en lugar de partir el texto en dos líneas.
+          Flexible(child: Text(texto, textAlign: TextAlign.center)),
         ],
       ),
     );

@@ -55,9 +55,11 @@ class ActividadPlanificada {
 /// Operaciones por tanda. Cinco es lo que cabe en una hoja y en la cabeza.
 const int operacionesPorTanda = 5;
 
-/// Un problema con enunciado se lee más despacio y hay que pensarlo antes de
-/// empezar a escribir, así que la tanda mixta se estima algo más larga.
-const int _segundosPorOperacion = 65;
+/// Un problema con enunciado se dicta entero, palabra a palabra y dos veces, y
+/// encima hay que pensarlo antes de escribir nada. La tanda mixta se estima
+/// larga a propósito: quedarse corto aquí es meter detrás otra actividad que
+/// no cabe en los minutos del día.
+const int _segundosPorOperacion = 85;
 
 /// Por debajo de esto no cabe ninguna actividad que valga la pena.
 const int _minimoUtilSegundos = 100;
@@ -264,12 +266,22 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
       return ContenidoDictado(dictado);
 
     case 'tanda_operaciones':
-      return ContenidoOperaciones(generarTanda(
+      final tanda = generarTanda(
         (contenido['destrezas'] as List).cast<String>(),
         nivel,
         contenido['cuantas'] as int,
         contenido['semilla'] as int,
-      ));
+      );
+      // "solo" son los que se van a repetir porque salieron mal. Se generan
+      // los cinco igual —la semilla manda— y se queda con esos, renumerados,
+      // para que la voz diga "la primera" y sea la primera de verdad.
+      final solo = (contenido['solo'] as List?)?.cast<int>();
+      if (solo == null) return ContenidoOperaciones(tanda);
+
+      return ContenidoOperaciones([
+        for (final (i, op) in tanda.where((o) => solo.contains(o.numero)).indexed)
+          op.conNumero(i + 1),
+      ]);
 
     default:
       throw StateError('Tipo de actividad desconocido: ${contenido['tipo']}');
@@ -278,8 +290,17 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
 
 String tituloDe(Map<String, dynamic> contenido) {
   if (contenido['tipo'] == 'dictado') {
-    return dictadoPorId(contenido['dictadoId'] as String)?.titulo ?? 'Dictado';
+    final titulo = dictadoPorId(contenido['dictadoId'] as String)?.titulo ?? 'Dictado';
+    return contenido['repetido'] == true ? '$titulo (otra vez)' : titulo;
   }
+
+  final solo = (contenido['solo'] as List?)?.cast<int>();
+  if (solo != null) {
+    return solo.length == 1
+        ? 'La que falló, otra vez'
+        : 'Las ${solo.length} que fallaron';
+  }
+
   final destrezas = (contenido['destrezas'] as List?)?.cast<String>() ?? const [];
   final conProblemas = destrezas.any((id) => familiaDe(id) == 'problema');
   return '${contenido['cuantas']} ${conProblemas ? "ejercicios" : "operaciones"}';

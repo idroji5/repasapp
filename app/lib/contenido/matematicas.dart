@@ -58,6 +58,20 @@ class Operacion {
   final String? problema;
 
   bool get esProblema => problema != null;
+
+  /// La misma operación en otro sitio de la tanda. Al repetir solo las que
+  /// salieron mal, la tercera y la quinta pasan a ser la primera y la segunda.
+  Operacion conNumero(int otro) => Operacion(
+        numero: otro,
+        destrezaId: destrezaId,
+        enunciado: enunciado,
+        dictado: dictado,
+        respuesta: respuesta,
+        pistas: pistas,
+        explicacion: explicacion,
+        problema: problema,
+        respuestaDicha: respuestaDicha,
+      );
 }
 
 // --------------------------------------------------------------- narración ---

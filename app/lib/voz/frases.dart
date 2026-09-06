@@ -57,6 +57,8 @@ class Frases {
   static String cuantasFaltas(int faltas) =>
       'Has tenido ${faltas == 1 ? "una falta" : "$faltas faltas"}.';
   static const String animo = 'No pasa nada, para eso repasamos. Mañana seguimos.';
+  static const String puedesRepetir =
+      'Si quieres, vuelve a hacerlo y te lo corrijo otra vez.';
   static const String apuntaLasFaltas =
       'Apunta las palabras que has fallado y escríbelas bien tres veces.';
 

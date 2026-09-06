@@ -7,6 +7,11 @@ class _MotorEspia extends FlutterTts {
   final List<double> ritmos = [];
   final List<String> dicho = [];
 
+  void limpiar() {
+    ritmos.clear();
+    dicho.clear();
+  }
+
   @override
   Future<dynamic> setLanguage(String language) async => 1;
 
@@ -54,8 +59,11 @@ void main() {
 
     await locutora.decir('Prepara papel y lápiz.');
     final alExplicar = motor.ritmos.last;
+    expect(motor.dicho, ['Prepara papel y lápiz.'],
+        reason: 'una explicación se dice de una tirada');
 
-    await locutora.dictar('Mi abuelo vive en el campo.');
+    motor.limpiar();
+    await locutora.dictar('El perro come.');
     final alDictar = motor.ritmos.last;
 
     expect(alExplicar, Locutora.tasaAlExplicar);
@@ -64,11 +72,35 @@ void main() {
         reason: 'lo que hay que escribir se dice más despacio que lo que se explica');
   });
 
+  test('al dictar se calla entre palabra y palabra', () async {
+    final motor = _MotorEspia();
+    final locutora = Locutora(motor: motor);
+
+    final reloj = Stopwatch()..start();
+    await locutora.dictar('El perro come.');
+    reloj.stop();
+
+    // Tres palabras, tres trozos: "El perro" va junto porque "el" solo suena a
+    // lista de la compra.
+    expect(motor.dicho, ['El perro', 'come.']);
+    expect(reloj.elapsedMilliseconds,
+        greaterThan(Velocidad.normal.pausaEntrePalabras),
+        reason: 'entre trozo y trozo hay silencio de verdad');
+  });
+
+  test('las palabras cortas no se dicen solas', () {
+    expect(Locutora.enTrozos('Mi abuelo vive en el campo.'),
+        ['Mi abuelo', 'vive', 'en el campo.']);
+    expect(Locutora.enTrozos('¿Se ha escondido en el armario?'),
+        ['¿Se ha escondido', 'en el armario?']);
+    expect(Locutora.enTrozos('Setecientos'), ['Setecientos']);
+  });
+
   test('pedir "más despacio" solo cambia el ritmo del dictado', () async {
     final motor = _MotorEspia();
     final locutora = Locutora(motor: motor)..velocidad = Velocidad.lenta;
 
-    await locutora.dictar('Mi abuelo vive en el campo.');
+    await locutora.dictar('El perro come.');
     expect(motor.ritmos.last, Velocidad.lenta.tasa);
 
     await locutora.decir('Muy bien. Empezamos.');
@@ -80,11 +112,16 @@ void main() {
     final motor = _MotorEspia();
     final locutora = Locutora(motor: motor);
 
-    await locutora.dictar('Mi abuelo vive en el campo.');
-    await locutora.dictar('Mi abuelo vive en el campo.', a: Velocidad.normal.masLenta);
+    await locutora.dictar('El perro come.');
+    final primera = motor.ritmos.last;
 
-    expect(motor.ritmos.last, lessThan(motor.ritmos[motor.ritmos.length - 2]));
-    expect(motor.dicho, hasLength(2));
+    motor.limpiar();
+    await locutora.dictar('El perro come.', a: Velocidad.normal.masLenta);
+
+    expect(motor.ritmos.last, lessThan(primera));
+    expect(Velocidad.normal.masLenta.pausaEntrePalabras,
+        greaterThan(Velocidad.normal.pausaEntrePalabras),
+        reason: 'y con más silencio entre palabras');
   });
 
   test('el tope de espera crece cuando la voz va más lenta', () {

@@ -234,6 +234,35 @@ class Repositorio {
     });
   }
 
+  /// Añade una actividad a la sesión de hoy, fuera del plan.
+  ///
+  /// La usa el "volver a intentarlo" de la corrección: repetir lo que ha
+  /// salido mal no es una actividad más del día, es la misma otra vez, pero se
+  /// guarda aparte para que se vea que la segunda salió mejor que la primera.
+  Future<ActividadGuardada> crearActividadExtra({
+    required int ninoId,
+    required Asignatura asignatura,
+    required int nivel,
+    required Map<String, dynamic> contenido,
+  }) async {
+    final sesion = await sesionDeHoy(ninoId);
+    final orden = sesion.actividades.isEmpty
+        ? 0
+        : sesion.actividades.map((a) => a.orden).reduce(max) + 1;
+
+    final id = await _db.insert('actividades', {
+      'sesion_id': sesion.id,
+      'nino_id': ninoId,
+      'asignatura': asignatura.name,
+      'nivel': nivel,
+      'orden': orden,
+      'contenido': jsonEncode(contenido),
+      'estado': 'pendiente',
+      'creada_en': _ahora(),
+    });
+    return (await actividad(id))!;
+  }
+
   Future<List<ActividadGuardada>> _actividadesDe(int sesionId) async {
     final filas = await _db.query(
       'actividades',

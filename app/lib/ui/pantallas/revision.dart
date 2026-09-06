@@ -16,6 +16,7 @@ import '../../voz/frases.dart';
 import '../reproductor.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
+import 'actividad.dart';
 
 /// Corrección: el niño ve en pantalla lo que tenía que salir y dice qué le ha
 /// salido a él.
@@ -187,6 +188,45 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     _corregir();
   }
 
+  /// Volver a hacer lo que ha salido mal.
+  ///
+  /// Corregir sin poder arreglarlo se queda a medias: lo que enseña de verdad
+  /// es volver a la hoja y que esta vez salga. Se crea una actividad nueva en
+  /// la sesión de hoy en lugar de reescribir la de antes, para que se vea que
+  /// la segunda fue mejor que la primera.
+  Future<void> _volverAIntentarlo() async {
+    final estado = context.read<AppEstado>();
+    final contenido = Map<String, dynamic>.from(widget.actividad.contenido);
+
+    switch (widget.contenido) {
+      case ContenidoDictado():
+        contenido['repetido'] = true;
+      case ContenidoOperaciones():
+        final fallados = [
+          for (final r in _correccionMates!)
+            if (!r.correcta) r.operacion.numero,
+        ];
+        // Si esto ya era una repetición, sus números son los de la tanda
+        // recortada: hay que traducirlos a los de la tanda original.
+        final soloAntes = (contenido['solo'] as List?)?.cast<int>();
+        contenido['solo'] = soloAntes == null
+            ? fallados
+            : [for (final n in fallados) soloAntes[n - 1]];
+    }
+
+    final nueva = await estado.repo.crearActividadExtra(
+      ninoId: widget.actividad.ninoId,
+      asignatura: widget.actividad.asignatura,
+      nivel: widget.actividad.nivel,
+      contenido: contenido,
+    );
+    if (!mounted) return;
+
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => PantallaActividad(actividad: nueva)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,6 +259,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
         cambioNivel: _cambioNivel,
         repaso: _repaso,
         onTerminar: () => Navigator.of(context).pop(),
+        onRepetir: _volverAIntentarlo,
       );
     }
 
@@ -738,6 +779,7 @@ class _Resultado extends StatelessWidget {
     required this.cambioNivel,
     required this.repaso,
     required this.onTerminar,
+    required this.onRepetir,
   });
 
   final CorreccionDictado? dictado;
@@ -745,6 +787,12 @@ class _Resultado extends StatelessWidget {
   final CambioDeNivel? cambioNivel;
   final ReproductorGuion? repaso;
   final VoidCallback onTerminar;
+  final VoidCallback onRepetir;
+
+  /// Cuántos fallos hay que arreglar. Si no hay ninguno, no hay nada que
+  /// repetir y ofrecerlo solo sería ruido.
+  int get _fallos =>
+      dictado?.faltas ?? mates!.where((r) => !r.correcta).length;
 
   int get _aciertos => dictado?.aciertos ?? mates!.where((r) => r.correcta).length;
   int get _total => dictado?.totalPalabras ?? mates!.length;
@@ -780,7 +828,23 @@ class _Resultado extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-          child: BotonGrande(texto: 'Terminar', onPressed: onTerminar),
+          child: Column(
+            children: [
+              if (_fallos > 0) ...[
+                BotonComando(
+                  texto: dictado != null
+                      ? 'Repetir el dictado'
+                      : (_fallos == 1
+                          ? 'Volver a hacer la que fallé'
+                          : 'Volver a hacer las que fallé'),
+                  icono: Icons.replay_rounded,
+                  onPressed: onRepetir,
+                ),
+                const SizedBox(height: 10),
+              ],
+              BotonGrande(texto: 'Terminar', onPressed: onTerminar),
+            ],
+          ),
         ),
       ],
     );

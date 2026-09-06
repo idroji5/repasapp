@@ -34,7 +34,8 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Nivel | 1–5 **independiente por asignatura**, con autoajuste |
 | Voz | Motor del propio teléfono (`flutter_tts`), es-ES, voz femenina si la hay |
 | Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
-| Ritmo | Solo va despacio lo que hay que escribir; lo que se explica, a ritmo de conversación |
+| Ritmo | Al dictar se calla entre palabra y palabra; lo que se explica va a ritmo de conversación |
+| Al fallar | Se puede **volver a hacer** lo que ha salido mal, ahí mismo |
 | Corrección | El niño toca lo que ha fallado sobre la solución en pantalla |
 | Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
 
@@ -86,6 +87,11 @@ Se pregunta por palabras y no por un número de faltas porque una palabra se
 puede explicar y un número no: de ahí salen las reglas que la voz repasa y los
 errores frecuentes de la zona de padres.
 
+Y lo que ha salido mal se puede **volver a hacer ahí mismo**: la app monta una
+actividad nueva con solo esos ejercicios —las mismas cuentas, no otras— y la
+dicta otra vez. Corregir sin poder arreglarlo se queda a medias. La repetición
+se guarda aparte de la primera, para que se vea que la segunda salió mejor.
+
 Corregirse uno mismo es menos automático que leer la hoja con la cámara, y es
 mejor: comparar su cuenta con la buena y decidir si coinciden ya es corregir.
 Además nunca se equivoca al leer su letra, que era [el problema que hundía la
@@ -105,10 +111,15 @@ falla bastante.
 | Con una pista delante | *ya lo veo*, *otra pista* |
 
 Lo que hay que escribir —el dictado, el enunciado de un problema, una cuenta—
-se dice **muy** despacio, a poco más de la mitad del ritmo de un adulto, y dos
-veces. Lo que la app explica va a ritmo de conversación: "prepara papel y
-lápiz" no se escribe, se entiende y ya, y dicho a ritmo de dictado se hace
-eterno. "Más despacio" cambia el dictado, no las explicaciones.
+se dice **palabra a palabra, con un silencio entre cada una** y dos veces
+seguidas. Lo que un niño necesita para escribir no es oír la palabra estirada,
+es que le dejen tiempo antes de la siguiente; quien dicta de verdad no habla
+lento, habla y se calla. Las palabras de una o dos letras van pegadas a la
+siguiente, que dichas solas suenan a lista de la compra.
+
+Lo que la app explica va a ritmo de conversación: "prepara papel y lápiz" no se
+escribe, se entiende y ya. "Más despacio" alarga los silencios del dictado y no
+toca las explicaciones.
 
 La voz manda mientras se trabaja, que es cuando el niño tiene las manos
 ocupadas; corregir es al revés, y ahí se toca. Durante la actividad hay como
@@ -122,7 +133,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 65 pruebas de la lógica pura y del repositorio
+flutter test          # 72 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 

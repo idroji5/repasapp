@@ -18,14 +18,23 @@ import 'package:path_provider/path_provider.dart';
 /// se entiende y ya: dicho a ritmo de dictado se hace eterno y aburre antes de
 /// llegar a lo que importa. Ver [Locutora.tasaAlExplicar].
 enum Velocidad {
-  lenta(0.18),
-  normal(0.28),
-  rapida(0.40);
+  lenta(0.20, 1000),
+  normal(0.28, 700),
+  rapida(0.38, 450);
 
-  const Velocidad(this.tasa);
+  const Velocidad(this.tasa, this.pausaEntrePalabras);
 
   /// Tasa de habla de flutter_tts, donde 0,5 es el ritmo natural de un adulto.
   final double tasa;
+
+  /// Milisegundos de silencio entre una palabra y la siguiente al dictar.
+  ///
+  /// Bajar la tasa hace que cada palabra suene arrastrada, y arrastrada no es
+  /// lo mismo que despacio: lo que un niño necesita para escribir no es oír la
+  /// palabra estirada, es que le dejen tiempo antes de la siguiente. Quien
+  /// dicta de verdad no habla lento, habla normal y se calla entre palabra y
+  /// palabra.
+  final int pausaEntrePalabras;
 
   Velocidad get masLenta => switch (this) {
         Velocidad.rapida => Velocidad.normal,
@@ -218,10 +227,50 @@ class Locutora {
   /// Explica algo: instrucciones, preguntas, correcciones. Ritmo de conversar.
   Future<void> decir(String texto) => _hablar(texto, tasaAlExplicar);
 
-  /// Dicta algo para que el niño lo escriba. Ritmo de dictado, el que él haya
-  /// pedido, o el que se indique en [a] para una lectura suelta.
-  Future<void> dictar(String texto, {Velocidad? a}) =>
-      _hablar(texto, (a ?? velocidad).tasa);
+  /// Dicta algo para que el niño lo escriba, dejándole aire entre palabra y
+  /// palabra. Al ritmo que él haya pedido, o al que se indique en [a].
+  Future<void> dictar(String texto, {Velocidad? a}) async {
+    if (muda) return;
+    final ritmo = a ?? velocidad;
+    final trozos = enTrozos(texto);
+
+    for (var i = 0; i < trozos.length; i++) {
+      if (_cancelado) return;
+      await _hablar(trozos[i], ritmo.tasa);
+      if (i + 1 < trozos.length) {
+        await Future<void>.delayed(
+            Duration(milliseconds: ritmo.pausaEntrePalabras));
+      }
+    }
+  }
+
+  /// Corta una frase en los trozos que se dicen de una tirada.
+  ///
+  /// Palabra a palabra, salvo las muy cortas —"a", "el", "en", "y"— que se
+  /// pegan a la siguiente: dichas solas suenan a lista de la compra, y lo que
+  /// se está dictando es una frase.
+  static List<String> enTrozos(String texto) {
+    final palabras =
+        texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final trozos = <String>[];
+
+    for (final palabra in palabras) {
+      final anterior = trozos.isEmpty ? null : trozos.last;
+      if (anterior != null && _esCortita(anterior)) {
+        trozos[trozos.length - 1] = '$anterior $palabra';
+      } else {
+        trozos.add(palabra);
+      }
+    }
+    return trozos;
+  }
+
+  /// Una palabra demasiado corta para ir sola. Se mira la última del trozo,
+  /// que es la que quedaría colgando delante del silencio.
+  static bool _esCortita(String trozo) {
+    final ultima = trozo.split(' ').last.replaceAll(RegExp(r'[^\wáéíóúüñ]', caseSensitive: false), '');
+    return ultima.length <= 2;
+  }
 
   /// Dice el texto y no vuelve hasta que ha terminado de decirlo.
   ///
@@ -232,6 +281,7 @@ class Locutora {
   /// —el texto está en pantalla— que dejar al niño mirando una pantalla muerta.
   Future<void> _hablar(String texto, double tasa) async {
     if (muda) return;
+    _cancelado = false;
     await preparar();
     await _tts.setSpeechRate(tasa);
 
@@ -264,6 +314,11 @@ class Locutora {
   /// Queda a true si alguna frase no llegó a sonar. La pantalla lo usa para
   /// avisar de que hay que revisar el motor de voz del teléfono.
   bool falloDeVoz = false;
+
+  /// Un dictado se dice en varios trozos con silencios en medio. Si el niño
+  /// sale de la actividad a mitad de frase, hay que dejar de hablar en el acto
+  /// y no seguir con el resto de la frase desde una pantalla que ya no existe.
+  bool _cancelado = false;
 
   /// Cambia a una voz concreta y la prueba en voz alta. La usa la zona de
   /// padres: la calidad de las voces varía muchísimo entre teléfonos y hay
@@ -309,5 +364,9 @@ class Locutora {
     }
   }
 
-  Future<void> parar() => muda ? Future<void>.value() : _tts.stop();
+  Future<void> parar() async {
+    _cancelado = true;
+    if (!muda) await _tts.stop();
+  }
+
 }
