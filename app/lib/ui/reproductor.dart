@@ -157,35 +157,32 @@ class ReproductorGuion extends ChangeNotifier {
   /// que le dé tiempo a escribir el principio antes de que vuelva a sonar.
   static const Duration _respiroEntreLecturas = Duration(seconds: 2);
 
-  /// Lee una frase [veces] veces seguidas.
+  /// Dicta una frase [veces] veces seguidas.
   ///
   /// La segunda va un punto más despacio que la primera: así es como repite
   /// quien dicta de verdad, y así la repetición sirve para escribir y no solo
   /// para volver a oír lo mismo al mismo ritmo.
   Future<void> _leerFragmento(String queDecir, int veces) async {
     for (var vez = 0; vez < veces && !_cancelado; vez++) {
-      await _decir(
-        queDecir,
-        Fase.hablando,
-        guion.comandosGlobales,
-        a: vez == 0 ? null : voz.velocidad.masLenta,
-      );
+      texto = queDecir;
+      comandos = guion.comandosGlobales;
+      _cambiar(Fase.hablando);
+      // Esto es lo único que se dicta: lo que el niño tiene que escribir.
+      await voz.dictar(queDecir, a: vez == 0 ? null : voz.velocidad.masLenta);
+
       if (vez + 1 < veces && !_cancelado) {
         await Future<void>.delayed(_respiroEntreLecturas);
       }
     }
   }
 
-  Future<void> _decir(
-    String queDecir,
-    Fase nueva,
-    List<Comando> disponibles, {
-    Velocidad? a,
-  }) async {
+  /// Lo que la app explica —instrucciones, preguntas, correcciones— va a ritmo
+  /// de conversación. Dicho a ritmo de dictado se hace eterno.
+  Future<void> _decir(String queDecir, Fase nueva, List<Comando> disponibles) async {
     texto = queDecir;
     comandos = disponibles;
     _cambiar(nueva);
-    await voz.decir(queDecir, a: a);
+    await voz.decir(queDecir);
   }
 
   // ------------------------------------------------- pausa para escribir ---

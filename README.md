@@ -34,6 +34,7 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Nivel | 1–5 **independiente por asignatura**, con autoajuste |
 | Voz | Motor del propio teléfono (`flutter_tts`), es-ES, voz femenina si la hay |
 | Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
+| Ritmo | Solo va despacio lo que hay que escribir; lo que se explica, a ritmo de conversación |
 | Corrección | El niño toca lo que ha fallado sobre la solución en pantalla |
 | Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
 
@@ -103,6 +104,12 @@ falla bastante.
 | Al acabar la actividad | *corregir*, *he terminado* |
 | Con una pista delante | *ya lo veo*, *otra pista* |
 
+Lo que hay que escribir —el dictado, el enunciado de un problema, una cuenta—
+se dice **muy** despacio, a poco más de la mitad del ritmo de un adulto, y dos
+veces. Lo que la app explica va a ritmo de conversación: "prepara papel y
+lápiz" no se escribe, se entiende y ya, y dicho a ritmo de dictado se hace
+eterno. "Más despacio" cambia el dictado, no las explicaciones.
+
 La voz manda mientras se trabaja, que es cuando el niño tiene las manos
 ocupadas; corregir es al revés, y ahí se toca. Durante la actividad hay como
 mucho dos botones, y nunca uno por cada cosa que se puede decir: cambiar la
@@ -115,7 +122,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 61 pruebas de la lógica pura y del repositorio
+flutter test          # 65 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 

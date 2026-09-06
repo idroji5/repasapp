@@ -5,14 +5,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Velocidades a las que la app dicta. El niño puede pedir "más despacio" en
-/// cualquier momento y el cambio se aplica al siguiente fragmento.
+/// Velocidades a las que la app DICTA lo que hay que escribir. El niño puede
+/// pedir "más despacio" en cualquier momento y el cambio se aplica al
+/// siguiente fragmento.
 ///
 /// Las tres van muy por debajo del ritmo de conversación a propósito. Quien
 /// dicta a un niño de Primaria no habla como habla con un adulto: articula,
 /// separa las palabras y espera a que la mano llegue. Un adulto lee ~2,6
-/// palabras por segundo; aquí, a ritmo normal, van poco más de la mitad. Lo que
-/// en una app de lectura sería insoportable, en un dictado es lo correcto.
+/// palabras por segundo; aquí, a ritmo normal, van poco más de la mitad.
+///
+/// Esto NO afecta a las explicaciones. "Prepara papel y lápiz" no se escribe,
+/// se entiende y ya: dicho a ritmo de dictado se hace eterno y aburre antes de
+/// llegar a lo que importa. Ver [Locutora.tasaAlExplicar].
 enum Velocidad {
   lenta(0.18),
   normal(0.28),
@@ -82,6 +86,14 @@ class Locutora {
   /// Voz fijada por el padre. Manda sobre la elección automática.
   String? vozPreferida;
 
+  /// Ritmo al que la app explica las cosas: el de una conversación tranquila
+  /// con un niño, un punto por debajo del de un adulto con otro adulto.
+  ///
+  /// Es fijo. El niño puede pedir que se dicte más despacio, que es lo que le
+  /// cuesta seguir; nadie pide que le expliquen las instrucciones más despacio.
+  static const double tasaAlExplicar = 0.46;
+
+  /// A qué velocidad se dicta ahora mismo.
   Velocidad velocidad = Velocidad.normal;
 
   Future<void> preparar() async {
@@ -196,12 +208,20 @@ class Locutora {
   /// Se calcula contra el ritmo real de la voz y no contra "lo normal": si se
   /// midiera en proporción a la velocidad normal, al bajarla el tope se
   /// quedaría corto y la app cortaría frases largas a media palabra.
-  static Duration duracionEstimada(String texto, Velocidad velocidad) {
+  static Duration duracionEstimada(String texto, double tasa) {
     final palabras = texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
     const palabrasPorSegundoDeAdulto = 2.6; // a tasa 0,5
-    final porSegundo = palabrasPorSegundoDeAdulto * (velocidad.tasa / 0.5);
+    final porSegundo = palabrasPorSegundoDeAdulto * (tasa / 0.5);
     return Duration(milliseconds: ((palabras / porSegundo + 0.8) * 1000).round());
   }
+
+  /// Explica algo: instrucciones, preguntas, correcciones. Ritmo de conversar.
+  Future<void> decir(String texto) => _hablar(texto, tasaAlExplicar);
+
+  /// Dicta algo para que el niño lo escriba. Ritmo de dictado, el que él haya
+  /// pedido, o el que se indique en [a] para una lectura suelta.
+  Future<void> dictar(String texto, {Velocidad? a}) =>
+      _hablar(texto, (a ?? velocidad).tasa);
 
   /// Dice el texto y no vuelve hasta que ha terminado de decirlo.
   ///
@@ -210,13 +230,12 @@ class Locutora {
   /// avisar nunca de que ha terminado, y entonces la actividad se queda
   /// congelada para siempre en el primer paso. Es preferible seguir en silencio
   /// —el texto está en pantalla— que dejar al niño mirando una pantalla muerta.
-  Future<void> decir(String texto, {Velocidad? a}) async {
+  Future<void> _hablar(String texto, double tasa) async {
     if (muda) return;
     await preparar();
-    final ritmo = a ?? velocidad;
-    await _tts.setSpeechRate(ritmo.tasa);
+    await _tts.setSpeechRate(tasa);
 
-    final estimada = duracionEstimada(texto, ritmo);
+    final estimada = duracionEstimada(texto, tasa);
     final tope = estimada + const Duration(seconds: 6);
 
     final reloj = Stopwatch()..start();
