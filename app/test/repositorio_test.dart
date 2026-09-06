@@ -14,15 +14,16 @@ void main() {
   });
 
   late Repositorio repo;
+  late Database bd;
 
   /// Reloj de mentira: la app depende tanto del día que hay que poder moverlo.
   late DateTime ahora;
 
   setUp(() async {
     // Base de datos en memoria: cada prueba empieza de cero.
-    final db = await BaseDatos.abrir(rutaCompleta: inMemoryDatabasePath);
+    bd = await BaseDatos.abrir(rutaCompleta: inMemoryDatabasePath);
     ahora = DateTime(2026, 3, 2, 17, 30);
-    repo = Repositorio(db, azar: Random(7), reloj: () => ahora);
+    repo = Repositorio(bd, azar: Random(7), reloj: () => ahora);
   });
 
   Future<int> crearPedro() => repo.crearNino(
@@ -53,6 +54,64 @@ void main() {
     final segunda = await repo.sesionDeHoy(id);
     expect(segunda.id, primera.id);
     expect(segunda.actividades.length, primera.actividades.length);
+  });
+
+  test('una asignatura nueva entra en la sesión de hoy, no mañana', () async {
+    final id = await crearPedro();
+    final sesion = await repo.sesionDeHoy(id);
+
+    // Se simula el día en que se actualiza la app: la sesión ya estaba hecha
+    // sin inglés, porque el inglés todavía no existía.
+    final ingles =
+        sesion.actividades.firstWhere((a) => a.asignatura == Asignatura.ingles);
+    await bd.delete('actividades', where: 'id = ?', whereArgs: [ingles.id]);
+    expect(
+      await bd.query('actividades',
+          where: 'sesion_id = ? and asignatura = ?',
+          whereArgs: [sesion.id, Asignatura.ingles.name]),
+      isEmpty,
+      reason: 'la de prueba tiene que quedarse sin inglés',
+    );
+
+    // Al volver a abrir el plan del día aparece, sin rehacer lo demás.
+    final completada = await repo.sesionDeHoy(id);
+    expect(completada.id, sesion.id, reason: 'es la misma sesión');
+    expect(completada.actividades.map((a) => a.asignatura),
+        containsAll(Asignatura.values));
+  });
+
+  test('a un niño de antes se le crea el nivel de la asignatura nueva', () async {
+    final id = await crearPedro();
+    await bd.delete('niveles',
+        where: 'nino_id = ? and asignatura = ?',
+        whereArgs: [id, Asignatura.ingles.name]);
+
+    await repo.sesionDeHoy(id);
+
+    final filas = await bd.query('niveles',
+        where: 'nino_id = ? and asignatura = ?',
+        whereArgs: [id, Asignatura.ingles.name]);
+    expect(filas, hasLength(1), reason: 'sin fila, el nivel no se autoajusta');
+    expect(filas.single['nivel'], 3);
+  });
+
+  test('completar la sesión no toca lo que ya está hecho', () async {
+    final id = await crearPedro();
+    final sesion = await repo.sesionDeHoy(id);
+    final primera = sesion.actividades.first;
+
+    await repo.guardarCorreccion(
+      actividadId: primera.id,
+      ninoId: id,
+      asignatura: primera.asignatura,
+      aciertos: 9,
+      total: 10,
+      faltas: const [],
+    );
+
+    final despues = await repo.sesionDeHoy(id);
+    expect(despues.actividades, hasLength(sesion.actividades.length));
+    expect(despues.actividades.first.aciertos, 9);
   });
 
   test('cada actividad usa el nivel de SU asignatura', () async {

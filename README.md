@@ -32,6 +32,7 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Feedback | Pistas antes que solución (configurable por el padre) |
 | Zona de padres | Sí, protegida con PIN |
 | Sesión diaria | "N minutos al día" → una actividad de cada asignatura, repartiendo el tiempo a partes iguales |
+| El plan del día | Se hace una vez y se completa si falta alguna asignatura: no se rehace ni se pierde lo hecho |
 | Nivel | 1–5 **independiente por asignatura**, con autoajuste |
 | Voz | Motor del propio teléfono (`flutter_tts`), es-ES, voz femenina si la hay |
 | Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
@@ -171,7 +172,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 96 pruebas de la lógica pura y del repositorio
+flutter test          # 99 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 

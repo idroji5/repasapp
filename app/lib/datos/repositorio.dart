@@ -172,6 +172,8 @@ class Repositorio {
 
   /// La sesión de hoy, creándola con el planificador si aún no existía.
   Future<SesionDelDia> sesionDeHoy(int ninoId) async {
+    await _asegurarNiveles(ninoId);
+
     final existentes = await _db.query(
       'sesiones',
       where: 'nino_id = ? and dia = ?',
@@ -188,11 +190,71 @@ class Repositorio {
         ? existentes.first['minutos_previstos']! as int
         : (await nino(ninoId))!.minutosDiarios;
 
+    if (existentes.isNotEmpty) await _completarSesion(ninoId, sesionId, minutos);
+
     return SesionDelDia(
       id: sesionId,
       minutos: minutos,
       actividades: await _actividadesDe(sesionId),
     );
+  }
+
+  /// Todo niño tiene una fila de nivel por asignatura, también las que se
+  /// añadieron después de crearlo.
+  ///
+  /// Sin esto, a un niño dado de alta antes de que existiera el inglés no se le
+  /// ajustaría nunca el nivel de inglés: el autoajuste busca su fila, no la
+  /// encuentra y se calla.
+  Future<void> _asegurarNiveles(int ninoId) async {
+    for (final asignatura in Asignatura.values) {
+      await _db.insert(
+        'niveles',
+        {'nino_id': ninoId, 'asignatura': asignatura.name, 'nivel': 3},
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
+  /// Añade a la sesión de hoy las asignaturas que no estén en ella.
+  ///
+  /// La sesión se planifica una sola vez, el primer rato del día. Si esa mañana
+  /// la app todavía no tenía inglés, el inglés no aparecería hasta el día
+  /// siguiente; y si una asignatura se quedó fuera por falta de minutos, se le
+  /// da la oportunidad de entrar cuando el niño vuelve más tarde.
+  Future<void> _completarSesion(int ninoId, int sesionId, int minutos) async {
+    final actividades = await _actividadesDe(sesionId);
+    final presentes = actividades.map((a) => a.asignatura).toSet();
+    final faltan = Asignatura.values.where((a) => !presentes.contains(a)).toList();
+    if (faltan.isEmpty) return;
+
+    final n = (await nino(ninoId))!;
+    final plan = planificarSesion(
+      ContextoPlan(
+        curso: n.curso,
+        minutosDiarios: minutos,
+        niveles: n.niveles,
+        dictadosHechos: await _dictadosHechos(ninoId),
+        destrezasFlojas: await destrezasFlojas(ninoId),
+      ),
+      azar: _azar,
+    );
+
+    var orden = actividades.isEmpty
+        ? 0
+        : actividades.map((a) => a.orden).reduce(max) + 1;
+
+    for (final actividad in plan.where((p) => faltan.contains(p.asignatura))) {
+      await _db.insert('actividades', {
+        'sesion_id': sesionId,
+        'nino_id': ninoId,
+        'asignatura': actividad.asignatura.name,
+        'nivel': actividad.nivel,
+        'orden': orden++,
+        'contenido': jsonEncode(actividad.contenido),
+        'estado': 'pendiente',
+        'creada_en': _ahora(),
+      });
+    }
   }
 
   Future<int> _crearSesionDeHoy(int ninoId) async {
