@@ -288,6 +288,32 @@ ContenidoActividad reconstruir(Map<String, dynamic> contenido, int nivel) {
   }
 }
 
+/// El contenido de una actividad que se va a repetir.
+///
+/// Queda marcado como repetición, y eso importa más allá del título: una
+/// repetición no cuenta para subir o bajar de nivel. Acaba de ver las
+/// soluciones, así que bordarla no demuestra nada.
+///
+/// [soloEstos] son los ejercicios que se quieren repetir, numerados como
+/// estaban en la actividad que se repite. Si esa ya era una repetición, se
+/// traducen a los números de la tanda original: la semilla genera siempre la
+/// tanda entera y "solo" recorta sobre ella, así que un recorte de un recorte
+/// habría cogido los ejercicios equivocados.
+Map<String, dynamic> contenidoRepetido(
+  Map<String, dynamic> original, {
+  List<int>? soloEstos,
+}) {
+  final copia = Map<String, dynamic>.from(original)..['repetido'] = true;
+
+  if (copia['tipo'] == 'dictado' || soloEstos == null) return copia;
+
+  final recorteAnterior = (original['solo'] as List?)?.cast<int>();
+  copia['solo'] = recorteAnterior == null
+      ? soloEstos
+      : [for (final n in soloEstos) recorteAnterior[n - 1]];
+  return copia;
+}
+
 String tituloDe(Map<String, dynamic> contenido) {
   if (contenido['tipo'] == 'dictado') {
     final titulo = dictadoPorId(contenido['dictadoId'] as String)?.titulo ?? 'Dictado';

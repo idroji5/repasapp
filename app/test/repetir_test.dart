@@ -40,6 +40,17 @@ void main() {
     expect(repeticion.operaciones[0].destrezaId, completa.operaciones[1].destrezaId);
   });
 
+  test('repetir un recorte traduce los números a la tanda original', () {
+    final primera = contenidoRepetido(Map<String, dynamic>.from(tanda),
+        soloEstos: [2, 5]);
+    expect(primera['solo'], [2, 5]);
+    expect(primera['repetido'], isTrue);
+
+    // De esas dos vuelve a fallar la segunda, que en la tanda original es la 5.
+    final segunda = contenidoRepetido(primera, soloEstos: [2]);
+    expect(segunda['solo'], [5]);
+  });
+
   test('la repetición se llama por lo que es', () {
     expect(tituloDe(Map<String, dynamic>.from(tanda)), '5 operaciones');
     expect(tituloDe({...tanda, 'solo': [2, 5]}), 'Las 2 que fallaron');
@@ -48,6 +59,42 @@ void main() {
       tituloDe({'tipo': 'dictado', 'dictadoId': 'dic-101', 'repetido': true}),
       'En el campo (otra vez)',
     );
+  });
+
+  test('repetir no sube de nivel: ya ha visto las soluciones', () async {
+    final db = await BaseDatos.abrir(rutaCompleta: inMemoryDatabasePath);
+    final repo = Repositorio(db, azar: Random(3));
+    final ninoId = await repo.crearNino(
+      nombre: 'Pedro',
+      curso: 5,
+      minutosDiarios: 15,
+      niveles: {Asignatura.matematicas: 3, Asignatura.dictado: 3},
+    );
+    final sesion = await repo.sesionDeHoy(ninoId);
+    final original = sesion.actividades
+        .firstWhere((a) => a.asignatura == Asignatura.matematicas);
+
+    // Tres actividades bordadas suben el nivel... si son de verdad.
+    for (var i = 0; i < 3; i++) {
+      final repetida = await repo.crearActividadExtra(
+        ninoId: ninoId,
+        asignatura: Asignatura.matematicas,
+        nivel: original.nivel,
+        contenido: contenidoRepetido(original.contenido, soloEstos: [1]),
+      );
+      final cambio = await repo.guardarCorreccion(
+        actividadId: repetida.id,
+        ninoId: ninoId,
+        asignatura: Asignatura.matematicas,
+        aciertos: 5,
+        total: 5,
+        faltas: const [],
+      );
+      expect(cambio, isNull, reason: 'una repetición no mueve el nivel');
+    }
+
+    final nino = (await repo.nino(ninoId))!;
+    expect(nino.nivelDe(Asignatura.matematicas), 3);
   });
 
   test('la actividad repetida se guarda aparte, sin pisar la primera', () async {

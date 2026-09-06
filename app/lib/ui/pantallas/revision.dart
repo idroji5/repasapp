@@ -196,23 +196,16 @@ class _PantallaRevisionState extends State<PantallaRevision> {
   /// la segunda fue mejor que la primera.
   Future<void> _volverAIntentarlo() async {
     final estado = context.read<AppEstado>();
-    final contenido = Map<String, dynamic>.from(widget.actividad.contenido);
-
-    switch (widget.contenido) {
-      case ContenidoDictado():
-        contenido['repetido'] = true;
-      case ContenidoOperaciones():
-        final fallados = [
-          for (final r in _correccionMates!)
-            if (!r.correcta) r.operacion.numero,
-        ];
-        // Si esto ya era una repetición, sus números son los de la tanda
-        // recortada: hay que traducirlos a los de la tanda original.
-        final soloAntes = (contenido['solo'] as List?)?.cast<int>();
-        contenido['solo'] = soloAntes == null
-            ? fallados
-            : [for (final n in fallados) soloAntes[n - 1]];
-    }
+    final contenido = contenidoRepetido(
+      widget.actividad.contenido,
+      soloEstos: switch (widget.contenido) {
+        ContenidoDictado() => null,
+        ContenidoOperaciones() => [
+            for (final r in _correccionMates!)
+              if (!r.correcta) r.operacion.numero,
+          ],
+      },
+    );
 
     final nueva = await estado.repo.crearActividadExtra(
       ninoId: widget.actividad.ninoId,

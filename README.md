@@ -36,6 +36,7 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Dictado | Cada frase se lee **dos veces**, la segunda más despacio |
 | Ritmo | Al dictar se calla entre palabra y palabra; lo que se explica va a ritmo de conversación |
 | Al fallar | Se puede **volver a hacer** lo que ha salido mal, ahí mismo |
+| Repetir | Cualquier actividad del día se puede repetir tocándola; no cuenta para el nivel |
 | Corrección | El niño toca lo que ha fallado sobre la solución en pantalla |
 | Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
 
@@ -89,8 +90,12 @@ errores frecuentes de la zona de padres.
 
 Y lo que ha salido mal se puede **volver a hacer ahí mismo**: la app monta una
 actividad nueva con solo esos ejercicios —las mismas cuentas, no otras— y la
-dicta otra vez. Corregir sin poder arreglarlo se queda a medias. La repetición
-se guarda aparte de la primera, para que se vea que la segunda salió mejor.
+dicta otra vez. Corregir sin poder arreglarlo se queda a medias. Lo mismo desde
+el plan de hoy: tocando una actividad ya terminada se repite entera.
+
+La repetición se guarda aparte del primer intento, para que se vea que la
+segunda salió mejor, pero **no cuenta para subir o bajar de nivel**: acaba de
+ver las soluciones, así que bordarla no demuestra nada.
 
 Corregirse uno mismo es menos automático que leer la hoja con la cámara, y es
 mejor: comparar su cuenta con la buena y decidir si coinciden ya es corregir.
@@ -133,7 +138,7 @@ existe.
 ```bash
 cd app
 flutter pub get
-flutter test          # 72 pruebas de la lógica pura y del repositorio
+flutter test          # 77 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 

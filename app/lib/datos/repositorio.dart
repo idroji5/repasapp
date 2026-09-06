@@ -263,6 +263,9 @@ class Repositorio {
     return (await actividad(id))!;
   }
 
+  static bool _esRepeticion(String contenido) =>
+      (jsonDecode(contenido) as Map<String, dynamic>)['repetido'] == true;
+
   Future<List<ActividadGuardada>> _actividadesDe(int sesionId) async {
     final filas = await _db.query(
       'actividades',
@@ -432,14 +435,20 @@ class Repositorio {
     final estado = await _nivelActual(ninoId, asignatura);
     if (estado == null) return null;
 
-    final filas = await _db.query(
+    // Las repeticiones no cuentan para el nivel: el niño acaba de ver las
+    // soluciones, así que bordarlas no dice nada de lo que sabe hacer. Sí
+    // cuentan para las estadísticas del padre, que es trabajo hecho.
+    final filas = (await _db.query(
       'actividades',
-      columns: ['aciertos', 'total', 'corregida_en'],
+      columns: ['aciertos', 'total', 'corregida_en', 'contenido'],
       where: 'nino_id = ? and asignatura = ? and estado = ? and total > 0',
       whereArgs: [ninoId, asignatura.name, 'corregida'],
       orderBy: 'corregida_en desc',
-      limit: _historialParaNivel,
-    );
+      limit: _historialParaNivel * 4,
+    ))
+        .where((f) => !_esRepeticion(f['contenido']! as String))
+        .take(_historialParaNivel)
+        .toList();
 
     final ajuste = ajustarNivel(
       estado,

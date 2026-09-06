@@ -56,6 +56,51 @@ class _PantallaHoyState extends State<PantallaHoy> {
     if (mounted) _cargar();
   }
 
+  /// Volver a hacer algo que ya se ha hecho hoy.
+  ///
+  /// Repetir un dictado que ha salido regular, o las cuentas del lunes, es de
+  /// las cosas más útiles que puede hacer un niño con esta app, y hasta ahora
+  /// la tarjeta de una actividad terminada sencillamente no se dejaba tocar.
+  ///
+  /// Se crea una actividad nueva en lugar de reabrir la de antes: así el primer
+  /// resultado no se pierde y en la zona de padres se ve la mejora.
+  Future<void> _repetir(ActividadGuardada actividad) async {
+    final repetir = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text('¿Lo vuelves a hacer?'),
+        content: Text(
+          actividad.total == null
+              ? 'Ya lo hiciste hoy.'
+              : 'Hoy te salieron ${actividad.aciertos} de ${actividad.total}. '
+                  'Puedes volver a hacerlo y ver si mejoras.',
+          style: const TextStyle(fontSize: 16, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(contexto).pop(false),
+            child: const Text('Ahora no'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(contexto).pop(true),
+            child: const Text('Volver a hacerlo'),
+          ),
+        ],
+      ),
+    );
+    if (repetir != true || !mounted) return;
+
+    final repo = context.read<AppEstado>().repo;
+    final nueva = await repo.crearActividadExtra(
+      ninoId: actividad.ninoId,
+      asignatura: actividad.asignatura,
+      nivel: actividad.nivel,
+      contenido: contenidoRepetido(actividad.contenido),
+    );
+    if (!mounted) return;
+    await _empezar(nueva);
+  }
+
   @override
   Widget build(BuildContext context) {
     // El nombre puede haber cambiado en la zona de padres mientras tanto.
@@ -113,7 +158,8 @@ class _PantallaHoyState extends State<PantallaHoy> {
               const SizedBox(height: 6),
               Text(
                 siguiente == null
-                    ? 'Has hecho las ${sesion.actividades.length} actividades. Mañana seguimos.'
+                    ? 'Has hecho las ${sesion.actividades.length} actividades. '
+                        'Si quieres, toca una para repetirla.'
                     : '${sesion.minutos} minutos · ${sesion.hechas} de '
                         '${sesion.actividades.length} hechas',
                 style: const TextStyle(color: Tema.tintaSuave, fontSize: 16),
@@ -123,7 +169,9 @@ class _PantallaHoyState extends State<PantallaHoy> {
                 _TarjetaActividad(
                   actividad: actividad,
                   esSiguiente: actividad.id == siguiente?.id,
-                  onPulsar: () => _empezar(actividad),
+                  onPulsar: () => actividad.corregida
+                      ? _repetir(actividad)
+                      : _empezar(actividad),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -161,12 +209,13 @@ class _TarjetaActividad extends StatelessWidget {
     final hecha = actividad.corregida;
 
     return Opacity(
-      opacity: hecha ? 0.62 : 1,
+      // Lo hecho se apaga un poco, pero no del todo: se puede volver a hacer.
+      opacity: hecha ? 0.75 : 1,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(Tema.radio),
-          onTap: hecha ? null : onPulsar,
+          onTap: onPulsar,
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: Tema.cajaTarjeta.copyWith(
@@ -213,7 +262,10 @@ class _TarjetaActividad extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (!hecha) const Icon(Icons.chevron_right, color: Tema.tintaSuave),
+                Icon(
+                  hecha ? Icons.replay_rounded : Icons.chevron_right,
+                  color: Tema.tintaSuave,
+                ),
               ],
             ),
           ),
