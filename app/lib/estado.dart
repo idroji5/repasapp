@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'datos/modelos.dart';
 import 'datos/repositorio.dart';
 import 'dominio/asignaturas.dart';
+import 'dominio/coleccion.dart';
 import 'voz/locutora.dart';
 
 /// Estado compartido de la aplicación: quién está usándola y qué hay guardado.
@@ -12,7 +14,7 @@ import 'voz/locutora.dart';
 /// No guarda el progreso de una actividad en curso: eso vive en el reproductor
 /// de guiones, que muere con su pantalla. Aquí solo está lo que sobrevive.
 class AppEstado extends ChangeNotifier {
-  AppEstado({required this.repo, required this.voz});
+  AppEstado({required this.repo, required this.voz, this.catalogo});
 
   final Repositorio repo;
   final Locutora voz;
@@ -22,6 +24,16 @@ class AppEstado extends ChangeNotifier {
 
   /// El niño que está usando la app ahora mismo.
   Nino? activo;
+
+  /// El arte de los Nouns y sus rarezas.
+  ///
+  /// Se carga una vez al arrancar y ya no cambia, así que entra por el
+  /// constructor y no por `cargar()`: leer un asset dentro del ciclo de
+  /// recarga metía una espera de verdad en medio de cada corrección.
+  ///
+  /// Puede ser null. Si el asset no carga, la colección desaparece de la app
+  /// pero los deberes siguen funcionando: es un premio, no una asignatura.
+  final CatalogoNouns? catalogo;
 
   static const _claveVoz = 'voz_preferida';
 
@@ -39,6 +51,18 @@ class AppEstado extends ChangeNotifier {
     }
     cargando = false;
     notifyListeners();
+  }
+
+  /// El arte de la colección, o null si no se puede leer.
+  static Future<CatalogoNouns?> cargarCatalogo() async {
+    try {
+      return CatalogoNouns.desdeJson(
+        await rootBundle.loadString('assets/nouns/image-data.json'),
+        await rootBundle.loadString('assets/nouns/catalogo.json'),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   void elegir(Nino nino) {

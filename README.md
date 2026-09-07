@@ -16,8 +16,8 @@ orígenes desconocidos" la primera vez):
 | Descarga | Para |
 |---|---|
 | [**RepasApp-arm64-v8a.apk**](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-arm64-v8a.apk) (17 MB) | Casi cualquier móvil de los últimos años |
-| [RepasApp-armeabi-v7a.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-armeabi-v7a.apk) (14 MB) | Móviles antiguos de 32 bits |
-| [RepasApp-universal.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-universal.apk) (48 MB) | Si las anteriores dan error de compatibilidad |
+| [RepasApp-armeabi-v7a.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-armeabi-v7a.apk) (15 MB) | Móviles antiguos de 32 bits |
+| [RepasApp-universal.apk](https://github.com/idroji5/repasapp/releases/latest/download/RepasApp-universal.apk) (47 MB) | Si las anteriores dan error de compatibilidad |
 
 Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 
@@ -42,6 +42,7 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Repetir | Cualquier actividad del día se puede repetir tocándola; no cuenta para el nivel |
 | Corrección | El niño toca lo que ha fallado sobre la solución en pantalla |
 | Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
+| Premio | Al terminar las tres actividades del día se gana un **Noun**, uno al día. [Cómo](characters/README.md) |
 
 ## Arquitectura
 

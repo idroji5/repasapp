@@ -1,0 +1,2671 @@
+{
+ "masas": {
+  "normal": 0.8879,
+  "raro": 0.0776,
+  "extra_raro": 0.0278,
+  "especial": 0.0067
+ },
+ "fondos": 2,
+ "capas": {
+  "bodies": [
+   {
+    "i": 0,
+    "clave": "bege-bsod",
+    "nombre": "pantallazo azul",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 1,
+    "clave": "bege-crt",
+    "nombre": "pantalla antigua",
+    "rareza": "raro"
+   },
+   {
+    "i": 2,
+    "clave": "blue-sky",
+    "nombre": "azul cielo",
+    "rareza": "normal"
+   },
+   {
+    "i": 3,
+    "clave": "bluegrey",
+    "nombre": "azul grisáceo",
+    "rareza": "normal"
+   },
+   {
+    "i": 4,
+    "clave": "cold",
+    "nombre": "azul frío",
+    "rareza": "raro"
+   },
+   {
+    "i": 5,
+    "clave": "computerblue",
+    "nombre": "azul ordenador",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 6,
+    "clave": "darkbrown",
+    "nombre": "marrón oscuro",
+    "rareza": "normal"
+   },
+   {
+    "i": 7,
+    "clave": "darkpink",
+    "nombre": "rosa oscuro",
+    "rareza": "normal"
+   },
+   {
+    "i": 8,
+    "clave": "foggrey",
+    "nombre": "gris niebla",
+    "rareza": "normal"
+   },
+   {
+    "i": 9,
+    "clave": "gold",
+    "nombre": "dorado",
+    "rareza": "especial"
+   },
+   {
+    "i": 10,
+    "clave": "grayscale-1",
+    "nombre": "casi negro",
+    "rareza": "raro"
+   },
+   {
+    "i": 11,
+    "clave": "grayscale-7",
+    "nombre": "gris",
+    "rareza": "normal"
+   },
+   {
+    "i": 12,
+    "clave": "grayscale-8",
+    "nombre": "gris claro",
+    "rareza": "normal"
+   },
+   {
+    "i": 13,
+    "clave": "grayscale-9",
+    "nombre": "casi blanco",
+    "rareza": "normal"
+   },
+   {
+    "i": 14,
+    "clave": "green",
+    "nombre": "verde",
+    "rareza": "normal"
+   },
+   {
+    "i": 15,
+    "clave": "gunk",
+    "nombre": "verde pringue",
+    "rareza": "raro"
+   },
+   {
+    "i": 16,
+    "clave": "hotbrown",
+    "nombre": "marrón cálido",
+    "rareza": "normal"
+   },
+   {
+    "i": 17,
+    "clave": "magenta",
+    "nombre": "magenta",
+    "rareza": "normal"
+   },
+   {
+    "i": 18,
+    "clave": "orange-yellow",
+    "nombre": "naranja amarillo",
+    "rareza": "normal"
+   },
+   {
+    "i": 19,
+    "clave": "orange",
+    "nombre": "naranja",
+    "rareza": "normal"
+   },
+   {
+    "i": 20,
+    "clave": "peachy-B",
+    "nombre": "melocotón",
+    "rareza": "normal"
+   },
+   {
+    "i": 21,
+    "clave": "peachy-a",
+    "nombre": "melocotón claro",
+    "rareza": "normal"
+   },
+   {
+    "i": 22,
+    "clave": "purple",
+    "nombre": "morado",
+    "rareza": "normal"
+   },
+   {
+    "i": 23,
+    "clave": "red",
+    "nombre": "rojo",
+    "rareza": "normal"
+   },
+   {
+    "i": 24,
+    "clave": "redpinkish",
+    "nombre": "rojo rosado",
+    "rareza": "normal"
+   },
+   {
+    "i": 25,
+    "clave": "rust",
+    "nombre": "óxido",
+    "rareza": "normal"
+   },
+   {
+    "i": 26,
+    "clave": "slimegreen",
+    "nombre": "verde slime",
+    "rareza": "raro"
+   },
+   {
+    "i": 27,
+    "clave": "teal-light",
+    "nombre": "turquesa claro",
+    "rareza": "normal"
+   },
+   {
+    "i": 28,
+    "clave": "teal",
+    "nombre": "turquesa",
+    "rareza": "normal"
+   },
+   {
+    "i": 29,
+    "clave": "yellow",
+    "nombre": "amarillo",
+    "rareza": "normal"
+   }
+  ],
+  "accessories": [
+   {
+    "i": 0,
+    "clave": "1n",
+    "nombre": "1n",
+    "rareza": "normal"
+   },
+   {
+    "i": 1,
+    "clave": "aardvark",
+    "nombre": "aardvark",
+    "rareza": "normal"
+   },
+   {
+    "i": 2,
+    "clave": "axe",
+    "nombre": "axe",
+    "rareza": "normal"
+   },
+   {
+    "i": 3,
+    "clave": "belly-chameleon",
+    "nombre": "belly-chameleon",
+    "rareza": "normal"
+   },
+   {
+    "i": 4,
+    "clave": "bird-flying",
+    "nombre": "bird-flying",
+    "rareza": "normal"
+   },
+   {
+    "i": 5,
+    "clave": "bird-side",
+    "nombre": "bird-side",
+    "rareza": "normal"
+   },
+   {
+    "i": 6,
+    "clave": "bling-anchor",
+    "nombre": "bling-anchor",
+    "rareza": "normal"
+   },
+   {
+    "i": 7,
+    "clave": "bling-anvil",
+    "nombre": "bling-anvil",
+    "rareza": "normal"
+   },
+   {
+    "i": 8,
+    "clave": "bling-arrow",
+    "nombre": "bling-arrow",
+    "rareza": "normal"
+   },
+   {
+    "i": 9,
+    "clave": "bling-cheese",
+    "nombre": "bling-cheese",
+    "rareza": "normal"
+   },
+   {
+    "i": 10,
+    "clave": "bling-gold-ingot",
+    "nombre": "bling-gold-ingot",
+    "rareza": "normal"
+   },
+   {
+    "i": 11,
+    "clave": "bling-love",
+    "nombre": "bling-love",
+    "rareza": "normal"
+   },
+   {
+    "i": 12,
+    "clave": "bling-mask",
+    "nombre": "bling-mask",
+    "rareza": "normal"
+   },
+   {
+    "i": 13,
+    "clave": "bling-rings",
+    "nombre": "bling-rings",
+    "rareza": "normal"
+   },
+   {
+    "i": 14,
+    "clave": "bling-scissors",
+    "nombre": "bling-scissors",
+    "rareza": "normal"
+   },
+   {
+    "i": 15,
+    "clave": "bling-sparkles",
+    "nombre": "bling-sparkles",
+    "rareza": "normal"
+   },
+   {
+    "i": 16,
+    "clave": "body-gradient-checkerdisco",
+    "nombre": "body-gradient-checkerdisco",
+    "rareza": "normal"
+   },
+   {
+    "i": 17,
+    "clave": "body-gradient-dawn",
+    "nombre": "body-gradient-dawn",
+    "rareza": "normal"
+   },
+   {
+    "i": 18,
+    "clave": "body-gradient-dusk",
+    "nombre": "body-gradient-dusk",
+    "rareza": "normal"
+   },
+   {
+    "i": 19,
+    "clave": "body-gradient-glacier",
+    "nombre": "body-gradient-glacier",
+    "rareza": "normal"
+   },
+   {
+    "i": 20,
+    "clave": "body-gradient-ice",
+    "nombre": "body-gradient-ice",
+    "rareza": "normal"
+   },
+   {
+    "i": 21,
+    "clave": "body-gradient-pride",
+    "nombre": "body-gradient-pride",
+    "rareza": "normal"
+   },
+   {
+    "i": 22,
+    "clave": "body-gradient-redpink",
+    "nombre": "body-gradient-redpink",
+    "rareza": "normal"
+   },
+   {
+    "i": 23,
+    "clave": "body-gradient-sunset",
+    "nombre": "body-gradient-sunset",
+    "rareza": "normal"
+   },
+   {
+    "i": 24,
+    "clave": "carrot",
+    "nombre": "carrot",
+    "rareza": "normal"
+   },
+   {
+    "i": 25,
+    "clave": "chain-logo",
+    "nombre": "chain-logo",
+    "rareza": "normal"
+   },
+   {
+    "i": 26,
+    "clave": "checker-RGB",
+    "nombre": "checker-RGB",
+    "rareza": "normal"
+   },
+   {
+    "i": 27,
+    "clave": "checker-bigwalk-blue-prime",
+    "nombre": "checker-bigwalk-blue-prime",
+    "rareza": "normal"
+   },
+   {
+    "i": 28,
+    "clave": "checker-bigwalk-greylight",
+    "nombre": "checker-bigwalk-greylight",
+    "rareza": "normal"
+   },
+   {
+    "i": 29,
+    "clave": "checker-bigwalk-rainbow",
+    "nombre": "checker-bigwalk-rainbow",
+    "rareza": "normal"
+   },
+   {
+    "i": 30,
+    "clave": "checker-spaced-black",
+    "nombre": "checker-spaced-black",
+    "rareza": "normal"
+   },
+   {
+    "i": 31,
+    "clave": "checker-spaced-white",
+    "nombre": "checker-spaced-white",
+    "rareza": "normal"
+   },
+   {
+    "i": 32,
+    "clave": "checker-vibrant",
+    "nombre": "checker-vibrant",
+    "rareza": "normal"
+   },
+   {
+    "i": 33,
+    "clave": "checkers-big-green",
+    "nombre": "checkers-big-green",
+    "rareza": "normal"
+   },
+   {
+    "i": 34,
+    "clave": "checkers-big-red-cold",
+    "nombre": "checkers-big-red-cold",
+    "rareza": "normal"
+   },
+   {
+    "i": 35,
+    "clave": "checkers-black",
+    "nombre": "checkers-black",
+    "rareza": "normal"
+   },
+   {
+    "i": 36,
+    "clave": "checkers-blue",
+    "nombre": "checkers-blue",
+    "rareza": "normal"
+   },
+   {
+    "i": 37,
+    "clave": "checkers-magenta-80",
+    "nombre": "checkers-magenta-80",
+    "rareza": "normal"
+   },
+   {
+    "i": 38,
+    "clave": "chicken",
+    "nombre": "chicken",
+    "rareza": "normal"
+   },
+   {
+    "i": 39,
+    "clave": "cloud",
+    "nombre": "cloud",
+    "rareza": "normal"
+   },
+   {
+    "i": 40,
+    "clave": "clover",
+    "nombre": "clover",
+    "rareza": "normal"
+   },
+   {
+    "i": 41,
+    "clave": "collar-sunset",
+    "nombre": "collar-sunset",
+    "rareza": "normal"
+   },
+   {
+    "i": 42,
+    "clave": "cow",
+    "nombre": "cow",
+    "rareza": "normal"
+   },
+   {
+    "i": 43,
+    "clave": "decay-gray-dark",
+    "nombre": "decay-gray-dark",
+    "rareza": "normal"
+   },
+   {
+    "i": 44,
+    "clave": "decay-pride",
+    "nombre": "decay-pride",
+    "rareza": "normal"
+   },
+   {
+    "i": 45,
+    "clave": "dinosaur",
+    "nombre": "dinosaur",
+    "rareza": "normal"
+   },
+   {
+    "i": 46,
+    "clave": "dollar-bling",
+    "nombre": "dollar-bling",
+    "rareza": "normal"
+   },
+   {
+    "i": 47,
+    "clave": "dragon",
+    "nombre": "dragon",
+    "rareza": "normal"
+   },
+   {
+    "i": 48,
+    "clave": "ducky",
+    "nombre": "ducky",
+    "rareza": "normal"
+   },
+   {
+    "i": 49,
+    "clave": "eth",
+    "nombre": "eth",
+    "rareza": "normal"
+   },
+   {
+    "i": 50,
+    "clave": "eye",
+    "nombre": "eye",
+    "rareza": "normal"
+   },
+   {
+    "i": 51,
+    "clave": "flash",
+    "nombre": "flash",
+    "rareza": "normal"
+   },
+   {
+    "i": 52,
+    "clave": "fries",
+    "nombre": "fries",
+    "rareza": "normal"
+   },
+   {
+    "i": 53,
+    "clave": "glasses-logo-sun",
+    "nombre": "glasses-logo-sun",
+    "rareza": "normal"
+   },
+   {
+    "i": 54,
+    "clave": "glasses-logo",
+    "nombre": "glasses-logo",
+    "rareza": "normal"
+   },
+   {
+    "i": 55,
+    "clave": "glasses",
+    "nombre": "glasses",
+    "rareza": "normal"
+   },
+   {
+    "i": 56,
+    "clave": "grid-simple-bege",
+    "nombre": "grid-simple-bege",
+    "rareza": "normal"
+   },
+   {
+    "i": 57,
+    "clave": "heart",
+    "nombre": "heart",
+    "rareza": "normal"
+   },
+   {
+    "i": 58,
+    "clave": "hoodiestrings-uneven",
+    "nombre": "hoodiestrings-uneven",
+    "rareza": "normal"
+   },
+   {
+    "i": 59,
+    "clave": "id",
+    "nombre": "id",
+    "rareza": "normal"
+   },
+   {
+    "i": 60,
+    "clave": "infinity",
+    "nombre": "infinity",
+    "rareza": "normal"
+   },
+   {
+    "i": 61,
+    "clave": "insignia",
+    "nombre": "insignia",
+    "rareza": "normal"
+   },
+   {
+    "i": 62,
+    "clave": "leaf",
+    "nombre": "leaf",
+    "rareza": "normal"
+   },
+   {
+    "i": 63,
+    "clave": "lightbulb",
+    "nombre": "lightbulb",
+    "rareza": "normal"
+   },
+   {
+    "i": 64,
+    "clave": "lines-45-greens",
+    "nombre": "lines-45-greens",
+    "rareza": "normal"
+   },
+   {
+    "i": 65,
+    "clave": "lines-45-rose",
+    "nombre": "lines-45-rose",
+    "rareza": "normal"
+   },
+   {
+    "i": 66,
+    "clave": "lp",
+    "nombre": "lp",
+    "rareza": "normal"
+   },
+   {
+    "i": 67,
+    "clave": "marsface",
+    "nombre": "marsface",
+    "rareza": "normal"
+   },
+   {
+    "i": 68,
+    "clave": "matrix-white",
+    "nombre": "matrix-white",
+    "rareza": "normal"
+   },
+   {
+    "i": 69,
+    "clave": "moon-block",
+    "nombre": "moon-block",
+    "rareza": "normal"
+   },
+   {
+    "i": 70,
+    "clave": "none",
+    "nombre": "none",
+    "rareza": "normal"
+   },
+   {
+    "i": 71,
+    "clave": "oldshirt",
+    "nombre": "oldshirt",
+    "rareza": "normal"
+   },
+   {
+    "i": 72,
+    "clave": "pizza-bling",
+    "nombre": "pizza-bling",
+    "rareza": "normal"
+   },
+   {
+    "i": 73,
+    "clave": "pocket-pencil",
+    "nombre": "pocket-pencil",
+    "rareza": "normal"
+   },
+   {
+    "i": 74,
+    "clave": "rain",
+    "nombre": "rain",
+    "rareza": "normal"
+   },
+   {
+    "i": 75,
+    "clave": "rainbow-steps",
+    "nombre": "rainbow-steps",
+    "rareza": "normal"
+   },
+   {
+    "i": 76,
+    "clave": "rgb",
+    "nombre": "rgb",
+    "rareza": "normal"
+   },
+   {
+    "i": 77,
+    "clave": "robot",
+    "nombre": "robot",
+    "rareza": "normal"
+   },
+   {
+    "i": 78,
+    "clave": "safety-vest",
+    "nombre": "safety-vest",
+    "rareza": "normal"
+   },
+   {
+    "i": 79,
+    "clave": "scarf-clown",
+    "nombre": "scarf-clown",
+    "rareza": "normal"
+   },
+   {
+    "i": 80,
+    "clave": "secret-x",
+    "nombre": "secret-x",
+    "rareza": "normal"
+   },
+   {
+    "i": 81,
+    "clave": "shirt-black",
+    "nombre": "shirt-black",
+    "rareza": "normal"
+   },
+   {
+    "i": 82,
+    "clave": "shrimp",
+    "nombre": "shrimp",
+    "rareza": "normal"
+   },
+   {
+    "i": 83,
+    "clave": "slimesplat",
+    "nombre": "slimesplat",
+    "rareza": "normal"
+   },
+   {
+    "i": 84,
+    "clave": "small-bling",
+    "nombre": "small-bling",
+    "rareza": "normal"
+   },
+   {
+    "i": 85,
+    "clave": "snowflake",
+    "nombre": "snowflake",
+    "rareza": "normal"
+   },
+   {
+    "i": 87,
+    "clave": "stains-zombie",
+    "nombre": "stains-zombie",
+    "rareza": "normal"
+   },
+   {
+    "i": 88,
+    "clave": "stripes-and-checks",
+    "nombre": "stripes-and-checks",
+    "rareza": "normal"
+   },
+   {
+    "i": 89,
+    "clave": "stripes-big-red",
+    "nombre": "stripes-big-red",
+    "rareza": "normal"
+   },
+   {
+    "i": 90,
+    "clave": "stripes-blit",
+    "nombre": "stripes-blit",
+    "rareza": "normal"
+   },
+   {
+    "i": 91,
+    "clave": "stripes-blue-med",
+    "nombre": "stripes-blue-med",
+    "rareza": "normal"
+   },
+   {
+    "i": 92,
+    "clave": "stripes-brown",
+    "nombre": "stripes-brown",
+    "rareza": "normal"
+   },
+   {
+    "i": 93,
+    "clave": "stripes-olive",
+    "nombre": "stripes-olive",
+    "rareza": "normal"
+   },
+   {
+    "i": 94,
+    "clave": "stripes-red-cold",
+    "nombre": "stripes-red-cold",
+    "rareza": "normal"
+   },
+   {
+    "i": 95,
+    "clave": "sunset",
+    "nombre": "sunset",
+    "rareza": "normal"
+   },
+   {
+    "i": 96,
+    "clave": "taxi-checkers",
+    "nombre": "taxi-checkers",
+    "rareza": "normal"
+   },
+   {
+    "i": 97,
+    "clave": "tee-yo",
+    "nombre": "tee-yo",
+    "rareza": "normal"
+   },
+   {
+    "i": 98,
+    "clave": "text-yolo",
+    "nombre": "text-yolo",
+    "rareza": "normal"
+   },
+   {
+    "i": 99,
+    "clave": "think",
+    "nombre": "think",
+    "rareza": "normal"
+   },
+   {
+    "i": 100,
+    "clave": "tie-black-on-white",
+    "nombre": "tie-black-on-white",
+    "rareza": "normal"
+   },
+   {
+    "i": 101,
+    "clave": "tie-dye",
+    "nombre": "tie-dye",
+    "rareza": "normal"
+   },
+   {
+    "i": 102,
+    "clave": "tie-purple-on-white",
+    "nombre": "tie-purple-on-white",
+    "rareza": "normal"
+   },
+   {
+    "i": 103,
+    "clave": "tie-red",
+    "nombre": "tie-red",
+    "rareza": "normal"
+   },
+   {
+    "i": 104,
+    "clave": "txt-a2+b2",
+    "nombre": "txt-a2+b2",
+    "rareza": "normal"
+   },
+   {
+    "i": 105,
+    "clave": "txt-cc",
+    "nombre": "txt-cc",
+    "rareza": "normal"
+   },
+   {
+    "i": 106,
+    "clave": "txt-cc2",
+    "nombre": "txt-cc2",
+    "rareza": "normal"
+   },
+   {
+    "i": 107,
+    "clave": "txt-copy",
+    "nombre": "txt-copy",
+    "rareza": "normal"
+   },
+   {
+    "i": 108,
+    "clave": "txt-dao-black",
+    "nombre": "txt-dao-black",
+    "rareza": "normal"
+   },
+   {
+    "i": 109,
+    "clave": "txt-doom",
+    "nombre": "txt-doom",
+    "rareza": "normal"
+   },
+   {
+    "i": 110,
+    "clave": "txt-dope-text",
+    "nombre": "txt-dope-text",
+    "rareza": "normal"
+   },
+   {
+    "i": 111,
+    "clave": "txt-foo-black",
+    "nombre": "txt-foo-black",
+    "rareza": "normal"
+   },
+   {
+    "i": 112,
+    "clave": "txt-ico",
+    "nombre": "txt-ico",
+    "rareza": "normal"
+   },
+   {
+    "i": 113,
+    "clave": "txt-io",
+    "nombre": "txt-io",
+    "rareza": "normal"
+   },
+   {
+    "i": 114,
+    "clave": "txt-lmao",
+    "nombre": "txt-lmao",
+    "rareza": "normal"
+   },
+   {
+    "i": 115,
+    "clave": "txt-lol",
+    "nombre": "txt-lol",
+    "rareza": "normal"
+   },
+   {
+    "i": 116,
+    "clave": "txt-mint",
+    "nombre": "txt-mint",
+    "rareza": "normal"
+   },
+   {
+    "i": 117,
+    "clave": "txt-nil-grey-dark",
+    "nombre": "txt-nil-grey-dark",
+    "rareza": "normal"
+   },
+   {
+    "i": 118,
+    "clave": "txt-noun-f0f",
+    "nombre": "txt-noun-f0f",
+    "rareza": "normal"
+   },
+   {
+    "i": 119,
+    "clave": "txt-noun-green",
+    "nombre": "txt-noun-green",
+    "rareza": "normal"
+   },
+   {
+    "i": 120,
+    "clave": "txt-noun-multicolor",
+    "nombre": "txt-noun-multicolor",
+    "rareza": "normal"
+   },
+   {
+    "i": 121,
+    "clave": "txt-noun",
+    "nombre": "txt-noun",
+    "rareza": "normal"
+   },
+   {
+    "i": 122,
+    "clave": "txt-pi",
+    "nombre": "txt-pi",
+    "rareza": "normal"
+   },
+   {
+    "i": 123,
+    "clave": "txt-pop",
+    "nombre": "txt-pop",
+    "rareza": "normal"
+   },
+   {
+    "i": 124,
+    "clave": "txt-rofl",
+    "nombre": "txt-rofl",
+    "rareza": "normal"
+   },
+   {
+    "i": 125,
+    "clave": "txt-we",
+    "nombre": "txt-we",
+    "rareza": "normal"
+   },
+   {
+    "i": 126,
+    "clave": "txt-yay",
+    "nombre": "txt-yay",
+    "rareza": "normal"
+   },
+   {
+    "i": 127,
+    "clave": "wall",
+    "nombre": "wall",
+    "rareza": "normal"
+   },
+   {
+    "i": 128,
+    "clave": "wave",
+    "nombre": "wave",
+    "rareza": "normal"
+   },
+   {
+    "i": 129,
+    "clave": "wet-money",
+    "nombre": "wet-money",
+    "rareza": "normal"
+   },
+   {
+    "i": 130,
+    "clave": "woolweave-bicolor",
+    "nombre": "woolweave-bicolor",
+    "rareza": "normal"
+   },
+   {
+    "i": 131,
+    "clave": "woolweave-dirt",
+    "nombre": "woolweave-dirt",
+    "rareza": "normal"
+   },
+   {
+    "i": 132,
+    "clave": "yingyang",
+    "nombre": "yingyang",
+    "rareza": "normal"
+   },
+   {
+    "i": 133,
+    "clave": "body-bege",
+    "nombre": "body-bege",
+    "rareza": "normal"
+   },
+   {
+    "i": 134,
+    "clave": "body-gray-scale-1",
+    "nombre": "body-gray-scale-1",
+    "rareza": "normal"
+   },
+   {
+    "i": 135,
+    "clave": "body-gray-scale-9",
+    "nombre": "body-gray-scale-9",
+    "rareza": "normal"
+   },
+   {
+    "i": 136,
+    "clave": "body-ice-cold",
+    "nombre": "body-ice-cold",
+    "rareza": "normal"
+   },
+   {
+    "i": 137,
+    "clave": "grease",
+    "nombre": "grease",
+    "rareza": "normal"
+   },
+   {
+    "i": 138,
+    "clave": "tatewaku",
+    "nombre": "tatewaku",
+    "rareza": "normal"
+   },
+   {
+    "i": 139,
+    "clave": "uroko",
+    "nombre": "uroko",
+    "rareza": "normal"
+   },
+   {
+    "i": 140,
+    "clave": "broken-heart",
+    "nombre": "broken-heart",
+    "rareza": "normal"
+   },
+   {
+    "i": 141,
+    "clave": "sweater",
+    "nombre": "sweater",
+    "rareza": "normal"
+   },
+   {
+    "i": 142,
+    "clave": "gnars",
+    "nombre": "gnars",
+    "rareza": "normal"
+   }
+  ],
+  "heads": [
+   {
+    "i": 0,
+    "clave": "aardvark",
+    "nombre": "oso hormiguero",
+    "rareza": "raro"
+   },
+   {
+    "i": 1,
+    "clave": "abstract",
+    "nombre": "abstracto",
+    "rareza": "normal"
+   },
+   {
+    "i": 2,
+    "clave": "ape",
+    "nombre": "simio",
+    "rareza": "raro"
+   },
+   {
+    "i": 3,
+    "clave": "bag",
+    "nombre": "bolsa",
+    "rareza": "normal"
+   },
+   {
+    "i": 4,
+    "clave": "bagpipe",
+    "nombre": "gaita",
+    "rareza": "normal"
+   },
+   {
+    "i": 5,
+    "clave": "banana",
+    "nombre": "plátano",
+    "rareza": "normal"
+   },
+   {
+    "i": 6,
+    "clave": "bank",
+    "nombre": "banco",
+    "rareza": "normal"
+   },
+   {
+    "i": 7,
+    "clave": "baseball-gameball",
+    "nombre": "pelota de béisbol",
+    "rareza": "normal"
+   },
+   {
+    "i": 8,
+    "clave": "basketball",
+    "nombre": "balón de baloncesto",
+    "rareza": "normal"
+   },
+   {
+    "i": 9,
+    "clave": "bat",
+    "nombre": "murciélago",
+    "rareza": "raro"
+   },
+   {
+    "i": 10,
+    "clave": "bear",
+    "nombre": "oso",
+    "rareza": "raro"
+   },
+   {
+    "i": 12,
+    "clave": "beet",
+    "nombre": "remolacha",
+    "rareza": "normal"
+   },
+   {
+    "i": 13,
+    "clave": "bell",
+    "nombre": "campana",
+    "rareza": "normal"
+   },
+   {
+    "i": 14,
+    "clave": "bigfoot-yeti",
+    "nombre": "yeti",
+    "rareza": "raro"
+   },
+   {
+    "i": 15,
+    "clave": "bigfoot",
+    "nombre": "pie grande",
+    "rareza": "raro"
+   },
+   {
+    "i": 16,
+    "clave": "blackhole",
+    "nombre": "agujero negro",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 17,
+    "clave": "blueberry",
+    "nombre": "arándano",
+    "rareza": "normal"
+   },
+   {
+    "i": 18,
+    "clave": "bomb",
+    "nombre": "bomba",
+    "rareza": "normal"
+   },
+   {
+    "i": 19,
+    "clave": "bonsai",
+    "nombre": "bonsái",
+    "rareza": "normal"
+   },
+   {
+    "i": 20,
+    "clave": "boombox",
+    "nombre": "radiocasete",
+    "rareza": "normal"
+   },
+   {
+    "i": 21,
+    "clave": "boot",
+    "nombre": "bota",
+    "rareza": "normal"
+   },
+   {
+    "i": 22,
+    "clave": "box",
+    "nombre": "caja",
+    "rareza": "normal"
+   },
+   {
+    "i": 23,
+    "clave": "boxingglove",
+    "nombre": "guante de boxeo",
+    "rareza": "normal"
+   },
+   {
+    "i": 24,
+    "clave": "brain",
+    "nombre": "cerebro",
+    "rareza": "normal"
+   },
+   {
+    "i": 25,
+    "clave": "bubble-speech",
+    "nombre": "bocadillo",
+    "rareza": "normal"
+   },
+   {
+    "i": 26,
+    "clave": "bubblegum",
+    "nombre": "chicle",
+    "rareza": "normal"
+   },
+   {
+    "i": 27,
+    "clave": "burger-dollarmenu",
+    "nombre": "hamburguesa",
+    "rareza": "normal"
+   },
+   {
+    "i": 28,
+    "clave": "cake",
+    "nombre": "tarta",
+    "rareza": "normal"
+   },
+   {
+    "i": 29,
+    "clave": "calculator",
+    "nombre": "calculadora",
+    "rareza": "normal"
+   },
+   {
+    "i": 30,
+    "clave": "calendar",
+    "nombre": "calendario",
+    "rareza": "normal"
+   },
+   {
+    "i": 31,
+    "clave": "camcorder",
+    "nombre": "cámara de vídeo",
+    "rareza": "normal"
+   },
+   {
+    "i": 32,
+    "clave": "cannedham",
+    "nombre": "lata de jamón",
+    "rareza": "normal"
+   },
+   {
+    "i": 33,
+    "clave": "car",
+    "nombre": "coche",
+    "rareza": "normal"
+   },
+   {
+    "i": 34,
+    "clave": "cash-register",
+    "nombre": "caja registradora",
+    "rareza": "normal"
+   },
+   {
+    "i": 35,
+    "clave": "cassettetape",
+    "nombre": "casete",
+    "rareza": "normal"
+   },
+   {
+    "i": 36,
+    "clave": "cat",
+    "nombre": "gato",
+    "rareza": "raro"
+   },
+   {
+    "i": 37,
+    "clave": "cd",
+    "nombre": "cedé",
+    "rareza": "normal"
+   },
+   {
+    "i": 38,
+    "clave": "chain",
+    "nombre": "cadena",
+    "rareza": "normal"
+   },
+   {
+    "i": 39,
+    "clave": "chainsaw",
+    "nombre": "motosierra",
+    "rareza": "normal"
+   },
+   {
+    "i": 40,
+    "clave": "chameleon",
+    "nombre": "camaleón",
+    "rareza": "raro"
+   },
+   {
+    "i": 41,
+    "clave": "chart-bars",
+    "nombre": "gráfico de barras",
+    "rareza": "normal"
+   },
+   {
+    "i": 42,
+    "clave": "cheese",
+    "nombre": "queso",
+    "rareza": "normal"
+   },
+   {
+    "i": 43,
+    "clave": "chefhat",
+    "nombre": "gorro de cocinero",
+    "rareza": "normal"
+   },
+   {
+    "i": 44,
+    "clave": "cherry",
+    "nombre": "cereza",
+    "rareza": "normal"
+   },
+   {
+    "i": 45,
+    "clave": "chicken",
+    "nombre": "gallina",
+    "rareza": "raro"
+   },
+   {
+    "i": 46,
+    "clave": "chilli",
+    "nombre": "guindilla",
+    "rareza": "normal"
+   },
+   {
+    "i": 47,
+    "clave": "chipboard",
+    "nombre": "placa de circuitos",
+    "rareza": "normal"
+   },
+   {
+    "i": 48,
+    "clave": "chips",
+    "nombre": "patatas fritas",
+    "rareza": "normal"
+   },
+   {
+    "i": 49,
+    "clave": "chocolate",
+    "nombre": "chocolate",
+    "rareza": "normal"
+   },
+   {
+    "i": 50,
+    "clave": "cloud",
+    "nombre": "nube",
+    "rareza": "normal"
+   },
+   {
+    "i": 51,
+    "clave": "clover",
+    "nombre": "trébol",
+    "rareza": "normal"
+   },
+   {
+    "i": 52,
+    "clave": "clutch",
+    "nombre": "bolso de mano",
+    "rareza": "normal"
+   },
+   {
+    "i": 53,
+    "clave": "coffeebean",
+    "nombre": "grano de café",
+    "rareza": "normal"
+   },
+   {
+    "i": 54,
+    "clave": "cone",
+    "nombre": "cono",
+    "rareza": "normal"
+   },
+   {
+    "i": 55,
+    "clave": "console-handheld",
+    "nombre": "consola",
+    "rareza": "normal"
+   },
+   {
+    "i": 56,
+    "clave": "cookie",
+    "nombre": "galleta",
+    "rareza": "normal"
+   },
+   {
+    "i": 57,
+    "clave": "cordlessphone",
+    "nombre": "teléfono",
+    "rareza": "normal"
+   },
+   {
+    "i": 58,
+    "clave": "cottonball",
+    "nombre": "bola de algodón",
+    "rareza": "normal"
+   },
+   {
+    "i": 59,
+    "clave": "cow",
+    "nombre": "vaca",
+    "rareza": "raro"
+   },
+   {
+    "i": 60,
+    "clave": "crab",
+    "nombre": "cangrejo",
+    "rareza": "raro"
+   },
+   {
+    "i": 61,
+    "clave": "crane",
+    "nombre": "grúa",
+    "rareza": "normal"
+   },
+   {
+    "i": 62,
+    "clave": "croc-hat",
+    "nombre": "cocodrilo",
+    "rareza": "raro"
+   },
+   {
+    "i": 63,
+    "clave": "crown",
+    "nombre": "corona",
+    "rareza": "especial"
+   },
+   {
+    "i": 64,
+    "clave": "crt-bsod",
+    "nombre": "pantallazo azul",
+    "rareza": "normal"
+   },
+   {
+    "i": 65,
+    "clave": "crystalball",
+    "nombre": "bola de cristal",
+    "rareza": "normal"
+   },
+   {
+    "i": 66,
+    "clave": "diamond-blue",
+    "nombre": "diamante azul",
+    "rareza": "normal"
+   },
+   {
+    "i": 67,
+    "clave": "diamond-red",
+    "nombre": "diamante rojo",
+    "rareza": "normal"
+   },
+   {
+    "i": 68,
+    "clave": "dictionary",
+    "nombre": "diccionario",
+    "rareza": "normal"
+   },
+   {
+    "i": 69,
+    "clave": "dino",
+    "nombre": "dinosaurio",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 70,
+    "clave": "dna",
+    "nombre": "adn",
+    "rareza": "normal"
+   },
+   {
+    "i": 71,
+    "clave": "dog",
+    "nombre": "perro",
+    "rareza": "raro"
+   },
+   {
+    "i": 72,
+    "clave": "doughnut",
+    "nombre": "dónut",
+    "rareza": "normal"
+   },
+   {
+    "i": 73,
+    "clave": "drill",
+    "nombre": "taladro",
+    "rareza": "normal"
+   },
+   {
+    "i": 74,
+    "clave": "duck",
+    "nombre": "pato",
+    "rareza": "raro"
+   },
+   {
+    "i": 75,
+    "clave": "ducky",
+    "nombre": "patito de goma",
+    "rareza": "raro"
+   },
+   {
+    "i": 76,
+    "clave": "earth",
+    "nombre": "la Tierra",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 77,
+    "clave": "egg",
+    "nombre": "huevo",
+    "rareza": "normal"
+   },
+   {
+    "i": 78,
+    "clave": "faberge",
+    "nombre": "huevo Fabergé",
+    "rareza": "especial"
+   },
+   {
+    "i": 79,
+    "clave": "factory-dark",
+    "nombre": "fábrica",
+    "rareza": "normal"
+   },
+   {
+    "i": 80,
+    "clave": "fan",
+    "nombre": "ventilador",
+    "rareza": "normal"
+   },
+   {
+    "i": 81,
+    "clave": "fence",
+    "nombre": "valla",
+    "rareza": "normal"
+   },
+   {
+    "i": 82,
+    "clave": "film-35mm",
+    "nombre": "carrete",
+    "rareza": "normal"
+   },
+   {
+    "i": 83,
+    "clave": "film-strip",
+    "nombre": "tira de película",
+    "rareza": "normal"
+   },
+   {
+    "i": 84,
+    "clave": "fir",
+    "nombre": "abeto",
+    "rareza": "normal"
+   },
+   {
+    "i": 85,
+    "clave": "firehydrant",
+    "nombre": "boca de incendios",
+    "rareza": "normal"
+   },
+   {
+    "i": 86,
+    "clave": "flamingo",
+    "nombre": "flamenco",
+    "rareza": "raro"
+   },
+   {
+    "i": 87,
+    "clave": "flower",
+    "nombre": "flor",
+    "rareza": "normal"
+   },
+   {
+    "i": 88,
+    "clave": "fox",
+    "nombre": "zorro",
+    "rareza": "raro"
+   },
+   {
+    "i": 89,
+    "clave": "frog",
+    "nombre": "rana",
+    "rareza": "raro"
+   },
+   {
+    "i": 90,
+    "clave": "garlic",
+    "nombre": "ajo",
+    "rareza": "normal"
+   },
+   {
+    "i": 91,
+    "clave": "gavel",
+    "nombre": "mazo de juez",
+    "rareza": "normal"
+   },
+   {
+    "i": 92,
+    "clave": "ghost-B",
+    "nombre": "fantasma",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 93,
+    "clave": "glasses-big",
+    "nombre": "gafotas",
+    "rareza": "normal"
+   },
+   {
+    "i": 94,
+    "clave": "gnome",
+    "nombre": "gnomo",
+    "rareza": "raro"
+   },
+   {
+    "i": 95,
+    "clave": "goat",
+    "nombre": "cabra",
+    "rareza": "raro"
+   },
+   {
+    "i": 96,
+    "clave": "goldcoin",
+    "nombre": "moneda de oro",
+    "rareza": "especial"
+   },
+   {
+    "i": 97,
+    "clave": "goldfish",
+    "nombre": "pez de colores",
+    "rareza": "raro"
+   },
+   {
+    "i": 98,
+    "clave": "grouper",
+    "nombre": "mero",
+    "rareza": "raro"
+   },
+   {
+    "i": 99,
+    "clave": "hair",
+    "nombre": "pelo",
+    "rareza": "normal"
+   },
+   {
+    "i": 100,
+    "clave": "hardhat",
+    "nombre": "casco de obra",
+    "rareza": "normal"
+   },
+   {
+    "i": 101,
+    "clave": "heart",
+    "nombre": "corazón",
+    "rareza": "normal"
+   },
+   {
+    "i": 102,
+    "clave": "helicopter",
+    "nombre": "helicóptero",
+    "rareza": "normal"
+   },
+   {
+    "i": 103,
+    "clave": "highheel",
+    "nombre": "tacón",
+    "rareza": "normal"
+   },
+   {
+    "i": 104,
+    "clave": "hockeypuck",
+    "nombre": "disco de hockey",
+    "rareza": "normal"
+   },
+   {
+    "i": 105,
+    "clave": "horse-deepfried",
+    "nombre": "caballo",
+    "rareza": "normal"
+   },
+   {
+    "i": 106,
+    "clave": "hotdog",
+    "nombre": "perrito caliente",
+    "rareza": "normal"
+   },
+   {
+    "i": 107,
+    "clave": "house",
+    "nombre": "casa",
+    "rareza": "normal"
+   },
+   {
+    "i": 108,
+    "clave": "icepop-b",
+    "nombre": "polo",
+    "rareza": "normal"
+   },
+   {
+    "i": 109,
+    "clave": "igloo",
+    "nombre": "iglú",
+    "rareza": "normal"
+   },
+   {
+    "i": 110,
+    "clave": "island",
+    "nombre": "isla",
+    "rareza": "normal"
+   },
+   {
+    "i": 111,
+    "clave": "jellyfish",
+    "nombre": "medusa",
+    "rareza": "raro"
+   },
+   {
+    "i": 112,
+    "clave": "jupiter",
+    "nombre": "Júpiter",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 113,
+    "clave": "kangaroo",
+    "nombre": "canguro",
+    "rareza": "raro"
+   },
+   {
+    "i": 114,
+    "clave": "ketchup",
+    "nombre": "kétchup",
+    "rareza": "normal"
+   },
+   {
+    "i": 115,
+    "clave": "laptop",
+    "nombre": "portátil",
+    "rareza": "normal"
+   },
+   {
+    "i": 116,
+    "clave": "lightning-bolt",
+    "nombre": "rayo",
+    "rareza": "normal"
+   },
+   {
+    "i": 117,
+    "clave": "lint",
+    "nombre": "pelusa",
+    "rareza": "normal"
+   },
+   {
+    "i": 118,
+    "clave": "lips",
+    "nombre": "labios",
+    "rareza": "normal"
+   },
+   {
+    "i": 119,
+    "clave": "lipstick2",
+    "nombre": "pintalabios",
+    "rareza": "normal"
+   },
+   {
+    "i": 120,
+    "clave": "lock",
+    "nombre": "candado",
+    "rareza": "normal"
+   },
+   {
+    "i": 121,
+    "clave": "macaroni",
+    "nombre": "macarrones",
+    "rareza": "normal"
+   },
+   {
+    "i": 122,
+    "clave": "mailbox",
+    "nombre": "buzón",
+    "rareza": "normal"
+   },
+   {
+    "i": 123,
+    "clave": "maze",
+    "nombre": "laberinto",
+    "rareza": "normal"
+   },
+   {
+    "i": 124,
+    "clave": "microwave",
+    "nombre": "microondas",
+    "rareza": "normal"
+   },
+   {
+    "i": 125,
+    "clave": "milk",
+    "nombre": "leche",
+    "rareza": "normal"
+   },
+   {
+    "i": 126,
+    "clave": "mirror",
+    "nombre": "espejo",
+    "rareza": "normal"
+   },
+   {
+    "i": 127,
+    "clave": "mixer",
+    "nombre": "batidora",
+    "rareza": "normal"
+   },
+   {
+    "i": 128,
+    "clave": "moon",
+    "nombre": "la Luna",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 129,
+    "clave": "moose",
+    "nombre": "alce",
+    "rareza": "raro"
+   },
+   {
+    "i": 130,
+    "clave": "mosquito",
+    "nombre": "mosquito",
+    "rareza": "raro"
+   },
+   {
+    "i": 131,
+    "clave": "mountain-snowcap",
+    "nombre": "montaña nevada",
+    "rareza": "normal"
+   },
+   {
+    "i": 132,
+    "clave": "mouse",
+    "nombre": "ratón",
+    "rareza": "raro"
+   },
+   {
+    "i": 133,
+    "clave": "mug",
+    "nombre": "taza",
+    "rareza": "normal"
+   },
+   {
+    "i": 134,
+    "clave": "mushroom",
+    "nombre": "seta",
+    "rareza": "normal"
+   },
+   {
+    "i": 135,
+    "clave": "mustard",
+    "nombre": "mostaza",
+    "rareza": "normal"
+   },
+   {
+    "i": 136,
+    "clave": "nigiri",
+    "nombre": "nigiri",
+    "rareza": "normal"
+   },
+   {
+    "i": 137,
+    "clave": "noodles",
+    "nombre": "fideos",
+    "rareza": "normal"
+   },
+   {
+    "i": 138,
+    "clave": "onion",
+    "nombre": "cebolla",
+    "rareza": "normal"
+   },
+   {
+    "i": 139,
+    "clave": "orangutan",
+    "nombre": "orangután",
+    "rareza": "raro"
+   },
+   {
+    "i": 140,
+    "clave": "orca",
+    "nombre": "orca",
+    "rareza": "raro"
+   },
+   {
+    "i": 141,
+    "clave": "otter",
+    "nombre": "nutria",
+    "rareza": "raro"
+   },
+   {
+    "i": 142,
+    "clave": "outlet",
+    "nombre": "enchufe",
+    "rareza": "normal"
+   },
+   {
+    "i": 143,
+    "clave": "owl",
+    "nombre": "búho",
+    "rareza": "raro"
+   },
+   {
+    "i": 144,
+    "clave": "oyster",
+    "nombre": "ostra",
+    "rareza": "raro"
+   },
+   {
+    "i": 145,
+    "clave": "paintbrush",
+    "nombre": "pincel",
+    "rareza": "normal"
+   },
+   {
+    "i": 146,
+    "clave": "panda",
+    "nombre": "panda",
+    "rareza": "raro"
+   },
+   {
+    "i": 147,
+    "clave": "paperclip",
+    "nombre": "clip",
+    "rareza": "normal"
+   },
+   {
+    "i": 148,
+    "clave": "peanut",
+    "nombre": "cacahuete",
+    "rareza": "normal"
+   },
+   {
+    "i": 149,
+    "clave": "pencil-tip",
+    "nombre": "punta de lápiz",
+    "rareza": "normal"
+   },
+   {
+    "i": 151,
+    "clave": "piano",
+    "nombre": "piano",
+    "rareza": "normal"
+   },
+   {
+    "i": 152,
+    "clave": "pickle",
+    "nombre": "pepinillo",
+    "rareza": "normal"
+   },
+   {
+    "i": 153,
+    "clave": "pie",
+    "nombre": "tarta de manzana",
+    "rareza": "normal"
+   },
+   {
+    "i": 154,
+    "clave": "piggybank",
+    "nombre": "hucha",
+    "rareza": "normal"
+   },
+   {
+    "i": 156,
+    "clave": "pillow",
+    "nombre": "almohada",
+    "rareza": "normal"
+   },
+   {
+    "i": 157,
+    "clave": "pineapple",
+    "nombre": "piña",
+    "rareza": "normal"
+   },
+   {
+    "i": 159,
+    "clave": "pirateship",
+    "nombre": "barco pirata",
+    "rareza": "normal"
+   },
+   {
+    "i": 160,
+    "clave": "pizza",
+    "nombre": "pizza",
+    "rareza": "normal"
+   },
+   {
+    "i": 161,
+    "clave": "plane",
+    "nombre": "avión",
+    "rareza": "normal"
+   },
+   {
+    "i": 162,
+    "clave": "pop",
+    "nombre": "refresco",
+    "rareza": "normal"
+   },
+   {
+    "i": 163,
+    "clave": "porkbao",
+    "nombre": "bollo bao",
+    "rareza": "normal"
+   },
+   {
+    "i": 164,
+    "clave": "potato",
+    "nombre": "patata",
+    "rareza": "normal"
+   },
+   {
+    "i": 165,
+    "clave": "pufferfish",
+    "nombre": "pez globo",
+    "rareza": "raro"
+   },
+   {
+    "i": 166,
+    "clave": "pumpkin",
+    "nombre": "calabaza",
+    "rareza": "normal"
+   },
+   {
+    "i": 167,
+    "clave": "pyramid",
+    "nombre": "pirámide",
+    "rareza": "normal"
+   },
+   {
+    "i": 168,
+    "clave": "queencrown",
+    "nombre": "corona de reina",
+    "rareza": "especial"
+   },
+   {
+    "i": 169,
+    "clave": "rabbit",
+    "nombre": "conejo",
+    "rareza": "raro"
+   },
+   {
+    "i": 170,
+    "clave": "rainbow",
+    "nombre": "arcoíris",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 171,
+    "clave": "rangefinder",
+    "nombre": "cámara de fotos",
+    "rareza": "normal"
+   },
+   {
+    "i": 172,
+    "clave": "raven",
+    "nombre": "cuervo",
+    "rareza": "raro"
+   },
+   {
+    "i": 173,
+    "clave": "retainer",
+    "nombre": "aparato de dientes",
+    "rareza": "normal"
+   },
+   {
+    "i": 174,
+    "clave": "rgb",
+    "nombre": "rgb",
+    "rareza": "normal"
+   },
+   {
+    "i": 175,
+    "clave": "ring",
+    "nombre": "anillo",
+    "rareza": "normal"
+   },
+   {
+    "i": 176,
+    "clave": "road",
+    "nombre": "carretera",
+    "rareza": "normal"
+   },
+   {
+    "i": 177,
+    "clave": "robot",
+    "nombre": "robot",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 178,
+    "clave": "rock",
+    "nombre": "piedra",
+    "rareza": "normal"
+   },
+   {
+    "i": 179,
+    "clave": "rosebud",
+    "nombre": "capullo de rosa",
+    "rareza": "normal"
+   },
+   {
+    "i": 180,
+    "clave": "ruler-triangular",
+    "nombre": "escuadra",
+    "rareza": "normal"
+   },
+   {
+    "i": 181,
+    "clave": "saguaro",
+    "nombre": "cactus",
+    "rareza": "normal"
+   },
+   {
+    "i": 182,
+    "clave": "sailboat",
+    "nombre": "velero",
+    "rareza": "normal"
+   },
+   {
+    "i": 183,
+    "clave": "sandwich",
+    "nombre": "sándwich",
+    "rareza": "normal"
+   },
+   {
+    "i": 184,
+    "clave": "saturn",
+    "nombre": "Saturno",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 185,
+    "clave": "saw",
+    "nombre": "sierra",
+    "rareza": "normal"
+   },
+   {
+    "i": 186,
+    "clave": "scorpion",
+    "nombre": "escorpión",
+    "rareza": "raro"
+   },
+   {
+    "i": 187,
+    "clave": "shark",
+    "nombre": "tiburón",
+    "rareza": "raro"
+   },
+   {
+    "i": 188,
+    "clave": "shower",
+    "nombre": "ducha",
+    "rareza": "normal"
+   },
+   {
+    "i": 189,
+    "clave": "skateboard",
+    "nombre": "monopatín",
+    "rareza": "normal"
+   },
+   {
+    "i": 190,
+    "clave": "skeleton-hat",
+    "nombre": "esqueleto",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 191,
+    "clave": "skilift",
+    "nombre": "telesilla",
+    "rareza": "normal"
+   },
+   {
+    "i": 192,
+    "clave": "smile",
+    "nombre": "sonrisa",
+    "rareza": "normal"
+   },
+   {
+    "i": 193,
+    "clave": "snowglobe",
+    "nombre": "bola de nieve",
+    "rareza": "normal"
+   },
+   {
+    "i": 194,
+    "clave": "snowmobile",
+    "nombre": "moto de nieve",
+    "rareza": "normal"
+   },
+   {
+    "i": 195,
+    "clave": "spaghetti",
+    "nombre": "espaguetis",
+    "rareza": "normal"
+   },
+   {
+    "i": 196,
+    "clave": "sponge",
+    "nombre": "esponja",
+    "rareza": "normal"
+   },
+   {
+    "i": 197,
+    "clave": "squid",
+    "nombre": "calamar",
+    "rareza": "raro"
+   },
+   {
+    "i": 198,
+    "clave": "stapler",
+    "nombre": "grapadora",
+    "rareza": "normal"
+   },
+   {
+    "i": 199,
+    "clave": "star-sparkles",
+    "nombre": "estrella",
+    "rareza": "normal"
+   },
+   {
+    "i": 200,
+    "clave": "steak",
+    "nombre": "filete",
+    "rareza": "normal"
+   },
+   {
+    "i": 201,
+    "clave": "sunset",
+    "nombre": "atardecer",
+    "rareza": "normal"
+   },
+   {
+    "i": 202,
+    "clave": "taco-classic",
+    "nombre": "taco",
+    "rareza": "normal"
+   },
+   {
+    "i": 203,
+    "clave": "taxi",
+    "nombre": "taxi",
+    "rareza": "normal"
+   },
+   {
+    "i": 204,
+    "clave": "thumbsup",
+    "nombre": "pulgar arriba",
+    "rareza": "normal"
+   },
+   {
+    "i": 205,
+    "clave": "toaster",
+    "nombre": "tostadora",
+    "rareza": "normal"
+   },
+   {
+    "i": 206,
+    "clave": "toiletpaper-full",
+    "nombre": "papel higiénico",
+    "rareza": "normal"
+   },
+   {
+    "i": 207,
+    "clave": "tooth",
+    "nombre": "diente",
+    "rareza": "normal"
+   },
+   {
+    "i": 208,
+    "clave": "toothbrush-fresh",
+    "nombre": "cepillo de dientes",
+    "rareza": "normal"
+   },
+   {
+    "i": 209,
+    "clave": "tornado",
+    "nombre": "tornado",
+    "rareza": "normal"
+   },
+   {
+    "i": 210,
+    "clave": "trashcan",
+    "nombre": "cubo de basura",
+    "rareza": "normal"
+   },
+   {
+    "i": 211,
+    "clave": "turing",
+    "nombre": "Turing",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 212,
+    "clave": "ufo",
+    "nombre": "ovni",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 213,
+    "clave": "undead",
+    "nombre": "zombi",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 214,
+    "clave": "unicorn",
+    "nombre": "unicornio",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 215,
+    "clave": "vent",
+    "nombre": "rejilla",
+    "rareza": "normal"
+   },
+   {
+    "i": 216,
+    "clave": "void",
+    "nombre": "el vacío",
+    "rareza": "especial"
+   },
+   {
+    "i": 217,
+    "clave": "volcano",
+    "nombre": "volcán",
+    "rareza": "normal"
+   },
+   {
+    "i": 218,
+    "clave": "volleyball",
+    "nombre": "balón de voleibol",
+    "rareza": "normal"
+   },
+   {
+    "i": 219,
+    "clave": "wall",
+    "nombre": "muro",
+    "rareza": "normal"
+   },
+   {
+    "i": 220,
+    "clave": "wallet",
+    "nombre": "cartera",
+    "rareza": "normal"
+   },
+   {
+    "i": 221,
+    "clave": "wallsafe",
+    "nombre": "caja fuerte",
+    "rareza": "normal"
+   },
+   {
+    "i": 222,
+    "clave": "washingmachine",
+    "nombre": "lavadora",
+    "rareza": "normal"
+   },
+   {
+    "i": 223,
+    "clave": "watch",
+    "nombre": "reloj",
+    "rareza": "normal"
+   },
+   {
+    "i": 224,
+    "clave": "watermelon",
+    "nombre": "sandía",
+    "rareza": "normal"
+   },
+   {
+    "i": 225,
+    "clave": "wave",
+    "nombre": "ola",
+    "rareza": "normal"
+   },
+   {
+    "i": 227,
+    "clave": "weight",
+    "nombre": "pesa",
+    "rareza": "normal"
+   },
+   {
+    "i": 228,
+    "clave": "werewolf",
+    "nombre": "hombre lobo",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 229,
+    "clave": "whale-alive",
+    "nombre": "ballena",
+    "rareza": "raro"
+   },
+   {
+    "i": 230,
+    "clave": "whale",
+    "nombre": "ballena varada",
+    "rareza": "raro"
+   },
+   {
+    "i": 232,
+    "clave": "wizardhat",
+    "nombre": "sombrero de mago",
+    "rareza": "normal"
+   },
+   {
+    "i": 233,
+    "clave": "zebra",
+    "nombre": "cebra",
+    "rareza": "raro"
+   },
+   {
+    "i": 234,
+    "clave": "capybara",
+    "nombre": "capibara",
+    "rareza": "raro"
+   },
+   {
+    "i": 235,
+    "clave": "couch",
+    "nombre": "sofá",
+    "rareza": "normal"
+   },
+   {
+    "i": 236,
+    "clave": "hanger",
+    "nombre": "percha",
+    "rareza": "normal"
+   },
+   {
+    "i": 237,
+    "clave": "index-card",
+    "nombre": "ficha",
+    "rareza": "normal"
+   },
+   {
+    "i": 238,
+    "clave": "snowman",
+    "nombre": "muñeco de nieve",
+    "rareza": "normal"
+   },
+   {
+    "i": 239,
+    "clave": "treasurechest",
+    "nombre": "cofre del tesoro",
+    "rareza": "normal"
+   },
+   {
+    "i": 240,
+    "clave": "vending-machine",
+    "nombre": "máquina expendedora",
+    "rareza": "normal"
+   },
+   {
+    "i": 242,
+    "clave": "backpack",
+    "nombre": "mochila",
+    "rareza": "normal"
+   },
+   {
+    "i": 243,
+    "clave": "beanie",
+    "nombre": "gorro de lana",
+    "rareza": "normal"
+   },
+   {
+    "i": 244,
+    "clave": "beluga",
+    "nombre": "beluga",
+    "rareza": "raro"
+   },
+   {
+    "i": 245,
+    "clave": "cotton-candy",
+    "nombre": "algodón de azúcar",
+    "rareza": "normal"
+   },
+   {
+    "i": 246,
+    "clave": "curling-stone",
+    "nombre": "piedra de curling",
+    "rareza": "normal"
+   },
+   {
+    "i": 247,
+    "clave": "fax-machine",
+    "nombre": "fax",
+    "rareza": "normal"
+   },
+   {
+    "i": 248,
+    "clave": "satellite",
+    "nombre": "satélite",
+    "rareza": "normal"
+   },
+   {
+    "i": 249,
+    "clave": "tiger",
+    "nombre": "tigre",
+    "rareza": "raro"
+   },
+   {
+    "i": 250,
+    "clave": "tuba",
+    "nombre": "tuba",
+    "rareza": "normal"
+   },
+   {
+    "i": 251,
+    "clave": "sand-castle",
+    "nombre": "castillo de arena",
+    "rareza": "normal"
+   },
+   {
+    "i": 252,
+    "clave": "shrimp-tempura",
+    "nombre": "gamba en tempura",
+    "rareza": "raro"
+   },
+   {
+    "i": 253,
+    "clave": "green-snake",
+    "nombre": "serpiente verde",
+    "rareza": "raro"
+   }
+  ],
+  "glasses": [
+   {
+    "i": 0,
+    "clave": "hip-rose",
+    "nombre": "rosa moderno",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 1,
+    "clave": "square-black-eyes-red",
+    "nombre": "negras de ojos rojos",
+    "rareza": "extra_raro"
+   },
+   {
+    "i": 2,
+    "clave": "square-black-rgb",
+    "nombre": "negras rgb",
+    "rareza": "especial"
+   },
+   {
+    "i": 3,
+    "clave": "square-black",
+    "nombre": "negras",
+    "rareza": "normal"
+   },
+   {
+    "i": 4,
+    "clave": "square-blue-med-saturated",
+    "nombre": "azules",
+    "rareza": "normal"
+   },
+   {
+    "i": 5,
+    "clave": "square-blue",
+    "nombre": "azul intenso",
+    "rareza": "normal"
+   },
+   {
+    "i": 6,
+    "clave": "square-frog-green",
+    "nombre": "verde rana",
+    "rareza": "normal"
+   },
+   {
+    "i": 7,
+    "clave": "square-fullblack",
+    "nombre": "totalmente negras",
+    "rareza": "raro"
+   },
+   {
+    "i": 8,
+    "clave": "square-green-blue-multi",
+    "nombre": "verde y azul",
+    "rareza": "raro"
+   },
+   {
+    "i": 9,
+    "clave": "square-grey-light",
+    "nombre": "gris claro",
+    "rareza": "normal"
+   },
+   {
+    "i": 10,
+    "clave": "square-guava",
+    "nombre": "guayaba",
+    "rareza": "normal"
+   },
+   {
+    "i": 11,
+    "clave": "square-honey",
+    "nombre": "miel",
+    "rareza": "normal"
+   },
+   {
+    "i": 12,
+    "clave": "square-magenta",
+    "nombre": "magenta",
+    "rareza": "normal"
+   },
+   {
+    "i": 13,
+    "clave": "square-orange",
+    "nombre": "naranjas",
+    "rareza": "normal"
+   },
+   {
+    "i": 14,
+    "clave": "square-pink-purple-multi",
+    "nombre": "rosa y morado",
+    "rareza": "raro"
+   },
+   {
+    "i": 15,
+    "clave": "square-red",
+    "nombre": "rojas",
+    "rareza": "normal"
+   },
+   {
+    "i": 16,
+    "clave": "square-smoke",
+    "nombre": "ahumadas",
+    "rareza": "normal"
+   },
+   {
+    "i": 17,
+    "clave": "square-teal",
+    "nombre": "turquesas",
+    "rareza": "normal"
+   },
+   {
+    "i": 18,
+    "clave": "square-watermelon",
+    "nombre": "sandía",
+    "rareza": "raro"
+   },
+   {
+    "i": 19,
+    "clave": "square-yellow-orange-multi",
+    "nombre": "amarillo y naranja",
+    "rareza": "raro"
+   },
+   {
+    "i": 20,
+    "clave": "square-yellow-saturated",
+    "nombre": "amarillas",
+    "rareza": "normal"
+   },
+   {
+    "i": 21,
+    "clave": "deep-teal",
+    "nombre": "turquesa profundo",
+    "rareza": "raro"
+   },
+   {
+    "i": 22,
+    "clave": "grass",
+    "nombre": "verde hierba",
+    "rareza": "raro"
+   }
+  ]
+ }
+}

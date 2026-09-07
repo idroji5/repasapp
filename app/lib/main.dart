@@ -17,7 +17,11 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final bd = await BaseDatos.abrir();
-  final estado = AppEstado(repo: Repositorio(bd), voz: Locutora());
+  final estado = AppEstado(
+    repo: Repositorio(bd),
+    voz: Locutora(),
+    catalogo: await AppEstado.cargarCatalogo(),
+  );
   await estado.cargar();
 
   runApp(RepasApp(estado: estado));

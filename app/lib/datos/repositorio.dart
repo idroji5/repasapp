@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../dominio/asignaturas.dart';
+import '../dominio/coleccion.dart';
 import '../dominio/curriculo.dart';
 import '../dominio/niveles.dart';
 import '../dominio/planificador.dart';
@@ -17,8 +18,8 @@ import 'modelos.dart';
 /// (planificar, ajustar nivel) están en `dominio/`; esto solo las alimenta.
 class Repositorio {
   Repositorio(this._db, {Random? azar, DateTime Function()? reloj})
-      : _azar = azar ?? Random(),
-        _reloj = reloj ?? DateTime.now;
+    : _azar = azar ?? Random(),
+      _reloj = reloj ?? DateTime.now;
 
   final Database _db;
   final Random _azar;
@@ -43,13 +44,22 @@ class Repositorio {
   }
 
   Future<Nino?> nino(int id) async {
-    final filas = await _db.query('ninos', where: 'id = ?', whereArgs: [id], limit: 1);
+    final filas = await _db.query(
+      'ninos',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return filas.isEmpty ? null : _aNino(filas.first);
   }
 
   Future<Nino> _aNino(Map<String, Object?> fila) async {
     final id = fila['id']! as int;
-    final niveles = await _db.query('niveles', where: 'nino_id = ?', whereArgs: [id]);
+    final niveles = await _db.query(
+      'niveles',
+      where: 'nino_id = ?',
+      whereArgs: [id],
+    );
 
     return Nino(
       id: id,
@@ -111,7 +121,15 @@ class Repositorio {
 
   Future<void> borrarNino(int id) async {
     // sqflite no fuerza las claves ajenas por defecto, así que se limpia a mano.
-    for (final tabla in ['faltas', 'destrezas_nino', 'cambios_nivel', 'actividades', 'sesiones', 'niveles']) {
+    for (final tabla in [
+      'faltas',
+      'destrezas_nino',
+      'cambios_nivel',
+      'nouns',
+      'actividades',
+      'sesiones',
+      'niveles',
+    ]) {
       await _db.delete(tabla, where: 'nino_id = ?', whereArgs: [id]);
     }
     await _db.delete('ninos', where: 'id = ?', whereArgs: [id]);
@@ -125,17 +143,13 @@ class Repositorio {
   }) async {
     final actual = await _nivelActual(ninoId, asignatura);
 
-    await _db.insert(
-      'niveles',
-      {
-        'nino_id': ninoId,
-        'asignatura': asignatura.name,
-        'nivel': nivelValido(nivel),
-        'bloqueado': bloqueado ? 1 : 0,
-        'cambiado_en': _ahora(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('niveles', {
+      'nino_id': ninoId,
+      'asignatura': asignatura.name,
+      'nivel': nivelValido(nivel),
+      'bloqueado': bloqueado ? 1 : 0,
+      'cambiado_en': _ahora(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     if (actual != null && actual.nivel != nivel) {
       await _db.insert('cambios_nivel', {
@@ -190,7 +204,9 @@ class Repositorio {
         ? existentes.first['minutos_previstos']! as int
         : (await nino(ninoId))!.minutosDiarios;
 
-    if (existentes.isNotEmpty) await _completarSesion(ninoId, sesionId, minutos);
+    if (existentes.isNotEmpty) {
+      await _completarSesion(ninoId, sesionId, minutos);
+    }
 
     return SesionDelDia(
       id: sesionId,
@@ -207,11 +223,11 @@ class Repositorio {
   /// encuentra y se calla.
   Future<void> _asegurarNiveles(int ninoId) async {
     for (final asignatura in Asignatura.values) {
-      await _db.insert(
-        'niveles',
-        {'nino_id': ninoId, 'asignatura': asignatura.name, 'nivel': 3},
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await _db.insert('niveles', {
+        'nino_id': ninoId,
+        'asignatura': asignatura.name,
+        'nivel': 3,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -224,7 +240,9 @@ class Repositorio {
   Future<void> _completarSesion(int ninoId, int sesionId, int minutos) async {
     final actividades = await _actividadesDe(sesionId);
     final presentes = actividades.map((a) => a.asignatura).toSet();
-    final faltan = Asignatura.values.where((a) => !presentes.contains(a)).toList();
+    final faltan = Asignatura.values
+        .where((a) => !presentes.contains(a))
+        .toList();
     if (faltan.isEmpty) return;
 
     final n = (await nino(ninoId))!;
@@ -339,40 +357,45 @@ class Repositorio {
   }
 
   ActividadGuardada _aActividad(Map<String, Object?> f) => ActividadGuardada(
-        id: f['id']! as int,
-        ninoId: f['nino_id']! as int,
-        asignatura: Asignatura.porClave(f['asignatura']! as String)!,
-        nivel: f['nivel']! as int,
-        orden: f['orden']! as int,
-        contenido: jsonDecode(f['contenido']! as String) as Map<String, dynamic>,
-        estado: switch (f['estado']! as String) {
-          'en_curso' => EstadoActividad.enCurso,
-          'corregida' => EstadoActividad.corregida,
-          'saltada' => EstadoActividad.saltada,
-          _ => EstadoActividad.pendiente,
-        },
-        aciertos: f['aciertos'] as int?,
-        total: f['total'] as int?,
-      );
+    id: f['id']! as int,
+    ninoId: f['nino_id']! as int,
+    asignatura: Asignatura.porClave(f['asignatura']! as String)!,
+    nivel: f['nivel']! as int,
+    orden: f['orden']! as int,
+    contenido: jsonDecode(f['contenido']! as String) as Map<String, dynamic>,
+    estado: switch (f['estado']! as String) {
+      'en_curso' => EstadoActividad.enCurso,
+      'corregida' => EstadoActividad.corregida,
+      'saltada' => EstadoActividad.saltada,
+      _ => EstadoActividad.pendiente,
+    },
+    aciertos: f['aciertos'] as int?,
+    total: f['total'] as int?,
+  );
 
   Future<ActividadGuardada?> actividad(int id) async {
-    final filas = await _db.query('actividades', where: 'id = ?', whereArgs: [id], limit: 1);
+    final filas = await _db.query(
+      'actividades',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return filas.isEmpty ? null : _aActividad(filas.first);
   }
 
   Future<void> marcarEnCurso(int actividadId) => _db.update(
-        'actividades',
-        {'estado': 'en_curso'},
-        where: 'id = ? and estado = ?',
-        whereArgs: [actividadId, 'pendiente'],
-      );
+    'actividades',
+    {'estado': 'en_curso'},
+    where: 'id = ? and estado = ?',
+    whereArgs: [actividadId, 'pendiente'],
+  );
 
   Future<void> saltarActividad(int actividadId) => _db.update(
-        'actividades',
-        {'estado': 'saltada'},
-        where: 'id = ?',
-        whereArgs: [actividadId],
-      );
+    'actividades',
+    {'estado': 'saltada'},
+    where: 'id = ?',
+    whereArgs: [actividadId],
+  );
 
   Future<List<String>> _dictadosHechos(int ninoId) async {
     final filas = await _db.query(
@@ -398,7 +421,9 @@ class Repositorio {
       orderBy: 'creada_en desc',
       limit: 1,
     );
-    return filas.isEmpty ? null : Asignatura.porClave(filas.first['asignatura']! as String);
+    return filas.isEmpty
+        ? null
+        : Asignatura.porClave(filas.first['asignatura']! as String);
   }
 
   /// Destrezas en las que más falla últimamente: el planificador insiste en ellas.
@@ -459,7 +484,11 @@ class Repositorio {
           [ninoId, previa['destreza_id']],
         );
       }
-      await txn.delete('faltas', where: 'actividad_id = ?', whereArgs: [actividadId]);
+      await txn.delete(
+        'faltas',
+        where: 'actividad_id = ?',
+        whereArgs: [actividadId],
+      );
       for (final falta in faltas) {
         await txn.insert('faltas', {
           'nino_id': ninoId,
@@ -493,34 +522,41 @@ class Repositorio {
   /// Cuántas actividades recientes mira el autoajuste de nivel.
   static const int _historialParaNivel = 3;
 
-  Future<CambioDeNivel?> _autoajustarNivel(int ninoId, Asignatura asignatura) async {
+  Future<CambioDeNivel?> _autoajustarNivel(
+    int ninoId,
+    Asignatura asignatura,
+  ) async {
     final estado = await _nivelActual(ninoId, asignatura);
     if (estado == null) return null;
 
     // Las repeticiones no cuentan para el nivel: el niño acaba de ver las
     // soluciones, así que bordarlas no dice nada de lo que sabe hacer. Sí
     // cuentan para las estadísticas del padre, que es trabajo hecho.
-    final filas = (await _db.query(
-      'actividades',
-      columns: ['aciertos', 'total', 'corregida_en', 'contenido'],
-      where: 'nino_id = ? and asignatura = ? and estado = ? and total > 0',
-      whereArgs: [ninoId, asignatura.name, 'corregida'],
-      orderBy: 'corregida_en desc',
-      limit: _historialParaNivel * 4,
-    ))
-        .where((f) => !_esRepeticion(f['contenido']! as String))
-        .take(_historialParaNivel)
-        .toList();
+    final filas =
+        (await _db.query(
+              'actividades',
+              columns: ['aciertos', 'total', 'corregida_en', 'contenido'],
+              where:
+                  'nino_id = ? and asignatura = ? and estado = ? and total > 0',
+              whereArgs: [ninoId, asignatura.name, 'corregida'],
+              orderBy: 'corregida_en desc',
+              limit: _historialParaNivel * 4,
+            ))
+            .where((f) => !_esRepeticion(f['contenido']! as String))
+            .take(_historialParaNivel)
+            .toList();
 
     final ajuste = ajustarNivel(
       estado,
       ahora: _reloj(),
       filas
-          .map((f) => ResultadoReciente(
-                f['aciertos']! as int,
-                f['total']! as int,
-                DateTime.parse(f['corregida_en']! as String),
-              ))
+          .map(
+            (f) => ResultadoReciente(
+              f['aciertos']! as int,
+              f['total']! as int,
+              DateTime.parse(f['corregida_en']! as String),
+            ),
+          )
           .toList(),
     );
     if (!ajuste.cambia) return null;
@@ -548,6 +584,66 @@ class Repositorio {
     );
   }
 
+  // ----------------------------------------------------------- colección ---
+
+  /// El premio del día, si hoy toca.
+  ///
+  /// Devuelve un Noun nuevo sólo cuando el niño acaba de terminar las tres
+  /// actividades del día y todavía no tenía el de hoy. En cualquier otro caso
+  /// devuelve null, que es lo que hace que llamarlo después de cada corrección
+  /// sea inofensivo.
+  ///
+  /// Se sortea aquí y no en la pantalla porque la regla de "uno al día" es de
+  /// los datos: la escribe el índice único de la tabla, y el `ignore` de abajo
+  /// es lo que impide que dos llamadas a la vez den dos Nouns.
+  Future<NounGuardado?> premioDelDia(int ninoId, CatalogoNouns catalogo) async {
+    if (await nounDeHoy(ninoId) != null) return null;
+
+    final sesion = await sesionDeHoy(ninoId);
+    if (sesion.actividades.isEmpty || !sesion.completa) return null;
+
+    final noun = catalogo.tirar(_azar);
+    await _db.insert('nouns', {
+      'nino_id': ninoId,
+      'dia': _hoy(),
+      'codigo': noun.codigo,
+      'rareza': noun.rareza.clave,
+      'creado_en': _ahora(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+
+    // Se relee en lugar de devolver lo sorteado: si otra llamada se adelantó,
+    // el bueno es el suyo, y el niño tiene que ver el que se ha guardado.
+    return nounDeHoy(ninoId);
+  }
+
+  Future<NounGuardado?> nounDeHoy(int ninoId) async {
+    final filas = await _db.query(
+      'nouns',
+      where: 'nino_id = ? and dia = ?',
+      whereArgs: [ninoId, _hoy()],
+      limit: 1,
+    );
+    return filas.isEmpty ? null : _aNoun(filas.first);
+  }
+
+  /// La colección entera, del más nuevo al más viejo.
+  Future<List<NounGuardado>> coleccion(int ninoId) async {
+    final filas = await _db.query(
+      'nouns',
+      where: 'nino_id = ?',
+      whereArgs: [ninoId],
+      orderBy: 'dia desc, id desc',
+    );
+    return filas.map(_aNoun).toList();
+  }
+
+  static NounGuardado _aNoun(Map<String, Object?> f) => NounGuardado(
+    id: f['id']! as int,
+    codigo: f['codigo']! as String,
+    rareza: Rareza.porClave(f['rareza']! as String),
+    dia: DateTime.parse(f['dia']! as String),
+  );
+
   // ------------------------------------------------------- zona de padres ---
 
   /// Las estadísticas son deliberadamente pocas. Un padre quiere saber si su
@@ -568,19 +664,20 @@ class Repositorio {
            and corregida_en > ?
         ''',
         [ninoId, asignatura.name, desde],
-      ))
-          .first;
+      )).first;
 
       final total = (agregado['total']! as int?) ?? 0;
-      porAsignatura.add(ResumenAsignatura(
-        asignatura: asignatura,
-        nivel: nivel?.nivel ?? 3,
-        bloqueado: nivel?.bloqueado ?? false,
-        actividades: (agregado['actividades']! as int?) ?? 0,
-        porcentajeAcierto: total > 0
-            ? (((agregado['aciertos']! as int) / total) * 100).round()
-            : null,
-      ));
+      porAsignatura.add(
+        ResumenAsignatura(
+          asignatura: asignatura,
+          nivel: nivel?.nivel ?? 3,
+          bloqueado: nivel?.bloqueado ?? false,
+          actividades: (agregado['actividades']! as int?) ?? 0,
+          porcentajeAcierto: total > 0
+              ? (((agregado['aciertos']! as int) / total) * 100).round()
+              : null,
+        ),
+      );
     }
 
     final errores = await _db.rawQuery(
@@ -609,18 +706,22 @@ class Repositorio {
       racha: await _racha(ninoId),
       porAsignatura: porAsignatura,
       erroresFrecuentes: errores
-          .map((f) => ErrorFrecuente(
-                f['destreza_id']! as String,
-                nombreDestreza(f['destreza_id']! as String),
-                f['fallos']! as int,
-              ))
+          .map(
+            (f) => ErrorFrecuente(
+              f['destreza_id']! as String,
+              nombreDestreza(f['destreza_id']! as String),
+              f['fallos']! as int,
+            ),
+          )
           .toList(),
       ultimosDias: dias
-          .map((f) => DiaDeEstudio(
-                DateTime.parse(f['dia']! as String),
-                (((f['segundos']! as int?) ?? 0) / 60).round(),
-                (f['actividades']! as int?) ?? 0,
-              ))
+          .map(
+            (f) => DiaDeEstudio(
+              DateTime.parse(f['dia']! as String),
+              (((f['segundos']! as int?) ?? 0) / 60).round(),
+              (f['actividades']! as int?) ?? 0,
+            ),
+          )
           .toList(),
     );
   }
@@ -667,55 +768,69 @@ class Repositorio {
       limit: 10,
     );
     return filas
-        .map((f) => CambioDeNivel(
-              asignatura: Asignatura.porClave(f['asignatura']! as String)!,
-              antes: f['nivel_antes']! as int,
-              despues: f['nivel_despues']! as int,
-              motivo: f['motivo']! as String,
-            ))
+        .map(
+          (f) => CambioDeNivel(
+            asignatura: Asignatura.porClave(f['asignatura']! as String)!,
+            antes: f['nivel_antes']! as int,
+            despues: f['nivel_despues']! as int,
+            motivo: f['motivo']! as String,
+          ),
+        )
         .toList();
   }
 
   // -------------------------------------------------------------- ajustes ---
 
   Future<String?> ajuste(String clave) async {
-    final filas = await _db.query('ajustes',
-        where: 'clave = ?', whereArgs: [clave], limit: 1);
+    final filas = await _db.query(
+      'ajustes',
+      where: 'clave = ?',
+      whereArgs: [clave],
+      limit: 1,
+    );
     return filas.isEmpty ? null : filas.first['valor'] as String;
   }
 
   Future<void> fijarAjuste(String clave, String valor) => _db.insert(
-        'ajustes',
-        {'clave': clave, 'valor': valor},
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+    'ajustes',
+    {'clave': clave, 'valor': valor},
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
 
   // ------------------------------------------------------------------ PIN ---
 
   /// El PIN protege la zona de padres. No es una medida contra un atacante: es
   /// una puerta para que el niño, que tiene el móvil en la mano, no entre a
   /// cambiarse el nivel él solo.
-  Future<bool> hayPin() async =>
-      (await _db.query('ajustes', where: 'clave = ?', whereArgs: ['pin'])).isNotEmpty;
+  Future<bool> hayPin() async => (await _db.query(
+    'ajustes',
+    where: 'clave = ?',
+    whereArgs: ['pin'],
+  )).isNotEmpty;
 
   Future<void> fijarPin(String pin) async {
     final sal = List.generate(16, (_) => _azar.nextInt(256));
     final hash = sha256.convert([...sal, ...utf8.encode(pin)]).toString();
-    await _db.insert(
-      'ajustes',
-      {'clave': 'pin', 'valor': '${base64Encode(sal)}:$hash'},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('ajustes', {
+      'clave': 'pin',
+      'valor': '${base64Encode(sal)}:$hash',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<bool> comprobarPin(String pin) async {
-    final filas = await _db.query('ajustes', where: 'clave = ?', whereArgs: ['pin'], limit: 1);
+    final filas = await _db.query(
+      'ajustes',
+      where: 'clave = ?',
+      whereArgs: ['pin'],
+      limit: 1,
+    );
     if (filas.isEmpty) return false;
 
     final partes = (filas.first['valor']! as String).split(':');
     if (partes.length != 2) return false;
 
     final sal = base64Decode(partes[0]);
-    return sha256.convert([...sal, ...utf8.encode(pin)]).toString() == partes[1];
+    return sha256.convert([...sal, ...utf8.encode(pin)]).toString() ==
+        partes[1];
   }
 }

@@ -7,6 +7,7 @@ import '../../dominio/asignaturas.dart';
 import '../../estado.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
+import 'premio.dart';
 
 /// Zona de padres, detrás de un PIN.
 ///
@@ -85,7 +86,9 @@ class _CerrojoState extends State<_Cerrojo> {
 
   @override
   Widget build(BuildContext context) {
-    if (_hayPin == null) return const Center(child: CircularProgressIndicator());
+    if (_hayPin == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final creando = _hayPin == false;
 
     return Padding(
@@ -93,7 +96,11 @@ class _CerrojoState extends State<_Cerrojo> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.lock_outline_rounded, size: 44, color: Tema.tintaSuave),
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 44,
+            color: Tema.tintaSuave,
+          ),
           const SizedBox(height: 20),
           Text(
             creando ? 'Crea un PIN de 4 dígitos' : 'Escribe tu PIN',
@@ -156,8 +163,10 @@ class _Panel extends StatelessWidget {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
-          child: Text('Aún no hay ningún perfil creado.',
-              style: TextStyle(fontSize: 17, color: Tema.tintaSuave)),
+          child: Text(
+            'Aún no hay ningún perfil creado.',
+            style: TextStyle(fontSize: 17, color: Tema.tintaSuave),
+          ),
         ),
       );
     }
@@ -193,7 +202,9 @@ class _FichaDeNinoState extends State<_FichaDeNino> {
   }
 
   Future<void> _cargar() async {
-    final stats = await context.read<AppEstado>().repo.estadisticas(widget.nino.id);
+    final stats = await context.read<AppEstado>().repo.estadisticas(
+      widget.nino.id,
+    );
     if (mounted) setState(() => _stats = stats);
   }
 
@@ -211,7 +222,10 @@ class _FichaDeNinoState extends State<_FichaDeNino> {
           Row(
             children: [
               Expanded(
-                child: Text(nino.nombre, style: Theme.of(context).textTheme.titleLarge),
+                child: Text(
+                  nino.nombre,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
               if (stats != null && stats.racha > 0)
                 Pastilla(
@@ -232,7 +246,11 @@ class _FichaDeNinoState extends State<_FichaDeNino> {
           const SizedBox(height: 4),
           const Text(
             'Se ajusta solo con los resultados. Si lo cambias a mano, queda fijado.',
-            style: TextStyle(color: Tema.tintaSuave, fontSize: 13.5, height: 1.4),
+            style: TextStyle(
+              color: Tema.tintaSuave,
+              fontSize: 13.5,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 12),
           for (final asignatura in Asignatura.values)
@@ -254,11 +272,19 @@ class _FichaDeNinoState extends State<_FichaDeNino> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
-                    Expanded(child: Text(e.nombre, style: const TextStyle(fontSize: 15))),
+                    Expanded(
+                      child: Text(
+                        e.nombre,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
                     Text(
                       '${e.fallos}',
                       style: const TextStyle(
-                          fontWeight: FontWeight.w700, color: Tema.fallo, fontSize: 15),
+                        fontWeight: FontWeight.w700,
+                        color: Tema.fallo,
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
@@ -280,15 +306,52 @@ class _FichaDeNinoState extends State<_FichaDeNino> {
             contentPadding: EdgeInsets.zero,
             value: nino.modoPistas,
             activeThumbColor: Tema.accion,
-            title: const Text('Dar pistas antes de la solución',
-                style: TextStyle(fontSize: 15.5)),
+            title: const Text(
+              'Dar pistas antes de la solución',
+              style: TextStyle(fontSize: 15.5),
+            ),
             subtitle: const Text(
               'Si lo apagas, la app le dice directamente la respuesta correcta.',
               style: TextStyle(fontSize: 13, color: Tema.tintaSuave),
             ),
-            onChanged: (v) =>
-                context.read<AppEstado>().actualizarNino(nino.id, modoPistas: v),
+            onChanged: (v) => context.read<AppEstado>().actualizarNino(
+              nino.id,
+              modoPistas: v,
+            ),
           ),
+
+          if (context.read<AppEstado>().catalogo case final catalogo?) ...[
+            const SizedBox(height: 22),
+            const _Subtitulo('El premio del día'),
+            const SizedBox(height: 4),
+            const Text(
+              'Al terminar las tres actividades del día se lleva un dibujo, '
+              'uno al día. Aquí puedes ver cómo es sin esperar a que termine.',
+              style: TextStyle(
+                color: Tema.tintaSuave,
+                fontSize: 13.5,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            BotonComando(
+              texto: 'Probar el premio',
+              icono: Icons.card_giftcard_rounded,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PantallaPremio(
+                    nino: nino,
+                    // Se sortea uno de verdad, con las mismas rarezas. Lo
+                    // único que no hace es guardarlo: la colección del niño
+                    // no se llena de premios que no ha ganado.
+                    noun: catalogo.tirar(),
+                    catalogo: catalogo,
+                    prueba: true,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -323,11 +386,26 @@ class _FilaNivel extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(asignatura.nombre,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    // Flexible: en un móvil estrecho, al stepper de nivel le
+                    // queda tan poco sitio que "Matemáticas" se salía de la
+                    // tarjeta con la barra de rayas amarillas.
+                    Flexible(
+                      child: Text(
+                        asignatura.nombre,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     if (resumen?.bloqueado ?? false) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.lock_outline, size: 14, color: Tema.tintaSuave),
+                      const Icon(
+                        Icons.lock_outline,
+                        size: 14,
+                        color: Tema.tintaSuave,
+                      ),
                     ],
                   ],
                 ),
@@ -335,7 +413,7 @@ class _FilaNivel extends StatelessWidget {
                   resumen == null || resumen!.actividades == 0
                       ? 'sin datos todavía'
                       : '${resumen!.actividades} actividades · '
-                          '${resumen!.porcentajeAcierto ?? 0}% de acierto',
+                            '${resumen!.porcentajeAcierto ?? 0}% de acierto',
                   style: const TextStyle(color: Tema.tintaSuave, fontSize: 13),
                 ),
               ],
@@ -345,7 +423,11 @@ class _FilaNivel extends StatelessWidget {
             nivel: nivel,
             color: color,
             onCambio: (n) async {
-              await context.read<AppEstado>().fijarNivel(nino.id, asignatura, n);
+              await context.read<AppEstado>().fijarNivel(
+                nino.id,
+                asignatura,
+                n,
+              );
               onCambio();
             },
           ),
@@ -385,7 +467,11 @@ class _StepperNivel extends StatelessWidget {
           ),
           child: Text(
             '$nivel/5',
-            style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
           ),
         ),
         IconButton(
@@ -419,15 +505,18 @@ class _AjusteMinutos extends StatelessWidget {
             divisions: 8,
             activeColor: Tema.accion,
             label: '${nino.minutosDiarios} min',
-            onChanged: (v) => context
-                .read<AppEstado>()
-                .actualizarNino(nino.id, minutosDiarios: v.round()),
+            onChanged: (v) => context.read<AppEstado>().actualizarNino(
+              nino.id,
+              minutosDiarios: v.round(),
+            ),
           ),
         ),
         SizedBox(
           width: 56,
-          child: Text('${nino.minutosDiarios} min',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          child: Text(
+            '${nino.minutosDiarios} min',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
         ),
       ],
     );
@@ -450,40 +539,50 @@ class _BarrasDeEstudio extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         for (var atras = 6; atras >= 0; atras--)
-          Builder(builder: (context) {
-            final dia = hoy.subtract(Duration(days: atras));
-            final registro = dias
-                .where((d) =>
-                    d.dia.year == dia.year &&
-                    d.dia.month == dia.month &&
-                    d.dia.day == dia.day)
-                .firstOrNull;
-            final minutos = registro?.minutos ?? 0;
+          Builder(
+            builder: (context) {
+              final dia = hoy.subtract(Duration(days: atras));
+              final registro = dias
+                  .where(
+                    (d) =>
+                        d.dia.year == dia.year &&
+                        d.dia.month == dia.month &&
+                        d.dia.day == dia.day,
+                  )
+                  .firstOrNull;
+              final minutos = registro?.minutos ?? 0;
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  minutos > 0 ? '$minutos' : '',
-                  style: const TextStyle(fontSize: 11, color: Tema.tintaSuave),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  width: 26,
-                  height: 8 + (minutos / maximo) * 54,
-                  decoration: BoxDecoration(
-                    color: minutos > 0 ? Tema.accion : Tema.borde,
-                    borderRadius: BorderRadius.circular(6),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    minutos > 0 ? '$minutos' : '',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Tema.tintaSuave,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _nombres[dia.weekday - 1],
-                  style: const TextStyle(fontSize: 12, color: Tema.tintaSuave),
-                ),
-              ],
-            );
-          }),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 26,
+                    height: 8 + (minutos / maximo) * 54,
+                    decoration: BoxDecoration(
+                      color: minutos > 0 ? Tema.accion : Tema.borde,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _nombres[dia.weekday - 1],
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Tema.tintaSuave,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
       ],
     );
   }
@@ -495,16 +594,15 @@ class _Subtitulo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        texto.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-          color: Tema.tintaSuave,
-        ),
-      );
+    texto.toUpperCase(),
+    style: const TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+      color: Tema.tintaSuave,
+    ),
+  );
 }
-
 
 /// Elección de la voz de la app.
 ///
@@ -534,7 +632,7 @@ class _SelectorDeVozState extends State<_SelectorDeVoz> {
       _comprobando = false;
       _resultadoComprobacion = suena
           ? 'La voz sí genera sonido. Si aun así no la oyes, el problema está '
-              'en el volumen o en la salida de audio del teléfono.'
+                'en el volumen o en la salida de audio del teléfono.'
           : 'Esta voz no produce sonido en este teléfono. Elige otra de la lista.';
     });
   }
@@ -555,7 +653,11 @@ class _SelectorDeVozState extends State<_SelectorDeVoz> {
           const Text(
             'Toca una para oírla. Elige la que mejor suene en este teléfono: la '
             'calidad cambia mucho de un móvil a otro, y alguna puede no sonar.',
-            style: TextStyle(color: Tema.tintaSuave, fontSize: 14, height: 1.45),
+            style: TextStyle(
+              color: Tema.tintaSuave,
+              fontSize: 14,
+              height: 1.45,
+            ),
           ),
           const SizedBox(height: 16),
           if (estado.voz.vozCastellanaAusente)
@@ -565,8 +667,10 @@ class _SelectorDeVozState extends State<_SelectorDeVoz> {
               style: TextStyle(color: Tema.fallo, fontSize: 14, height: 1.45),
             )
           else if (voces.isEmpty)
-            const Text('Abre una actividad primero para que se carguen las voces.',
-                style: TextStyle(color: Tema.tintaSuave, fontSize: 14))
+            const Text(
+              'Abre una actividad primero para que se carguen las voces.',
+              style: TextStyle(color: Tema.tintaSuave, fontSize: 14),
+            )
           else
             for (final v in voces)
               _FilaVoz(
@@ -611,7 +715,11 @@ class _SelectorDeVozState extends State<_SelectorDeVoz> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   _resultadoComprobacion!,
-                  style: const TextStyle(fontSize: 14, height: 1.45, color: Tema.tinta),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: Tema.tinta,
+                  ),
                 ),
               ),
           ],
@@ -644,7 +752,9 @@ class _FilaVoz extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              elegida ? Icons.check_circle_rounded : Icons.play_circle_outline_rounded,
+              elegida
+                  ? Icons.check_circle_rounded
+                  : Icons.play_circle_outline_rounded,
               color: elegida ? Tema.acierto : Tema.tintaSuave,
             ),
             const SizedBox(width: 12),

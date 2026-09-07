@@ -9,6 +9,7 @@ import '../navegacion.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
 import 'actividad.dart';
+import 'coleccion.dart';
 
 /// El plan de hoy.
 ///
@@ -26,6 +27,7 @@ class PantallaHoy extends StatefulWidget {
 class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
   SesionDelDia? _sesion;
   int _racha = 0;
+  List<NounGuardado> _nouns = const [];
   bool _cargando = true;
 
   @override
@@ -61,10 +63,12 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
     final repo = context.read<AppEstado>().repo;
     final sesion = await repo.sesionDeHoy(widget.nino.id);
     final stats = await repo.estadisticas(widget.nino.id);
+    final nouns = await repo.coleccion(widget.nino.id);
     if (!mounted) return;
     setState(() {
       _sesion = sesion;
       _racha = stats.racha;
+      _nouns = nouns;
       _cargando = false;
     });
   }
@@ -75,11 +79,12 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
 
   Future<void> _empezar(ActividadGuardada actividad) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PantallaActividad(actividad: actividad)),
+      MaterialPageRoute(
+        builder: (_) => PantallaActividad(actividad: actividad),
+      ),
     );
     if (mounted) _cargar();
   }
-
 
   /// Volver a hacer algo que ya se ha hecho hoy.
   ///
@@ -98,7 +103,7 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
           actividad.total == null
               ? 'Ya lo hiciste hoy.'
               : 'Hoy te salieron ${actividad.aciertos} de ${actividad.total}. '
-                  'Puedes volver a hacerlo y ver si mejoras.',
+                    'Puedes volver a hacerlo y ver si mejoras.',
           style: const TextStyle(fontSize: 16, height: 1.45),
         ),
         actions: [
@@ -130,9 +135,9 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
   Widget build(BuildContext context) {
     // El nombre puede haber cambiado en la zona de padres mientras tanto.
     final nino = context.watch<AppEstado>().ninos.firstWhere(
-          (n) => n.id == widget.nino.id,
-          orElse: () => widget.nino,
-        );
+      (n) => n.id == widget.nino.id,
+      orElse: () => widget.nino,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -165,7 +170,8 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
     if (sesion.actividades.isEmpty) {
       return const _Aviso(
         titulo: 'Hoy no hay nada preparado',
-        detalle: 'Sube los minutos diarios en la zona de padres para que quepa '
+        detalle:
+            'Sube los minutos diarios en la zona de padres para que quepa '
             'al menos una actividad.',
       );
     }
@@ -184,9 +190,9 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
               Text(
                 siguiente == null
                     ? 'Has hecho las ${sesion.actividades.length} actividades. '
-                        'Si quieres, toca una para repetirla.'
+                          'Si quieres, toca una para repetirla.'
                     : '${sesion.minutos} minutos · ${sesion.hechas} de '
-                        '${sesion.actividades.length} hechas',
+                          '${sesion.actividades.length} hechas',
                 style: const TextStyle(color: Tema.tintaSuave, fontSize: 16),
               ),
               const SizedBox(height: 22),
@@ -199,6 +205,13 @@ class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
                       : _empezar(actividad),
                 ),
                 const SizedBox(height: 12),
+              ],
+              // Al final de la lista y en pequeño, a propósito: la pantalla
+              // que el niño abre para ponerse a trabajar no puede empezar con
+              // un premio, o los deberes se vuelven el peaje del juego.
+              if (context.read<AppEstado>().catalogo case final catalogo?) ...[
+                const SizedBox(height: 10),
+                TarjetaColeccion(nino: nino, nouns: _nouns, catalogo: catalogo),
               ],
             ],
           ),
@@ -256,9 +269,7 @@ class _TarjetaActividad extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: hecha
-                      ? Tema.acierto
-                      : color.withValues(alpha: 0.12),
+                  color: hecha ? Tema.acierto : color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
@@ -274,8 +285,8 @@ class _TarjetaActividad extends StatelessWidget {
                     Text(
                       actividad.asignatura.nombre,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: hecha ? Tema.acierto : null,
-                          ),
+                        color: hecha ? Tema.acierto : null,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -303,10 +314,10 @@ class _TarjetaActividad extends StatelessWidget {
 }
 
 IconData _icono(Asignatura asignatura) => switch (asignatura) {
-      Asignatura.dictado => Icons.hearing_rounded,
-      Asignatura.matematicas => Icons.calculate_outlined,
-      Asignatura.ingles => Icons.translate_rounded,
-    };
+  Asignatura.dictado => Icons.hearing_rounded,
+  Asignatura.matematicas => Icons.calculate_outlined,
+  Asignatura.ingles => Icons.translate_rounded,
+};
 
 class _Aviso extends StatelessWidget {
   const _Aviso({required this.titulo, required this.detalle});
@@ -316,20 +327,24 @@ class _Aviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(titulo, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 10),
-              Text(
-                detalle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.5),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(titulo, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          Text(
+            detalle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Tema.tintaSuave,
+              fontSize: 16,
+              height: 1.5,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

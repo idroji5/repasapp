@@ -1,4 +1,5 @@
 import '../dominio/asignaturas.dart';
+import '../dominio/coleccion.dart';
 
 class Nino {
   const Nino({
@@ -145,4 +146,24 @@ class Estadisticas {
   final List<ResumenAsignatura> porAsignatura;
   final List<ErrorFrecuente> erroresFrecuentes;
   final List<DiaDeEstudio> ultimosDias;
+}
+
+/// Un Noun de la colección de un niño, tal y como se guarda.
+///
+/// El dibujo no está aquí: está en `codigo`, que son los cinco rasgos que lo
+/// componen. La rareza sí se guarda, aunque se pueda recalcular, para que la
+/// rejilla de la colección pueda pintar cien fichas sin reconstruir cien
+/// dibujos.
+class NounGuardado {
+  const NounGuardado({
+    required this.id,
+    required this.codigo,
+    required this.rareza,
+    required this.dia,
+  });
+
+  final int id;
+  final String codigo;
+  final Rareza rareza;
+  final DateTime dia;
 }

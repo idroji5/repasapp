@@ -17,6 +17,7 @@ import '../reproductor.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
 import 'actividad.dart';
+import 'premio.dart';
 
 /// Corrección: el niño ve en pantalla lo que tenía que salir y dice qué le ha
 /// salido a él.
@@ -60,6 +61,9 @@ class _PantallaRevisionState extends State<PantallaRevision> {
   List<ResultadoEjercicio>? _correccionMates;
 
   CambioDeNivel? _cambioNivel;
+
+  /// El dibujo de hoy, si esta corrección ha sido la que cerró el día.
+  NounGuardado? _premio;
   ReproductorGuion? _repaso;
 
   @override
@@ -68,10 +72,12 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     // Se lee la instrucción en voz alta: el niño sigue con el cuaderno delante
     // y la pantalla es lo que mira de reojo.
     final voz = context.read<AppEstado>().voz;
-    unawaited(voz.decir(switch (widget.contenido) {
-      ContenidoDictado() => Frases.comparaDictado,
-      ContenidoEjercicios() => Frases.comparaOperaciones,
-    }));
+    unawaited(
+      voz.decir(switch (widget.contenido) {
+        ContenidoDictado() => Frases.comparaDictado,
+        ContenidoEjercicios() => Frases.comparaOperaciones,
+      }),
+    );
   }
 
   @override
@@ -98,27 +104,28 @@ class _PantallaRevisionState extends State<PantallaRevision> {
 
     switch (widget.contenido) {
       case ContenidoDictado(:final dictado):
-        final correccion = corregirDictadoMarcado(
-          dictado,
-          [for (final i in _tachadas.toList()..sort()) palabrasDe(dictado.texto)[i]],
-        );
+        final correccion = corregirDictadoMarcado(dictado, [
+          for (final i in _tachadas.toList()..sort())
+            palabrasDe(dictado.texto)[i],
+        ]);
         _correccionDictado = correccion;
         aciertos = correccion.aciertos;
         total = correccion.totalPalabras;
         faltas = [
           for (final f in correccion.explicadas)
             if (f.destrezaId case final id?)
-              FaltaGuardable(destrezaId: id, tipo: f.tipo.name, esperado: f.esperado),
+              FaltaGuardable(
+                destrezaId: id,
+                tipo: f.tipo.name,
+                esperado: f.esperado,
+              ),
         ];
 
       case ContenidoEjercicios(:final ejercicios):
-        final resultados = corregirTanda(
-          ejercicios,
-          {
-            for (final entrada in _marcas.entries)
-              if (!entrada.value) entrada.key,
-          },
-        );
+        final resultados = corregirTanda(ejercicios, {
+          for (final entrada in _marcas.entries)
+            if (!entrada.value) entrada.key,
+        });
         _correccionMates = resultados;
         aciertos = resultados.where((r) => r.correcta).length;
         total = resultados.length;
@@ -142,25 +149,35 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       faltas: faltas,
       duracionSegundos: widget.duracionSegundos,
     );
+
+    // El premio del día. Devuelve null casi siempre: solo lo gana la
+    // corrección que deja las tres actividades hechas, y solo la primera vez.
+    if (estado.catalogo case final catalogo?) {
+      _premio = await estado.repo.premioDelDia(
+        widget.actividad.ninoId,
+        catalogo,
+      );
+    }
     await estado.cargar();
     if (!mounted) return;
 
     final guion = switch (widget.contenido) {
       ContenidoDictado() => guionRepasoDictado(_correccionDictado!),
       ContenidoEjercicios() => guionRepasoTanda(
-          widget.actividad.asignatura,
-          _correccionMates!,
-          nino?.modoPistas ?? true,
-        ),
+        widget.actividad.asignatura,
+        _correccionMates!,
+        nino?.modoPistas ?? true,
+      ),
     };
 
     // Por si la instrucción de arriba aún estaba sonando: el repaso empieza
     // hablando y dos voces a la vez no se entienden. Con tope, porque un motor
     // de voz atascado no puede dejar la corrección a medias con el niño
     // esperando delante de la pantalla.
-    await estado.voz
-        .parar()
-        .timeout(const Duration(seconds: 1), onTimeout: () {});
+    await estado.voz.parar().timeout(
+      const Duration(seconds: 1),
+      onTimeout: () {},
+    );
     if (!mounted) return;
 
     _repaso?.dispose();
@@ -171,6 +188,30 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       _fase = _Fase.resultado;
     });
     _repaso!.arrancar();
+  }
+
+  /// Cerrar la corrección.
+  ///
+  /// Si hoy se ha ganado el dibujo se enseña aquí, al salir, y no nada más
+  /// guardarlo: así es lo último que pasa en el día en lugar de un cartel que
+  /// se cruza en medio del repaso de los fallos.
+  void _terminar() {
+    final estado = context.read<AppEstado>();
+    final premio = _premio;
+    final nino = estado.activo;
+    final catalogo = estado.catalogo;
+
+    final noun = premio == null ? null : catalogo?.desdeCodigo(premio.codigo);
+    if (noun == null || nino == null || catalogo == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) =>
+            PantallaPremio(nino: nino, noun: noun, catalogo: catalogo),
+      ),
+    );
   }
 
   /// Volver a hacer lo que ha salido mal.
@@ -186,9 +227,9 @@ class _PantallaRevisionState extends State<PantallaRevision> {
       soloEstos: switch (widget.contenido) {
         ContenidoDictado() => null,
         ContenidoEjercicios() => [
-            for (final r in _correccionMates!)
-              if (!r.correcta) r.ejercicio.numero,
-          ],
+          for (final r in _correccionMates!)
+            if (!r.correcta) r.ejercicio.numero,
+        ],
       },
     );
 
@@ -236,33 +277,34 @@ class _PantallaRevisionState extends State<PantallaRevision> {
         mates: _correccionMates,
         cambioNivel: _cambioNivel,
         repaso: _repaso,
-        onTerminar: () => Navigator.of(context).pop(),
+        onTerminar: _terminar,
         onRepetir: _volverAIntentarlo,
       );
     }
 
     return switch (widget.contenido) {
       ContenidoDictado(:final dictado) => _MarcarDictado(
-          dictado: dictado,
-          tachadas: _tachadas,
-          onTachar: (posicion) => setState(() {
-            _tachadas.contains(posicion)
-                ? _tachadas.remove(posicion)
-                : _tachadas.add(posicion);
-          }),
-          onListo: _corregir,
-        ),
+        dictado: dictado,
+        tachadas: _tachadas,
+        onTachar: (posicion) => setState(() {
+          _tachadas.contains(posicion)
+              ? _tachadas.remove(posicion)
+              : _tachadas.add(posicion);
+        }),
+        onListo: _corregir,
+      ),
       ContenidoEjercicios(:final ejercicios) => _MarcarTanda(
-          ejercicios: ejercicios,
-          marcas: _marcas,
-          onMarcar: (numero, correcta) => setState(() => _marcas[numero] = correcta),
-          onTodasBien: () => setState(() {
-            for (final op in ejercicios) {
-              _marcas[op.numero] = true;
-            }
-          }),
-          onCorregir: _corregir,
-        ),
+        ejercicios: ejercicios,
+        marcas: _marcas,
+        onMarcar: (numero, correcta) =>
+            setState(() => _marcas[numero] = correcta),
+        onTodasBien: () => setState(() {
+          for (final op in ejercicios) {
+            _marcas[op.numero] = true;
+          }
+        }),
+        onCorregir: _corregir,
+      ),
     };
   }
 }
@@ -313,9 +355,9 @@ class _TextoDelDictado extends StatelessWidget {
                       _Palabra(
                         trozo: trozo,
                         tachada: tachadas.contains(++posicion),
-                        dificil:
-                            dictado.palabrasClaveDictadas
-                                .any((p) => _esLaMisma(trozo, p)),
+                        dificil: dictado.palabrasClaveDictadas.any(
+                          (p) => _esLaMisma(trozo, p),
+                        ),
                         onTocar: onTachar == null
                             ? null
                             : _alTocar(onTachar!, posicion),
@@ -411,11 +453,18 @@ class _MarcarDictado extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
             children: [
-              Text(dictado.titulo, style: Theme.of(context).textTheme.headlineMedium),
+              Text(
+                dictado.titulo,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               const SizedBox(height: 6),
               const Text(
                 'Compáralo con tu hoja y toca las palabras que hayas escrito mal.',
-                style: TextStyle(color: Tema.tintaSuave, fontSize: 16, height: 1.4),
+                style: TextStyle(
+                  color: Tema.tintaSuave,
+                  fontSize: 16,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 18),
               _TextoDelDictado(
@@ -459,7 +508,9 @@ class _MarcarTanda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final faltanPorMarcar = ejercicios.any((op) => !marcas.containsKey(op.numero));
+    final faltanPorMarcar = ejercicios.any(
+      (op) => !marcas.containsKey(op.numero),
+    );
 
     return Column(
       children: [
@@ -474,12 +525,17 @@ class _MarcarTanda extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Las soluciones',
-                            style: Theme.of(context).textTheme.headlineMedium),
+                        Text(
+                          'Las soluciones',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
                         const SizedBox(height: 6),
                         const Text(
                           'Mira tu cuaderno y marca cuáles te han salido.',
-                          style: TextStyle(color: Tema.tintaSuave, fontSize: 16),
+                          style: TextStyle(
+                            color: Tema.tintaSuave,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -487,7 +543,9 @@ class _MarcarTanda extends StatelessWidget {
                   if (faltanPorMarcar)
                     TextButton(
                       onPressed: onTodasBien,
-                      style: TextButton.styleFrom(foregroundColor: Tema.acierto),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Tema.acierto,
+                      ),
                       child: const Text('Todas bien'),
                     ),
                 ],
@@ -545,12 +603,14 @@ class _TarjetaSolucion extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${ejercicio.numero}',
-              style: const TextStyle(
-                color: Tema.tintaSuave,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              )),
+          Text(
+            '${ejercicio.numero}',
+            style: const TextStyle(
+              color: Tema.tintaSuave,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           if (ejercicio.planteamiento case final enunciado?) ...[
             const SizedBox(height: 6),
             Text(enunciado, style: Tema.deCuaderno(tamano: 26)),
@@ -668,10 +728,10 @@ class _Resultado extends StatelessWidget {
 
   /// Cuántos fallos hay que arreglar. Si no hay ninguno, no hay nada que
   /// repetir y ofrecerlo solo sería ruido.
-  int get _fallos =>
-      dictado?.faltas ?? mates!.where((r) => !r.correcta).length;
+  int get _fallos => dictado?.faltas ?? mates!.where((r) => !r.correcta).length;
 
-  int get _aciertos => dictado?.aciertos ?? mates!.where((r) => r.correcta).length;
+  int get _aciertos =>
+      dictado?.aciertos ?? mates!.where((r) => r.correcta).length;
   int get _total => dictado?.totalPalabras ?? mates!.length;
 
   @override
@@ -712,8 +772,8 @@ class _Resultado extends StatelessWidget {
                   texto: dictado != null
                       ? 'Repetir el dictado'
                       : (_fallos == 1
-                          ? 'Volver a hacer la que fallé'
-                          : 'Volver a hacer las que fallé'),
+                            ? 'Volver a hacer la que fallé'
+                            : 'Volver a hacer las que fallé'),
                   icono: Icons.replay_rounded,
                   onPressed: onRepetir,
                 ),
@@ -746,7 +806,11 @@ class _Marcador extends StatelessWidget {
         children: [
           Text(
             '$aciertos de $total',
-            style: Tema.deNumeros(tamano: 44, peso: FontWeight.w700, color: color),
+            style: Tema.deNumeros(
+              tamano: 44,
+              peso: FontWeight.w700,
+              color: color,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -776,8 +840,12 @@ class _AvisoNivel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(cambio.sube ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-              color: color),
+          Icon(
+            cambio.sube
+                ? Icons.trending_up_rounded
+                : Icons.trending_down_rounded,
+            color: color,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -787,11 +855,20 @@ class _AvisoNivel extends StatelessWidget {
                   cambio.sube
                       ? '${cambio.asignatura.nombre} sube a nivel ${cambio.despues}'
                       : '${cambio.asignatura.nombre} baja a nivel ${cambio.despues}',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 16),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text(cambio.motivo,
-                    style: const TextStyle(color: Tema.tintaSuave, fontSize: 13.5)),
+                Text(
+                  cambio.motivo,
+                  style: const TextStyle(
+                    color: Tema.tintaSuave,
+                    fontSize: 13.5,
+                  ),
+                ),
               ],
             ),
           ),
@@ -825,7 +902,10 @@ class _LoQueDice extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(r.texto, style: Theme.of(context).textTheme.bodyLarge),
+              child: Text(
+                r.texto,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
             ),
           ],
         ),
@@ -861,7 +941,10 @@ class _FaltasDeDictado extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Cómo se escriben', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Cómo se escriben',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 12),
         for (final falta in correccion.explicadas)
           Container(
@@ -885,7 +968,11 @@ class _FaltasDeDictado extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   _capitalizar(razonDe(falta)),
-                  style: const TextStyle(fontSize: 15.5, height: 1.4, color: Tema.tinta),
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    height: 1.4,
+                    color: Tema.tinta,
+                  ),
                 ),
               ],
             ),
@@ -917,13 +1004,17 @@ class _FaltasDeMates extends StatelessWidget {
             decoration: BoxDecoration(
               color: r.correcta ? Tema.tarjeta : Tema.falloSuave,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: r.correcta ? Tema.borde : Tema.falloSuave),
+              border: Border.all(
+                color: r.correcta ? Tema.borde : Tema.falloSuave,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  r.correcta ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                  r.correcta
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
                   color: r.correcta ? Tema.acierto : Tema.fallo,
                   size: 22,
                 ),
@@ -934,7 +1025,10 @@ class _FaltasDeMates extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: '${r.ejercicio.enunciado}  =  ',
-                          style: Tema.deNumeros(tamano: 21, peso: FontWeight.w700),
+                          style: Tema.deNumeros(
+                            tamano: 21,
+                            peso: FontWeight.w700,
+                          ),
                         ),
                         TextSpan(
                           text: r.ejercicio.respuesta,
