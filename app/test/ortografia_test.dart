@@ -124,7 +124,8 @@ void main() {
     // marcarla: el aviso en negrita señalaría a algo que no existe.
     final fantasmas = <String>[];
     for (final dictado in dictados) {
-      final texto = palabrasDe(dictado.texto).map((p) => p.toLowerCase()).toSet();
+      final texto =
+          palabrasDe(dictado.textoCompleto).map((p) => p.toLowerCase()).toSet();
       for (final clave in dictado.palabrasClave) {
         if (!texto.contains(clave.toLowerCase())) {
           fantasmas.add('${dictado.id}: $clave');
@@ -143,6 +144,10 @@ void main() {
       expect(dictado.fragmentos.length, greaterThanOrEqualTo(3),
           reason: '${dictado.id} es demasiado corto');
       expect(dictado.palabrasClave, isNotEmpty, reason: dictado.id);
+      // En los niveles bajos no se dicta el texto entero, y lo que se recorta
+      // no puede llevarse por delante todas las trampas del dictado.
+      expect(dictado.palabrasClaveDictadas, isNotEmpty,
+          reason: '${dictado.id} se queda sin ninguna palabra clave al recortar');
     }
   });
 

@@ -12,7 +12,6 @@ import 'package:repasapp/dominio/planificador.dart';
 import 'package:repasapp/estado.dart';
 import 'package:repasapp/ui/pantallas/revision.dart';
 import 'package:repasapp/ui/tema.dart';
-import 'package:repasapp/voz/escucha.dart';
 import 'package:repasapp/voz/locutora.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -42,11 +41,7 @@ void main() {
       minutosDiarios: 15,
       niveles: {Asignatura.matematicas: 3, Asignatura.dictado: 3},
     );
-    estado = AppEstado(
-      repo: repo,
-      voz: Locutora.silenciosa(),
-      oido: Escucha.sorda(),
-    )..elegir((await repo.nino(ninoId))!);
+    estado = AppEstado(repo: repo, voz: Locutora.silenciosa())..elegir((await repo.nino(ninoId))!);
   });
 
   Future<ActividadGuardada> actividadDe(Asignatura asignatura) async {
@@ -161,7 +156,7 @@ void main() {
     // Se tacha una palabra difícil y otra corriente: se puede marcar
     // cualquiera, no solo las que el dictado pone a prueba.
     await tocar(tester, find.text(primeraFrase.first));
-    await tocar(tester, find.text(dictado.palabrasClave.first).last);
+    await tocar(tester, find.text(dictado.palabrasClaveDictadas.first).last);
 
     expect(find.text('Corregir, con 2 faltas'), findsOneWidget);
     await tocar(tester, find.text('Corregir, con 2 faltas'));

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -8,9 +9,9 @@ import 'package:repasapp/datos/modelos.dart';
 import 'package:repasapp/datos/repositorio.dart';
 import 'package:repasapp/dominio/asignaturas.dart';
 import 'package:repasapp/estado.dart';
+import 'package:repasapp/ui/navegacion.dart';
 import 'package:repasapp/ui/pantallas/hoy.dart';
 import 'package:repasapp/ui/tema.dart';
-import 'package:repasapp/voz/escucha.dart';
 import 'package:repasapp/voz/locutora.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -35,11 +36,7 @@ void main() {
       niveles: {Asignatura.matematicas: 3, Asignatura.dictado: 3},
     );
     nino = (await repo.nino(id))!;
-    estado = AppEstado(
-      repo: repo,
-      voz: Locutora.silenciosa(),
-      oido: Escucha.sorda(),
-    )..elegir(nino);
+    estado = AppEstado(repo: repo, voz: Locutora.silenciosa())..elegir(nino);
     await estado.cargar();
   });
 
@@ -51,7 +48,11 @@ void main() {
     await tester.pumpWidget(
       ChangeNotifierProvider<AppEstado>.value(
         value: estado,
-        child: MaterialApp(theme: Tema.construir(), home: PantallaHoy(nino: nino)),
+        child: MaterialApp(
+          theme: Tema.construir(),
+          navigatorObservers: [observadorDeRutas],
+          home: PantallaHoy(nino: nino),
+        ),
       ),
     );
     await tester.pump();
@@ -108,6 +109,28 @@ void main() {
 
     expect(find.text('¿Lo vuelves a hacer?'), findsNothing);
     expect((await repo.sesionDeHoy(nino.id)).actividades.length, antes);
+  });
+
+  testWidgets('al volver de una actividad, la lista ya la da por hecha',
+      (tester) async {
+    // El fallo que arregla: la actividad se sustituye a sí misma por la
+    // pantalla de corrección, así que esperar a que termine el `push` daba la
+    // vuelta demasiado pronto, cuando la nota todavía no estaba guardada. La
+    // asignatura recién hecha seguía saliendo como pendiente.
+    await abrir(tester);
+    expect(find.text('8 de 10 bien'), findsNothing);
+
+    final navegador = tester.state<NavigatorState>(find.byType(Navigator));
+    unawaited(navegador.push(MaterialPageRoute<void>(
+      builder: (_) => const Scaffold(body: Text('haciendo la actividad')),
+    )));
+    await tester.pumpAndSettle();
+
+    await darPorHecha();
+    navegador.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('8 de 10 bien'), findsOneWidget);
   });
 
   testWidgets('con todo hecho, se invita a repetir', (tester) async {

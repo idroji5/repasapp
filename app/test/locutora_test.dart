@@ -215,6 +215,26 @@ void main() {
         reason: 'si la segunda tampoco suena, el problema no es la voz');
   });
 
+  test('cortar una frase a media no convierte la voz en muda', () async {
+    // El fallo de la segunda asignatura del día: al terminar una actividad se
+    // llama a `parar()`, la frase en curso devuelve el control al instante y la
+    // app daba por muda una voz que iba perfectamente. Se cambiaba a la
+    // siguiente de la lista y a partir de ahí ya no se oía nada.
+    final motor = _MotorEspia(
+      voces: 3,
+      comoHabla: (_) => const Duration(milliseconds: 5),
+    );
+    final locutora = Locutora(motor: motor);
+    await locutora.preparar();
+
+    final hablando = locutora.decir('Ya está. Ahora lo corregimos juntos, con calma.');
+    await locutora.parar();
+    await hablando;
+
+    expect(motor.vocesPuestas.toSet(), hasLength(1),
+        reason: 'la ha callado el niño al salir, no un fallo de la voz');
+  });
+
   test('en cuanto una voz suena, ya no se cambia', () async {
     var rapido = false;
     final motor = _MotorEspia(

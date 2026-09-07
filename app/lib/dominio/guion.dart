@@ -1,3 +1,4 @@
+import '../voz/locutora.dart';
 import 'asignaturas.dart';
 
 /// El guion es lo que la app reproduce: una lista de pasos con lo que hay que
@@ -7,37 +8,25 @@ import 'asignaturas.dart';
 /// pantalla: las pantallas solo saben reproducir pasos. Cambiar cómo enseña la
 /// app es cambiar quien construye el guion, sin tocar la interfaz.
 enum Comando {
-  listo('listo', 'Estoy listo', tambien: ['ya está', 'preparado', 'vale']),
-  repite('repite', 'Repite', tambien: ['otra vez', 'repítelo', 'no lo he oído']),
-  masDespacio('más despacio', null, tambien: ['despacio', 'más lento']),
-  masRapido('más rápido', null, tambien: ['rápido', 'más deprisa']),
-  continua('continúa', 'Sigue', tambien: ['sigue', 'siguiente', 'ya lo tengo']),
-  corregir('corregir', 'Corregir', tambien: ['ya he terminado', 'he terminado', 'ya está']),
-  loTengo('ya lo veo', 'Ya lo veo', tambien: ['sí', 'lo veo', 'ya lo tengo']),
-  otraPista('otra pista', 'Otra pista', tambien: ['pista', 'no lo veo', 'ayuda']);
+  listo('Estoy listo'),
+  repite('Repite'),
+  masDespacio('Más despacio'),
+  masRapido('Más rápido'),
+  continua('Siguiente'),
+  corregir('Corregir'),
+  loTengo('Ya lo veo'),
+  otraPista('Otra pista');
 
-  const Comando(this.dicho, this.etiqueta, {this.tambien = const []});
+  const Comando(this.etiqueta);
 
-  /// Cómo lo diría el niño en voz alta.
-  final String dicho;
-
-  /// Otras formas de decir lo mismo. El reconocimiento de voz infantil falla
-  /// bastante, así que cuantas más maneras se acepten, menos veces tiene que
-  /// soltar el lápiz para tocar la pantalla.
-  final List<String> tambien;
-
-  /// Cómo aparece en el botón, o null si este comando solo se dice.
+  /// Cómo aparece en el botón.
   ///
-  /// No todo merece botón. Cambiar la velocidad se pide una vez y ya no se
-  /// vuelve a tocar; tenerlo siempre en pantalla llena la barra y esconde los
-  /// dos que de verdad se usan. Lo que no tiene botón se recuerda como texto:
-  /// "también puedes decir: más despacio".
-  final String? etiqueta;
-
-  bool get tieneBoton => etiqueta != null;
-
-  /// Todo lo que vale para decir este comando.
-  List<String> get comoSeDice => [dicho, ...tambien];
+  /// Todo comando es un botón y nada más. Se probó a escucharlos por el
+  /// micrófono y no salía a cuenta: el reconocimiento de voz infantil falla
+  /// mucho, y sobre todo el reconocedor de Android pita cada vez que se pone a
+  /// escuchar. En medio de un dictado ese pitido tapa la palabra siguiente y
+  /// hace justo lo contrario de lo que la app pretende.
+  final String etiqueta;
 }
 
 sealed class Paso {
@@ -55,8 +44,6 @@ class Fragmento extends Paso {
   const Fragmento({
     required this.indice,
     required this.texto,
-    required this.pausaSegundos,
-    this.avanzaSolo = true,
     this.veces = 1,
     this.escrito,
     this.palabraAPalabra = true,
@@ -86,20 +73,9 @@ class Fragmento extends Paso {
   /// una sola lectura el niño escribe a la carrera y pide "repite" cada frase,
   /// que es la manera lenta de hacer lo mismo.
   final int veces;
-
-  /// Cuánto se calla antes de seguir. Solo cuenta si [avanzaSolo].
-  final int pausaSegundos;
-
-  /// Si la app pasa sola al siguiente fragmento cuando se agota la pausa.
-  ///
-  /// En un dictado sí: un dictado tiene ritmo, y quien dicta no espera
-  /// indefinidamente. En una operación no: copiar "ciento sesenta y siete por
-  /// cuarenta y cuatro" de oído es un tiro único, y si la app sigue adelante
-  /// mientras el niño aún está escribiendo, la cuenta se pierde para siempre.
-  final bool avanzaSolo;
 }
 
-/// Se para hasta que el niño diga uno de los comandos (o pulse el botón).
+/// Se para hasta que el niño pulse uno de los botones.
 class Espera extends Paso {
   const Espera(this.texto, this.comandos);
   final String texto;
@@ -131,12 +107,21 @@ class Guion {
     required this.titulo,
     required this.pasos,
     this.comandosGlobales = const [],
+    this.velocidadInicial,
   });
 
   final Asignatura asignatura;
   final String titulo;
   final List<Paso> pasos;
 
-  /// Comandos que el niño puede decir en cualquier momento del guion.
+  /// Comandos que el niño tiene a mano en cualquier momento del guion.
   final List<Comando> comandosGlobales;
+
+  /// A qué ritmo empieza a dictarse esto, si el guion tiene una opinión.
+  ///
+  /// La tiene el dictado: a un niño de segundo no se le dicta al mismo ritmo
+  /// que a uno de quinto, y esperar a que sea él quien pida "más despacio"
+  /// es esperar a que ya haya perdido media frase. El niño puede cambiarlo
+  /// igualmente durante la actividad.
+  final Velocidad? velocidadInicial;
 }

@@ -4,8 +4,9 @@ App audio-first para que niños de Primaria repasen sus asignaturas: **escuchan,
 trabajan en papel, y solo usan el móvil** para iniciar la actividad, pedir
 repeticiones y corregirse al terminar.
 
-**Todo funciona en local.** No hay servidor, ni cuenta, ni conexión, ni cámara:
-el contenido, la voz y los datos viven en el dispositivo de la familia.
+**Todo funciona en local.** No hay servidor, ni cuenta, ni conexión, ni cámara,
+ni micrófono: el contenido, la voz y los datos viven en el dispositivo de la
+familia.
 
 ## Descargar
 
@@ -64,7 +65,7 @@ app/lib/
     ortografia.dart   Qué regla se juega en cada palabra y cómo se explica
     dictado.dart      Las palabras que tacha → nota y repaso
     tanda.dart        Los ejercicios que marca como fallados
-  voz/          locutora (hablar), escucha (comandos), frases (qué se dice)
+  voz/          locutora (hablar) y frases (qué se dice)
   datos/        SQLite local + repositorio
   ui/           Tema, reproductor de guiones y pantallas
 ```
@@ -138,45 +139,50 @@ mejor: comparar su cuenta con la buena y decidir si coinciden ya es corregir.
 Además nunca se equivoca al leer su letra, que era [el problema que hundía la
 confianza en la app](docs/por-que-no-hay-ocr/README.md).
 
-## Lo que se puede decir en voz alta
+## Cómo se dicta
 
-Todo lo que hay que hacer durante una actividad se puede decir en voz alta, y
-de cada cosa se aceptan varias formas, porque el reconocimiento de voz infantil
-falla bastante.
+La app habla; el niño escribe y toca. **Todo va con botones**, uno por cosa y
+grandes. Se probó a escuchar comandos por el micrófono —"listo", "repite"— y no
+salía a cuenta: el reconocimiento de voz infantil falla bastante, y sobre todo
+el reconocedor de Android pita cada vez que se pone a escuchar. Ese pitido caía
+justo encima de la palabra siguiente del dictado.
 
-| Momento | Se dice |
+| Momento | Botones |
 |---|---|
-| Antes de empezar | *listo*, *preparado*, *ya está* |
-| Dictando | *repite*, *más despacio*, *más rápido*, *sigue* |
-| Al acabar la actividad | *corregir*, *he terminado* |
-| Con una pista delante | *ya lo veo*, *otra pista* |
+| Antes de empezar | **Estoy listo** |
+| Escribiendo | **Siguiente**, y al lado *Repite*, *Más despacio*, *Más rápido* |
+| Al acabar la actividad | **Corregir** |
+| Con una pista delante | **Ya lo veo**, **Otra pista** |
+
+**Nada avanza solo.** No hay cuenta atrás ni frase que entre por sorpresa: la
+app dice lo suyo y se queda quieta hasta que el niño toca "Siguiente". Para un
+niño que todavía dibuja cada letra, una cuenta atrás es una carrera perdida: se
+queda a media palabra, oye que ya va otra frase y abandona.
 
 Lo que hay que escribir —el dictado, el enunciado de un problema, una cuenta—
-se dice **palabra a palabra, con un silencio entre cada una** y dos veces
-seguidas. Los enunciados de matemáticas no: esos se cortan por las comas, que
-un problema se entiende de corrido y trocearlo como un dictado lo vuelve
-ininteligible. Lo que un niño necesita para escribir no es oír la palabra estirada,
-es que le dejen tiempo antes de la siguiente; quien dicta de verdad no habla
-lento, habla y se calla. Las palabras de una o dos letras van pegadas a la
-siguiente, que dichas solas suenan a lista de la compra.
+se dice **palabra a palabra, con un silencio largo entre cada una** y dos veces
+seguidas, la segunda más despacio. Los enunciados de matemáticas no: esos se
+cortan por las comas, que un problema se entiende de corrido y trocearlo como un
+dictado lo vuelve ininteligible. Lo que un niño necesita para escribir no es oír
+la palabra estirada, es que le dejen tiempo antes de la siguiente; quien dicta
+de verdad no habla lento, habla y se calla. Las palabras de una o dos letras van
+pegadas a la siguiente, que dichas solas suenan a lista de la compra.
+
+El ritmo de partida depende del curso: **en primero y segundo se arranca ya en
+"lento"**, y de tercero en adelante en el ritmo normal. En esos dos primeros
+niveles se dictan además **tres frases en vez del texto entero**: un dictado
+corto terminado con atención vale mucho más que uno largo hecho a medias.
 
 Lo que la app explica va a ritmo de conversación: "prepara papel y lápiz" no se
 escribe, se entiende y ya. "Más despacio" alarga los silencios del dictado y no
 toca las explicaciones.
-
-La voz manda mientras se trabaja, que es cuando el niño tiene las manos
-ocupadas; corregir es al revés, y ahí se toca. Durante la actividad hay como
-mucho dos botones, y nunca uno por cada cosa que se puede decir: cambiar la
-velocidad se pide una vez en la vida y no merece ocupar sitio permanente. Lo que
-no tiene botón se recuerda escrito debajo de la frase, para que se sepa que
-existe.
 
 ## Arrancar
 
 ```bash
 cd app
 flutter pub get
-flutter test          # 104 pruebas de la lógica pura y del repositorio
+flutter test          # 107 pruebas de la lógica pura y del repositorio
 flutter run           # con un móvil o emulador conectado
 ```
 

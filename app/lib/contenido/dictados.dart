@@ -24,13 +24,44 @@ class Dictado {
   /// Qué microdestrezas ejercita. Determina para qué cursos es apropiado.
   final List<String> destrezas;
 
-  /// Unidades de dictado: la voz dice una, calla, y espera a que el niño escriba.
+  /// Unidades de dictado: la voz dice una, calla, y espera a que el niño
+  /// escriba. No siempre se dictan todas; ver [frasesDictadas].
   final List<String> fragmentos;
 
   /// Palabras trampa. Si el niño falla alguna, la app la repasa al terminar.
+  ///
+  /// Están escritas para el texto entero; las que se marcan en pantalla son
+  /// [palabrasClaveDictadas], que es lo que de verdad se ha dictado.
   final List<String> palabrasClave;
 
-  String get texto => fragmentos.join(' ');
+  /// Las frases que se dictan de verdad, recortadas a lo que aguanta el nivel.
+  ///
+  /// Un texto de cuatro frases es media hora para un niño de segundo que
+  /// todavía dibuja cada letra: se cansa a la mitad y lo que aprende es que el
+  /// dictado se le hace largo. En los niveles bajos se dictan menos frases, y
+  /// el texto queda igual de completo porque cada frase se sostiene sola.
+  ///
+  /// El recorte manda sobre todo lo demás —[texto], la corrección, la pantalla
+  /// donde tacha—, para que no se le corrija nunca una frase que no ha oído.
+  List<String> get frasesDictadas =>
+      fragmentos.take(frasesPorNivel(nivel)).toList();
+
+  String get texto => frasesDictadas.join(' ');
+
+  /// El texto completo, se dicte entero o no. Es lo que hay escrito en el banco.
+  String get textoCompleto => fragmentos.join(' ');
+
+  /// Las palabras trampa que sí se han dictado.
+  ///
+  /// Cuando se recorta el texto puede quedarse fuera alguna: señalarla en
+  /// negrita sería avisar de una trampa que el niño no ha llegado a escribir.
+  List<String> get palabrasClaveDictadas {
+    final dichas =
+        texto.toLowerCase().split(RegExp(r'[^a-záéíóúüñ0-9]+')).toSet();
+    return palabrasClave
+        .where((p) => dichas.contains(p.toLowerCase()))
+        .toList();
+  }
 
   int get numeroDePalabras =>
       texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
@@ -849,11 +880,21 @@ Dictado? dictadoPorId(String id) => _porId[id];
 /// Dos: la primera para enterarse, la segunda —más despacio— para escribirla.
 const int vecesPorFrase = 2;
 
-/// Cuánto callar tras las lecturas de un fragmento para que le dé tiempo a
-/// escribirlo.
+/// Cuántas frases se dictan de un texto, según el nivel.
 ///
-/// Un niño de nivel 1 escribe bastante más despacio que uno de nivel 5, así que
-/// la pausa no es fija: depende del número de palabras y del nivel.
+/// Los textos están escritos con cuatro o cinco frases porque así se leen bien
+/// de corrido, pero dictarlas todas a un niño de siete años es demasiado rato
+/// escribiendo. Tres frases —unas quince palabras— es un dictado que termina
+/// entero y con atención, que vale mucho más que uno largo hecho a medias. De
+/// tercero en adelante se dicta el texto completo.
+int frasesPorNivel(int nivel) => nivel <= 2 ? 3 : 99;
+
+/// Cuánto se tarda en escribir un fragmento, aproximadamente.
+///
+/// La app no corta a nadie: se espera a que el niño pulse. Esto es solo para
+/// que el planificador sepa cuánto ocupa un dictado en la sesión del día, y por
+/// eso depende del nivel: un niño de nivel 1 escribe bastante más despacio que
+/// uno de nivel 5.
 int pausaSegundos(String fragmento, int nivel) {
   final palabras =
       fragmento.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).length;
@@ -869,10 +910,11 @@ int pausaSegundos(String fragmento, int nivel) {
 /// meta otra actividad detrás que no cabe.
 int duracionEstimadaSegundos(Dictado d) {
   var total = 0.0;
-  for (final f in d.fragmentos) {
+  for (final f in d.frasesDictadas) {
     final palabras = f.split(RegExp(r'\s+')).length;
-    // Por palabra: lo que se tarda en decirla más el silencio de después.
-    total += pausaSegundos(f, d.nivel) + palabras * 1.7 * vecesPorFrase + 2;
+    // Por palabra: lo que se tarda en decirla más el silencio de después. Se
+    // dicta despacio y callando entre palabra y palabra, así que sale caro.
+    total += pausaSegundos(f, d.nivel) + palabras * 2.2 * vecesPorFrase + 3;
   }
   return (total + 45).round(); // + preparación y corrección
 }

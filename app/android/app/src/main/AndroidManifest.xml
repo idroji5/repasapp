@@ -1,8 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- El micrófono es para los comandos por voz ("listo", "repite"). Todo
-         comando tiene también su botón, así que negar el permiso no rompe nada. -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-
     <application
         android:label="repasapp"
         android:name="${applicationName}"
@@ -46,10 +42,7 @@
             <data android:mimeType="text/plain"/>
         </intent>
         <!-- Android 11+ exige declarar qué servicios se van a buscar. Sin esto
-             no se encuentra ni el reconocedor de voz ni el motor de síntesis. -->
-        <intent>
-            <action android:name="android.speech.RecognitionService"/>
-        </intent>
+             no se encuentra el motor de síntesis de voz. -->
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>

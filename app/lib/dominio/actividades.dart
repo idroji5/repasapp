@@ -3,6 +3,7 @@ import '../contenido/matematicas.dart';
 import '../correccion/dictado.dart';
 import '../correccion/tanda.dart';
 import '../voz/frases.dart';
+import '../voz/locutora.dart';
 import 'asignaturas.dart';
 import 'guion.dart';
 
@@ -19,12 +20,11 @@ Guion guionDictado(Dictado dictado) {
     const Habla(Frases.empezamos),
   ];
 
-  for (var i = 0; i < dictado.fragmentos.length; i++) {
-    final texto = dictado.fragmentos[i];
+  final frases = dictado.frasesDictadas;
+  for (var i = 0; i < frases.length; i++) {
     pasos.add(Fragmento(
       indice: i,
-      texto: texto,
-      pausaSegundos: pausaSegundos(texto, dictado.nivel),
+      texto: frases[i],
       veces: vecesPorFrase,
     ));
   }
@@ -35,13 +35,15 @@ Guion guionDictado(Dictado dictado) {
     asignatura: Asignatura.dictado,
     titulo: dictado.titulo,
     pasos: pasos,
-    // Durante un dictado el niño tiene que poder interrumpir sin tocar nada.
+    // Durante un dictado el niño manda: repite la frase las veces que quiera,
+    // ajusta el ritmo y pasa a la siguiente cuando la tiene escrita.
     comandosGlobales: const [
       Comando.repite,
       Comando.masDespacio,
       Comando.masRapido,
       Comando.continua,
     ],
+    velocidadInicial: velocidadDeDictado(dictado.nivel),
   );
 }
 
@@ -80,10 +82,6 @@ Guion guionRepasoDictado(CorreccionDictado correccion) {
 
 // ------------------------------------------------------------ matemáticas ---
 
-/// Cuánto se sugiere callar tras dictar una operación. No es un límite: la
-/// tanda no avanza sola, solo indica cuánto se espera antes de ofrecer ayuda.
-int pausaParaCopiar(Ejercicio op) => (6 + op.dictado.length * 0.6).round();
-
 /// Una tanda de ejercicios: matemáticas o inglés.
 ///
 /// Las dos funcionan igual —se plantea uno, el niño lo escribe y lo resuelve, y
@@ -106,9 +104,6 @@ Guion guionTanda(Asignatura asignatura, List<Ejercicio> ejercicios) {
     pasos.add(Fragmento(
       indice: op.numero - 1,
       texto: Frases.ejercicioNumero(op.numero, op.dictado),
-      pausaSegundos: pausaParaCopiar(op),
-      // La tanda espera al niño: se pasa a la siguiente cuando él lo dice.
-      avanzaSolo: false,
       // Un planteamiento con enunciado tampoco se retiene a la primera: se lee dos
       // veces, igual que una frase de dictado.
       veces: op.tienePlanteamiento ? 2 : 1,

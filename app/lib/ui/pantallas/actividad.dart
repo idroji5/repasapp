@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../datos/modelos.dart';
 import '../../dominio/actividades.dart';
+import '../../dominio/asignaturas.dart';
 import '../../dominio/guion.dart';
 import '../../dominio/planificador.dart';
 import '../../estado.dart';
@@ -25,6 +26,7 @@ class PantallaActividad extends StatefulWidget {
 class _PantallaActividadState extends State<PantallaActividad> {
   late final ContenidoActividad _contenido;
   late final ReproductorGuion _reproductor;
+  bool _reproductorCerrado = false;
   final _comenzado = DateTime.now();
 
   @override
@@ -42,9 +44,6 @@ class _PantallaActividadState extends State<PantallaActividad> {
     _reproductor = ReproductorGuion(
       guion: guion,
       voz: estado.voz,
-      oido: estado.oido,
-      // Da igual si ha dicho "corregir" o si ha tocado el botón: el reproductor
-      // avisa cuando la actividad ha terminado, por donde sea.
       alRevisar: _corregir,
     );
 
@@ -54,14 +53,26 @@ class _PantallaActividadState extends State<PantallaActividad> {
 
   @override
   void dispose() {
-    _reproductor.dispose();
+    _cerrarReproductor();
     super.dispose();
+  }
+
+  /// Calla la voz de esta actividad. Se puede llamar dos veces sin daño.
+  void _cerrarReproductor() {
+    if (_reproductorCerrado) return;
+    _reproductorCerrado = true;
+    _reproductor.dispose();
   }
 
   /// A corregir. No hay foto ni reconocimiento: el niño ve la solución en
   /// pantalla y compara con su cuaderno.
   Future<void> _corregir() async {
     if (!mounted) return;
+    // Se calla la voz de la actividad ANTES de cambiar de pantalla. Esta
+    // pantalla no se destruye hasta que termina la transición, y para entonces
+    // la corrección ya lleva media frase dicha: su `dispose` la cortaba en
+    // seco, y desde fuera eso es la voz perdiéndose al terminar la asignatura.
+    _cerrarReproductor();
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => PantallaRevision(
@@ -109,7 +120,7 @@ class _PantallaActividadState extends State<PantallaActividad> {
               child: Column(
                 children: [
                   Expanded(child: _Escenario(reproductor: r)),
-                  _Controles(reproductor: r, onCorregir: _corregir),
+                  _Controles(reproductor: r),
                 ],
               ),
             ),
@@ -141,7 +152,7 @@ class _PantallaActividadState extends State<PantallaActividad> {
   }
 }
 
-/// La zona grande: lo que se dice, o el reloj de la pausa para escribir.
+/// La zona grande: lo que se dice, o el aviso de que toca escribir.
 class _Escenario extends StatelessWidget {
   const _Escenario({required this.reproductor});
 
@@ -163,7 +174,9 @@ class _Escenario extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            r.fase == Fase.hablando ? Icons.volume_up_rounded : Icons.hearing_rounded,
+            r.fase == Fase.hablando
+                ? Icons.volume_up_rounded
+                : Icons.touch_app_rounded,
             size: 44,
             color: Tema.colorDe(r.guion.asignatura.name),
           ),
@@ -197,63 +210,32 @@ class _Escribiendo extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = reproductor;
     final color = Tema.colorDe(r.guion.asignatura.name);
+    final dictando = r.guion.asignatura == Asignatura.dictado;
 
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (r.esperaAlNino)
-            // Sin reloj: la app espera lo que haga falta. Copiar una cuenta de
-            // oído es un tiro único, y meter prisa solo consigue perderla.
-            Container(
-              width: 168,
-              height: 168,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.edit_outlined, size: 62, color: color),
-            )
-          else
-            SizedBox(
-              width: 168,
-              height: 168,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox.expand(
-                    child: CircularProgressIndicator(
-                      value: r.pausaTotal == 0
-                          ? 0
-                          : (r.segundosRestantes / r.pausaTotal).clamp(0.0, 1.0),
-                      strokeWidth: 10,
-                      backgroundColor: Tema.borde,
-                      valueColor: AlwaysStoppedAnimation(color),
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${r.segundosRestantes}',
-                        style: const TextStyle(fontSize: 46, fontWeight: FontWeight.w700),
-                      ),
-                      const Text('segundos', style: TextStyle(color: Tema.tintaSuave)),
-                    ],
-                  ),
-                ],
-              ),
+          // Sin reloj y sin cuenta atrás: la app espera lo que haga falta.
+          // Escribir de oído es un tiro único, y meter prisa a un niño de siete
+          // años solo consigue que pierda la frase y abandone.
+          Container(
+            width: 168,
+            height: 168,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
             ),
+            child: Icon(Icons.edit_outlined, size: 62, color: color),
+          ),
           const SizedBox(height: 26),
           Text(
-            r.esperaAlNino ? 'Cópiala y resuélvela' : 'Escríbelo',
+            dictando ? 'Escríbelo' : 'Cópiala y resuélvela',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 6),
           Text(
-            r.esperaAlNino
-                ? 'Sin prisa. Di «continúa» cuando la tengas'
-                : 'Cuando lo tengas, di «continúa»',
+            'Sin prisa. Cuando lo tengas, toca «Siguiente»',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Tema.tintaSuave, fontSize: 16),
           ),
@@ -281,85 +263,111 @@ class _Escribiendo extends StatelessWidget {
   }
 }
 
-/// La barra de abajo: botones para todo lo que también se puede decir en voz
-/// alta. La voz es un atajo; el botón es la garantía.
+/// La barra de abajo: todo lo que el niño puede hacer, en botones.
+///
+/// No hay micrófono. Se probó a escuchar "listo" o "repite" y el reconocedor de
+/// Android pita cada vez que se pone a escuchar, justo mientras se dicta.
 class _Controles extends StatelessWidget {
-  const _Controles({required this.reproductor, required this.onCorregir});
+  const _Controles({required this.reproductor});
 
   final ReproductorGuion reproductor;
-  final VoidCallback onCorregir;
 
   @override
   Widget build(BuildContext context) {
     final r = reproductor;
 
     if (r.fase == Fase.revisar) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          children: [
-            SePuedeDecir(comandos: const [Comando.corregir], seEscucha: r.oido.disponible),
-            BotonGrande(
-              texto: 'Corregir',
-              icono: Icons.check_circle_outline_rounded,
-              onPressed: () => r.responder(Comando.corregir),
-            ),
-          ],
-        ),
+      return _barra(
+        principal: Comando.corregir,
+        icono: Icons.check_circle_outline_rounded,
+        r: r,
       );
     }
 
     final comandos = r.comandos;
-    if (comandos.isEmpty) return const SizedBox(height: 24);
 
-    // "Estoy listo" es el paso adelante y merece el botón grande, aunque haya
-    // otras cosas que se puedan decir en ese momento.
-    if (comandos.contains(Comando.listo)) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          children: [
-            SePuedeDecir(comandos: comandos, seEscucha: r.oido.disponible),
-            BotonGrande(
-              texto: Comando.listo.etiqueta!,
-              icono: Icons.check_rounded,
-              onPressed: () => r.responder(Comando.listo),
-            ),
-          ],
-        ),
+    // Escribiendo, el paso adelante es "Siguiente" y se lleva el botón grande:
+    // es lo único que hace falta encontrar sin mirar, con el lápiz en la mano.
+    if (r.fase == Fase.escribiendo && comandos.contains(Comando.continua)) {
+      return _barra(
+        principal: Comando.continua,
+        icono: Icons.arrow_forward_rounded,
+        r: r,
       );
     }
 
-    // Solo llegan a la barra los comandos con botón. Los demás —cambiar la
-    // velocidad— se dicen, y se recuerdan como texto justo encima.
-    final conBoton = comandos.where((c) => c.tieneBoton).toList();
+    // "Estoy listo" es el otro paso adelante, y merece el mismo trato.
+    if (comandos.contains(Comando.listo)) {
+      return _barra(principal: Comando.listo, icono: Icons.check_rounded, r: r);
+    }
+
+    // Con una pista delante, contestar es lo que toca.
+    if (comandos.contains(Comando.loTengo)) {
+      return _barra(
+        principal: Comando.loTengo,
+        icono: Icons.lightbulb_outline_rounded,
+        r: r,
+      );
+    }
+
+    final otros = _secundarios(r, const []);
+    if (otros == null) return const SizedBox(height: 24);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+      child: otros,
+    );
+  }
+
+  /// El botón grande de lo que toca hacer, y debajo el resto.
+  Widget _barra({
+    required Comando principal,
+    required IconData icono,
+    required ReproductorGuion r,
+  }) {
+    final otros = _secundarios(r, [principal]);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
       child: Column(
         children: [
-          SePuedeDecir(comandos: comandos, seEscucha: r.oido.disponible),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final comando in conBoton)
-                BotonComando(
-                  texto: comando.etiqueta!,
-                  icono: _icono(comando),
-                  onPressed: () => r.responder(comando),
-                ),
-              if (r.permiteRevelar && r.enFragmento && !r.revelado)
-                BotonComando(
-                  texto: 'Verlo escrito',
-                  icono: Icons.visibility_outlined,
-                  onPressed: r.revelar,
-                ),
-            ],
+          if (otros != null) ...[otros, const SizedBox(height: 10)],
+          BotonGrande(
+            texto: principal.etiqueta,
+            icono: icono,
+            onPressed: () => r.responder(principal),
           ),
         ],
       ),
+    );
+  }
+
+  /// Lo demás que se puede hacer ahora mismo, en botones pequeños. null si no
+  /// hay nada más que ofrecer.
+  Widget? _secundarios(ReproductorGuion r, List<Comando> excepto) {
+    final otros = r.comandos.where((c) => !excepto.contains(c)).toList();
+    if (otros.isEmpty && !(r.permiteRevelar && r.enFragmento && !r.revelado)) {
+      return null;
+    }
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final comando in otros)
+          BotonComando(
+            texto: comando.etiqueta,
+            icono: _icono(comando),
+            onPressed: () => r.responder(comando),
+          ),
+        if (r.permiteRevelar && r.enFragmento && !r.revelado)
+          BotonComando(
+            texto: 'Verlo escrito',
+            icono: Icons.visibility_outlined,
+            onPressed: r.revelar,
+          ),
+      ],
     );
   }
 

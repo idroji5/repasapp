@@ -28,6 +28,7 @@ class Tema {
   static const Color logroSuave = Color(0xFFFDF0D5);
 
   static const Color acierto = Color(0xFF15803D);
+  static const Color aciertoSuave = Color(0xFFDCF5E3);
   static const Color fallo = Color(0xFFB91C1C);
   static const Color falloSuave = Color(0xFFFDECEC);
 

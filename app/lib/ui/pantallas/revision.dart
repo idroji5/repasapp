@@ -164,7 +164,7 @@ class _PantallaRevisionState extends State<PantallaRevision> {
     if (!mounted) return;
 
     _repaso?.dispose();
-    _repaso = ReproductorGuion(guion: guion, voz: estado.voz, oido: estado.oido);
+    _repaso = ReproductorGuion(guion: guion, voz: estado.voz);
 
     setState(() {
       _cambioNivel = cambio;
@@ -314,7 +314,8 @@ class _TextoDelDictado extends StatelessWidget {
                         trozo: trozo,
                         tachada: tachadas.contains(++posicion),
                         dificil:
-                            dictado.palabrasClave.any((p) => _esLaMisma(trozo, p)),
+                            dictado.palabrasClaveDictadas
+                                .any((p) => _esLaMisma(trozo, p)),
                         onTocar: onTachar == null
                             ? null
                             : _alTocar(onTachar!, posicion),
@@ -816,7 +817,9 @@ class _LoQueDice extends StatelessWidget {
         Row(
           children: [
             Icon(
-              r.fase == Fase.hablando ? Icons.volume_up_rounded : Icons.hearing_rounded,
+              r.fase == Fase.hablando
+                  ? Icons.volume_up_rounded
+                  : Icons.touch_app_rounded,
               size: 20,
               color: Tema.accion,
             ),
@@ -828,17 +831,15 @@ class _LoQueDice extends StatelessWidget {
         ),
         if (r.comandos.isNotEmpty) ...[
           const SizedBox(height: 14),
-          SePuedeDecir(comandos: r.comandos, seEscucha: r.oido.disponible),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
               for (final comando in r.comandos)
-                if (comando.tieneBoton)
-                  BotonComando(
-                    texto: comando.etiqueta!,
-                    onPressed: () => r.responder(comando),
-                  ),
+                BotonComando(
+                  texto: comando.etiqueta,
+                  onPressed: () => r.responder(comando),
+                ),
             ],
           ),
         ],

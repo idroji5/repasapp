@@ -12,15 +12,19 @@ import 'package:path_provider/path_provider.dart';
 /// Las tres van muy por debajo del ritmo de conversación a propósito. Quien
 /// dicta a un niño de Primaria no habla como habla con un adulto: articula,
 /// separa las palabras y espera a que la mano llegue. Un adulto lee ~2,6
-/// palabras por segundo; aquí, a ritmo normal, van poco más de la mitad.
+/// palabras por segundo; aquí, a ritmo normal, va a menos de la mitad.
+///
+/// Y el ritmo de partida no es el mismo para todos: en los cursos bajos se
+/// arranca ya en [Velocidad.lenta], porque un niño de siete años todavía dibuja
+/// cada letra. Ver [velocidadDeDictado].
 ///
 /// Esto NO afecta a las explicaciones. "Prepara papel y lápiz" no se escribe,
 /// se entiende y ya: dicho a ritmo de dictado se hace eterno y aburre antes de
 /// llegar a lo que importa. Ver [Locutora.tasaAlExplicar].
 enum Velocidad {
-  lenta(0.20, 1000),
-  normal(0.28, 700),
-  rapida(0.38, 450);
+  lenta(0.16, 1500),
+  normal(0.22, 1100),
+  rapida(0.32, 700);
 
   const Velocidad(this.tasa, this.pausaEntrePalabras);
 
@@ -46,6 +50,14 @@ enum Velocidad {
         _ => Velocidad.rapida,
       };
 }
+
+/// A qué ritmo se empieza a dictar a un niño de este nivel.
+///
+/// Se arranca despacio y se sube, y no al revés: la primera frase de un dictado
+/// demasiado rápido ya se ha perdido cuando el niño se da cuenta de que iba
+/// deprisa. Desde la actividad puede pedir "más rápido" cuando le sobre tiempo.
+Velocidad velocidadDeDictado(int nivel) =>
+    nivel <= 2 ? Velocidad.lenta : Velocidad.normal;
 
 /// Cuánto se trocea al dictar: una frase de dictado se copia palabra por
 /// palabra; un enunciado de matemáticas se entiende de corrido.
@@ -422,6 +434,14 @@ class Locutora {
       return;
     }
     reloj.stop();
+
+    // Si a la frase la ha cortado un `parar()` —salir de la actividad, pasar a
+    // corregir— ha durado dos décimas por buenos motivos, y eso no dice nada
+    // de la voz. Sin esta salida, terminar una actividad hacía que la app
+    // diera por muda una voz que iba perfectamente y se cambiara a la
+    // siguiente de la lista: de ahí que en la segunda asignatura del día se
+    // quedara callada.
+    if (_cancelado) return;
 
     // Red de seguridad para el caso raro en que una voz marcada como
     // instalada devuelva el control al instante: se cambia de voz y se repite

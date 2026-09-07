@@ -4,28 +4,30 @@ import 'package:flutter/foundation.dart';
 
 import '../dominio/asignaturas.dart';
 import '../dominio/guion.dart';
-import '../voz/escucha.dart';
 import '../voz/locutora.dart';
 
 enum Fase { inicial, hablando, escribiendo, esperando, preguntando, revisar, terminado }
 
-/// Recorre un guion: dice cada paso, calla lo que haga falta y atiende a lo que
-/// el niño pida por voz o por botón.
+/// Recorre un guion: dice cada paso, calla lo que haga falta y espera a que el
+/// niño pulse.
 ///
 /// La pantalla no sabe nada de pedagogía; solo pinta [fase], [texto] y
 /// [comandos]. Toda la lógica de qué se dice y cuándo vive aquí y en el guion.
+///
+/// Nada avanza solo. La app dice lo suyo y se queda quieta hasta que el niño
+/// toca un botón: no hay cuenta atrás, no hay siguiente frase por sorpresa y no
+/// hay micrófono escuchando. Un niño que escribe despacio no tiene por qué
+/// perder el dictado por eso.
 class ReproductorGuion extends ChangeNotifier {
   ReproductorGuion({
     required this.guion,
     required this.voz,
-    required this.oido,
     this.alRevisar,
     this.alTerminar,
   });
 
   final Guion guion;
   final Locutora voz;
-  final Escucha oido;
   final VoidCallback? alRevisar;
   final VoidCallback? alTerminar;
 
@@ -34,18 +36,11 @@ class ReproductorGuion extends ChangeNotifier {
   /// Lo que la voz está diciendo ahora mismo.
   String texto = '';
 
-  /// Comandos disponibles en este instante, como botones y como palabras.
+  /// Comandos disponibles en este instante, como botones.
   List<Comando> comandos = const [];
-
-  /// Segundos que quedan de la pausa para escribir.
-  int segundosRestantes = 0;
-  int pausaTotal = 0;
 
   int fragmentoActual = 0;
   int totalFragmentos = 0;
-
-  /// true cuando la app está parada esperando al niño, sin cuenta atrás.
-  bool esperaAlNino = false;
 
   /// En un dictado, enseñar el texto sería hacerle la trampa al niño. En una
   /// tanda de cuentas o de inglés no: lo que se practica es resolverlo, no
@@ -67,14 +62,13 @@ class ReproductorGuion extends ChangeNotifier {
       (!enFragmento || revelado) ? (escritoActual ?? texto) : null;
 
   bool _cancelado = false;
-  Timer? _cuentaAtras;
   Completer<_AccionPausa>? _pausa;
   Completer<Comando>? _respuesta;
 
   Future<void> arrancar() async {
     totalFragmentos = guion.pasos.whereType<Fragmento>().length;
     await voz.preparar();
-    await oido.preparar();
+    if (guion.velocidadInicial case final ritmo?) voz.velocidad = ritmo;
     await _ejecutarLista(guion.pasos);
 
     if (_cancelado) return;
@@ -101,8 +95,6 @@ class ReproductorGuion extends ChangeNotifier {
       case Fragmento(
           :final texto,
           :final indice,
-          :final pausaSegundos,
-          :final avanzaSolo,
           :final veces,
           :final escrito,
           :final palabraAPalabra
@@ -118,7 +110,7 @@ class ReproductorGuion extends ChangeNotifier {
         while (repetir && !_cancelado) {
           await _leerFragmento(texto, veces, palabraAPalabra);
           if (_cancelado) return;
-          final accion = await _pausaParaEscribir(pausaSegundos, avanzaSolo);
+          final accion = await _pausaParaEscribir();
           repetir = accion == _AccionPausa.repetir;
         }
 
@@ -143,8 +135,6 @@ class ReproductorGuion extends ChangeNotifier {
       case Revisar(:final texto):
         enFragmento = false;
         escritoActual = null;
-        // Se queda escuchando "corregir" en vez de esperar a que toque el
-        // botón: el niño acaba de soltar el lápiz y tiene la hoja en la mano.
         await _decir(texto, Fase.revisar, const [Comando.corregir]);
         if (_cancelado) return;
         await _esperarComando(const [Comando.corregir], Fase.revisar);
@@ -156,7 +146,7 @@ class ReproductorGuion extends ChangeNotifier {
   /// Cuánto se calla entre las dos lecturas de la misma frase. Lo justo para
   /// que el niño oiga que empieza otra vez y no las junte en una sola, y para
   /// que le dé tiempo a escribir el principio antes de que vuelva a sonar.
-  static const Duration _respiroEntreLecturas = Duration(seconds: 2);
+  static const Duration _respiroEntreLecturas = Duration(seconds: 3);
 
   /// Dicta una frase [veces] veces seguidas.
   ///
@@ -166,7 +156,12 @@ class ReproductorGuion extends ChangeNotifier {
   Future<void> _leerFragmento(String queDecir, int veces, bool palabraAPalabra) async {
     for (var vez = 0; vez < veces && !_cancelado; vez++) {
       texto = queDecir;
-      comandos = guion.comandosGlobales;
+      // Mientras la voz está diciendo la frase solo se ofrece lo que de verdad
+      // hace algo: cambiar el ritmo. "Repite" y "Siguiente" son respuestas a la
+      // pausa, y un botón que no hace nada al pulsarlo es peor que no tenerlo.
+      comandos = guion.comandosGlobales
+          .where((c) => c == Comando.masDespacio || c == Comando.masRapido)
+          .toList();
       _cambiar(Fase.hablando);
       // Esto es lo único que se dicta: lo que el niño tiene que escribir.
       await voz.dictar(
@@ -192,59 +187,21 @@ class ReproductorGuion extends ChangeNotifier {
 
   // ------------------------------------------------- pausa para escribir ---
 
-  Future<_AccionPausa> _pausaParaEscribir(int segundos, bool avanzaSolo) async {
-    // Sin cuenta atrás, `pausaTotal` es 0 y la pantalla enseña otra cosa: no
-    // hay reloj que mirar porque nadie mete prisa.
-    pausaTotal = avanzaSolo ? segundos : 0;
-    segundosRestantes = avanzaSolo ? segundos : 0;
-    esperaAlNino = !avanzaSolo;
+  /// Se calla y espera. Sin reloj y sin límite: hasta que el niño pulse.
+  ///
+  /// Antes había cuenta atrás en el dictado y la frase siguiente entraba sola
+  /// al agotarse. Para un niño que empieza a escribir eso es una carrera
+  /// perdida: se queda a media palabra, oye que ya va otra frase y abandona.
+  Future<_AccionPausa> _pausaParaEscribir() async {
     comandos = guion.comandosGlobales;
     _cambiar(Fase.escribiendo);
 
     final pausa = _pausa = Completer<_AccionPausa>();
-
-    if (avanzaSolo) {
-      _cuentaAtras = Timer.periodic(const Duration(seconds: 1), (_) {
-        segundosRestantes--;
-        if (segundosRestantes <= 0) {
-          _cerrarPausa(_AccionPausa.seguir);
-        } else {
-          notifyListeners();
-        }
-      });
-    }
-
-    // Se escucha en paralelo: el niño puede decir "repite" sin soltar el lápiz.
-    unawaited(_escucharDeFondo(guion.comandosGlobales));
-
-    final accion = await pausa.future;
-    _cuentaAtras?.cancel();
-    await oido.parar();
-    esperaAlNino = false;
-    return accion;
+    return pausa.future;
   }
 
   void _cerrarPausa(_AccionPausa accion) {
-    _cuentaAtras?.cancel();
     if (_pausa?.isCompleted == false) _pausa!.complete(accion);
-  }
-
-  Future<void> _escucharDeFondo(List<Comando> posibles) async {
-    if (!oido.disponible || posibles.isEmpty) return;
-    // Mientras la app espera al niño hay que seguir escuchando: si la escucha
-    // se agotara, "continúa" dejaría de funcionar y solo quedaría el botón.
-    while (!_cancelado && _pausa?.isCompleted == false) {
-      final dicho = await oido.escucharComando(
-        posibles,
-        limite: Duration(seconds: segundosRestantes > 0 ? segundosRestantes + 5 : 40),
-      );
-      if (_cancelado) return;
-      if (dicho != null) {
-        responder(dicho);
-        return;
-      }
-      if (!esperaAlNino) return; // con cuenta atrás basta un intento
-    }
   }
 
   // --------------------------------------------------- esperar respuesta ---
@@ -274,29 +231,12 @@ class ReproductorGuion extends ChangeNotifier {
     _cambiar(enFase);
 
     final respuesta = _respuesta = Completer<Comando>();
-
-    // Se reintenta la escucha mientras no conteste: un solo `listen` se agota a
-    // los 30 segundos, y un niño puede tardar bastante más en tener el papel
-    // preparado. Sin el reintento, decir "listo" tarde dejaba de funcionar.
-    unawaited(() async {
-      if (!oido.disponible) return;
-      while (!respuesta.isCompleted && !_cancelado) {
-        final dicho = await oido.escucharComando(posibles);
-        if (dicho != null && !respuesta.isCompleted) {
-          respuesta.complete(dicho);
-          return;
-        }
-      }
-    }());
-
-    final comando = await respuesta.future;
-    await oido.parar();
-    return comando;
+    return respuesta.future;
   }
 
   // ------------------------------------------------------------ acciones ---
 
-  /// Lo que llega desde un botón de la pantalla o desde el micrófono.
+  /// Lo que llega desde un botón de la pantalla.
   void responder(Comando comando) {
     switch (comando) {
       case Comando.masDespacio:
@@ -342,11 +282,9 @@ class ReproductorGuion extends ChangeNotifier {
   @override
   void dispose() {
     _cancelado = true;
-    _cuentaAtras?.cancel();
     if (_pausa?.isCompleted == false) _pausa!.complete(_AccionPausa.seguir);
     if (_respuesta?.isCompleted == false) _respuesta!.complete(Comando.continua);
     unawaited(voz.parar());
-    unawaited(oido.parar());
     super.dispose();
   }
 }

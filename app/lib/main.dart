@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'datos/bd.dart';
 import 'datos/repositorio.dart';
 import 'estado.dart';
+import 'ui/navegacion.dart';
 import 'ui/pantallas/perfiles.dart';
 import 'ui/tema.dart';
-import 'voz/escucha.dart';
 import 'voz/locutora.dart';
 
 Future<void> main() async {
@@ -17,11 +17,7 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final bd = await BaseDatos.abrir();
-  final estado = AppEstado(
-    repo: Repositorio(bd),
-    voz: Locutora(),
-    oido: Escucha(),
-  );
+  final estado = AppEstado(repo: Repositorio(bd), voz: Locutora());
   await estado.cargar();
 
   runApp(RepasApp(estado: estado));
@@ -39,6 +35,7 @@ class RepasApp extends StatelessWidget {
       child: MaterialApp(
         title: 'RepasApp',
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [observadorDeRutas],
         theme: Tema.construir(),
         home: const PantallaPerfiles(),
       ),

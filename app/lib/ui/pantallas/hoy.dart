@@ -5,6 +5,7 @@ import '../../datos/modelos.dart';
 import '../../dominio/asignaturas.dart';
 import '../../dominio/planificador.dart';
 import '../../estado.dart';
+import '../navegacion.dart';
 import '../tema.dart';
 import '../widgets/botones.dart';
 import 'actividad.dart';
@@ -22,7 +23,7 @@ class PantallaHoy extends StatefulWidget {
   State<PantallaHoy> createState() => _PantallaHoyState();
 }
 
-class _PantallaHoyState extends State<PantallaHoy> {
+class _PantallaHoyState extends State<PantallaHoy> with RouteAware {
   SesionDelDia? _sesion;
   int _racha = 0;
   bool _cargando = true;
@@ -32,6 +33,29 @@ class _PantallaHoyState extends State<PantallaHoy> {
     super.initState();
     _cargar();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ruta = ModalRoute.of(context);
+    if (ruta is PageRoute) observadorDeRutas.subscribe(this, ruta);
+  }
+
+  @override
+  void dispose() {
+    observadorDeRutas.unsubscribe(this);
+    super.dispose();
+  }
+
+  /// Se ha cerrado lo que había encima y esta pantalla vuelve a verse.
+  ///
+  /// Es el único momento fiable para recargar. Esperar a que termine el
+  /// `push` de la actividad no vale: la actividad se sustituye a sí misma por
+  /// la pantalla de corrección, y eso ya da por terminada la espera. La nota se
+  /// guardaba después, así que la lista se refrescaba con los datos de antes y
+  /// la asignatura recién hecha seguía saliendo como pendiente.
+  @override
+  void didPopNext() => _cargar();
 
   Future<void> _cargar() async {
     final repo = context.read<AppEstado>().repo;
@@ -55,6 +79,7 @@ class _PantallaHoyState extends State<PantallaHoy> {
     );
     if (mounted) _cargar();
   }
+
 
   /// Volver a hacer algo que ya se ha hecho hoy.
   ///
@@ -208,62 +233,68 @@ class _TarjetaActividad extends StatelessWidget {
     final color = Tema.colorDe(actividad.asignatura.name);
     final hecha = actividad.corregida;
 
-    return Opacity(
-      // Lo hecho se apaga un poco, pero no del todo: se puede volver a hacer.
-      opacity: hecha ? 0.75 : 1,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Tema.radio),
-          onTap: onPulsar,
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: Tema.cajaTarjeta.copyWith(
-              border: Border.all(
-                color: esSiguiente ? color : Tema.borde,
-                width: esSiguiente ? 2 : 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Tema.radio),
+        onTap: onPulsar,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          // Lo hecho se pinta de verde entero, no solo con una marca pequeña:
+          // el niño mira la lista de lejos, desde el cuaderno, y lo que tiene
+          // que ver de un vistazo es qué lleva hecho y qué le queda.
+          decoration: Tema.cajaTarjeta.copyWith(
+            color: hecha ? Tema.aciertoSuave : Tema.tarjeta,
+            border: Border.all(
+              color: hecha ? Tema.acierto : (esSiguiente ? color : Tema.borde),
+              width: hecha || esSiguiente ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: hecha
+                      ? Tema.acierto
+                      : color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  hecha ? Icons.check_rounded : _icono(actividad.asignatura),
+                  color: hecha ? Colors.white : color,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: hecha ? Tema.acierto.withValues(alpha: 0.12)
-                                 : color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    hecha ? Icons.check_rounded : _icono(actividad.asignatura),
-                    color: hecha ? Tema.acierto : color,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        actividad.asignatura.nombre,
-                        style: Theme.of(context).textTheme.titleMedium,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      actividad.asignatura.nombre,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: hecha ? Tema.acierto : null,
+                          ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      hecha && actividad.total != null
+                          ? '${actividad.aciertos} de ${actividad.total} bien'
+                          : '${tituloDe(actividad.contenido)} · nivel ${actividad.nivel}/5',
+                      style: TextStyle(
+                        color: hecha ? Tema.acierto : Tema.tintaSuave,
+                        fontSize: 14.5,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        hecha && actividad.total != null
-                            ? '${actividad.aciertos} de ${actividad.total} bien'
-                            : '${tituloDe(actividad.contenido)} · nivel ${actividad.nivel}/5',
-                        style: const TextStyle(color: Tema.tintaSuave, fontSize: 14.5),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Icon(
-                  hecha ? Icons.replay_rounded : Icons.chevron_right,
-                  color: Tema.tintaSuave,
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                hecha ? Icons.replay_rounded : Icons.chevron_right,
+                color: hecha ? Tema.acierto : Tema.tintaSuave,
+              ),
+            ],
           ),
         ),
       ),

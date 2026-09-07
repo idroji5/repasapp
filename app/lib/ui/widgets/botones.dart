@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../dominio/guion.dart';
 import '../tema.dart';
 
 /// Botón principal. Es deliberadamente enorme: el niño lo pulsa con el lápiz
@@ -47,7 +46,7 @@ class BotonGrande extends StatelessWidget {
   }
 }
 
-/// Botón secundario, para los comandos que también se pueden decir en voz alta.
+/// Botón secundario: repetir, cambiar el ritmo, ver el enunciado escrito.
 class BotonComando extends StatelessWidget {
   const BotonComando({
     super.key,
@@ -117,50 +116,6 @@ class Pastilla extends StatelessWidget {
               color: color ?? Tema.accion,
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// El recordatorio de que no hace falta tocar nada.
-///
-/// Nombra lo que se puede decir y no tiene botón —cambiar la velocidad, sobre
-/// todo—, porque si no se dice en alguna parte nadie va a adivinar que existe.
-/// Cuando todo lo que se puede decir está ya en un botón, basta con recordar
-/// que se puede decir.
-class SePuedeDecir extends StatelessWidget {
-  const SePuedeDecir({super.key, required this.comandos, required this.seEscucha});
-
-  final List<Comando> comandos;
-
-  /// false si el micrófono no está disponible: entonces no se promete nada.
-  final bool seEscucha;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!seEscucha || comandos.isEmpty) return const SizedBox(height: 4);
-
-    final sinBoton = comandos.where((c) => !c.tieneBoton).toList();
-    final texto = sinBoton.isEmpty
-        ? 'Puedes decirlo en voz alta'
-        : 'También puedes decir: '
-            '${sinBoton.map((c) => '«${c.dicho}»').join(', ')}';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.mic_none_rounded, size: 17, color: Tema.tintaSuave),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              texto,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Tema.tintaSuave, fontSize: 13.5),
             ),
           ),
         ],

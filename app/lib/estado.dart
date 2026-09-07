@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'datos/modelos.dart';
 import 'datos/repositorio.dart';
 import 'dominio/asignaturas.dart';
-import 'voz/escucha.dart';
 import 'voz/locutora.dart';
 
 /// Estado compartido de la aplicación: quién está usándola y qué hay guardado.
@@ -13,11 +12,10 @@ import 'voz/locutora.dart';
 /// No guarda el progreso de una actividad en curso: eso vive en el reproductor
 /// de guiones, que muere con su pantalla. Aquí solo está lo que sobrevive.
 class AppEstado extends ChangeNotifier {
-  AppEstado({required this.repo, required this.voz, required this.oido});
+  AppEstado({required this.repo, required this.voz});
 
   final Repositorio repo;
   final Locutora voz;
-  final Escucha oido;
 
   List<Nino> ninos = const [];
   bool cargando = true;
