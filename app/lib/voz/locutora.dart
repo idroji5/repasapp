@@ -315,6 +315,7 @@ class Locutora {
 
   /// Explica algo: instrucciones, preguntas, correcciones. Ritmo de conversar.
   Future<void> decir(String texto) async {
+    _empezarAHablar();
     for (final trozo in enIdiomas(texto)) {
       if (_cancelado) return;
       await _hablar(trozo.texto, tasaAlExplicar, ingles: trozo.ingles);
@@ -330,6 +331,7 @@ class Locutora {
   /// se escribe esa. Trocearlo igual que un dictado lo vuelve ininteligible.
   Future<void> dictar(String texto, {Velocidad? a, Corte corte = Corte.palabras}) async {
     if (muda) return;
+    _empezarAHablar();
     final ritmo = a ?? velocidad;
     final trozos = corte == Corte.palabras ? enTrozos(texto) : enFrases(texto);
     final pausa = corte == Corte.palabras
@@ -417,7 +419,6 @@ class Locutora {
   /// —el texto está en pantalla— que dejar al niño mirando una pantalla muerta.
   Future<void> _hablar(String texto, double tasa, {bool ingles = false}) async {
     if (muda) return;
-    _cancelado = false;
     await preparar();
     await _cambiarDeIdioma(ingles);
     await _tts.setSpeechRate(tasa);
@@ -467,7 +468,20 @@ class Locutora {
   /// Un dictado se dice en varios trozos con silencios en medio. Si el niño
   /// sale de la actividad a mitad de frase, hay que dejar de hablar en el acto
   /// y no seguir con el resto de la frase desde una pantalla que ya no existe.
+  ///
+  /// Dura hasta que alguien vuelve a pedir la palabra: quien manda callar es la
+  /// pantalla que se va, y quien manda hablar es la que llega. Si el "calla" se
+  /// quedara puesto, la pantalla siguiente pediría su primera frase y no sonaría
+  /// nada —que es exactamente lo que pasaba al terminar una actividad: la
+  /// corrección se quedaba muda de principio a fin. Ver [_empezarAHablar].
   bool _cancelado = false;
+
+  /// Alguien pide la palabra: se levanta el "calla" que dejara el anterior.
+  ///
+  /// Va en [decir] y [dictar], no dentro de [_hablar]: si se levantara en cada
+  /// trozo, mandar callar a mitad de una frase no serviría de nada, porque la
+  /// palabra siguiente lo borraría antes de mirarlo.
+  void _empezarAHablar() => _cancelado = false;
 
   /// Cambia a una voz concreta y la prueba en voz alta. La usa la zona de
   /// padres: la calidad de las voces varía muchísimo entre teléfonos y hay

@@ -73,6 +73,16 @@ class _PantallaActividadState extends State<PantallaActividad> {
     // la corrección ya lleva media frase dicha: su `dispose` la cortaba en
     // seco, y desde fuera eso es la voz perdiéndose al terminar la asignatura.
     _cerrarReproductor();
+    // Y se espera a que el motor de voz haya parado de verdad, antes de que la
+    // corrección empiece a hablar: un "calla" que llega tarde le cortaría la
+    // primera frase.
+    await context
+        .read<AppEstado>()
+        .voz
+        .parar()
+        .timeout(const Duration(seconds: 1), onTimeout: () {});
+    if (!mounted) return;
+
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => PantallaRevision(

@@ -15,10 +15,10 @@ class Frases {
   static String dictadoIntro(String titulo) =>
       'Vamos a hacer un dictado. Se titula $titulo.';
   static const String prepararPapel =
-      'Prepara papel y lápiz. Cuando estés preparado, di: listo.';
+      'Prepara papel y lápiz. Cuando lo tengas, toca el botón de abajo.';
   static const String empezamos =
-      'Muy bien. Empezamos. Te voy a leer cada frase dos veces, '
-      'la segunda más despacio.';
+      'Muy bien. Empezamos. Te voy a leer cada frase dos veces, la segunda más '
+      'despacio. Sin prisa: cuando la tengas escrita, toca siguiente.';
   static const String dictadoFin =
       'Ya está. Ahora lo corregimos juntos: te enseño el dictado en la '
       'pantalla para que lo compares con tu hoja.';
@@ -30,7 +30,7 @@ class Frases {
               'Escríbelos en el cuaderno.'
           : 'Vamos a hacer $cuantas operaciones. Escríbelas en el cuaderno.';
   static const String empezamosMates =
-      'Muy bien. Empezamos. Si necesitas oírlo otra vez, di: repite.';
+      'Muy bien. Empezamos. Si necesitas oírlo otra vez, toca repite.';
   static String ejercicioNumero(int numero, String dictado) =>
       '${_capitalizar(ordinalFemenino(numero))}: $dictado.';
   // ------------------------------------------------------------- inglés ---

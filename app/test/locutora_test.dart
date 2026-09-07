@@ -235,6 +235,45 @@ void main() {
         reason: 'la ha callado el niño al salir, no un fallo de la voz');
   });
 
+  test('después de callarla, la pantalla siguiente vuelve a tener voz', () async {
+    // El fallo que dejaba muda la corrección entera: al terminar una actividad
+    // se manda callar, y ese "calla" se quedaba puesto. La pantalla de
+    // corrección pedía su primera frase y no sonaba absolutamente nada.
+    final motor = _MotorEspia();
+    final locutora = Locutora(motor: motor);
+
+    await locutora.decir('Ya está. Ahora lo corregimos juntos.');
+    await locutora.parar();
+    motor.limpiar();
+
+    await locutora.decir('Aquí tienes el dictado escrito.');
+    expect(motor.dicho, ['Aquí tienes el dictado escrito.']);
+
+    motor.limpiar();
+    await locutora.parar();
+    await locutora.dictar('El perro come.');
+    expect(motor.dicho, isNotEmpty, reason: 'y dictar, igual');
+  });
+
+  test('callar a mitad de frase para de verdad', () async {
+    // Y lo contrario: levantar el "calla" en cada palabra haría que mandar
+    // callar durante un dictado no sirviera de nada.
+    final motor = _MotorEspia(
+      comoHabla: (_) => const Duration(milliseconds: 40),
+    );
+    final locutora = Locutora(motor: motor);
+    await locutora.preparar();
+    motor.limpiar();
+
+    final dictando = locutora.dictar('Mi abuelo vive en el campo con su perro.');
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    await locutora.parar();
+    await dictando;
+
+    expect(motor.dicho.length, lessThan(5),
+        reason: 'se corta donde se le dijo, no al final de la frase');
+  });
+
   test('en cuanto una voz suena, ya no se cambia', () async {
     var rapido = false;
     final motor = _MotorEspia(
