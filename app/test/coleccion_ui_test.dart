@@ -10,6 +10,7 @@ import 'package:repasapp/datos/repositorio.dart';
 import 'package:repasapp/dominio/coleccion.dart';
 import 'package:repasapp/estado.dart';
 import 'package:repasapp/ui/pantallas/coleccion.dart';
+import 'package:repasapp/ui/pantallas/hoy.dart';
 import 'package:repasapp/ui/pantallas/padres.dart';
 import 'package:repasapp/ui/pantallas/premio.dart';
 import 'package:repasapp/ui/tema.dart';
@@ -217,38 +218,131 @@ void main() {
 
     await tester.dragUntilVisible(
       find.byType(VistaNoun).last,
-      find.byType(GridView),
+      find.byType(CustomScrollView),
       const Offset(0, -200),
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('una colección vacía lo dice, no se queda en blanco', (
+  testWidgets('el álbum se abre por rareza, con página para las que faltan', (
     tester,
   ) async {
+    await abrir(tester, PantallaColeccion(nino: nino));
+
+    // Las cuatro páginas están siempre, tenga o no el niño alguna de esa clase.
+    // Se recorren en el orden en el que están, de la más rara a la más común,
+    // para que la pantalla solo tenga que bajar.
+    final coleccion = await repo.coleccion(nino.id);
+    for (final rareza in Rareza.values.reversed) {
+      await tester.dragUntilVisible(
+        find.text(rareza.etiqueta),
+        find.byType(CustomScrollView),
+        const Offset(0, -120),
+      );
+      final cuantos = coleccion.where((n) => n.rareza == rareza).length;
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text(rareza.etiqueta),
+            matching: find.byType(Row),
+          ),
+          matching: find.text('$cuantos'),
+        ),
+        findsWidgets,
+        reason: 'la página de ${rareza.etiqueta} dice cuántos lleva',
+      );
+      if (cuantos == 0) {
+        expect(find.text('Todavía ninguno'), findsWidgets);
+      }
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('y se puede pasar a verla por fecha', (tester) async {
+    await abrir(tester, PantallaColeccion(nino: nino));
+
+    // 'Especial' es la primera página, la única que se ve sin bajar.
+    expect(find.text('Especial'), findsOneWidget);
+    await tester.tap(find.text('Por fecha'));
+    await tester.pump();
+
+    // Sin páginas: una sola rejilla, del más nuevo al más viejo.
+    expect(find.text('Especial'), findsNothing);
+    expect(find.text('12 dibujos'), findsOneWidget);
+    final primero = tester.widget<VistaNoun>(find.byType(VistaNoun).first);
+    expect(primero.noun.codigo, (await repo.nounDeHoy(nino.id))!.codigo);
+    expect(tester.takeException(), isNull);
+  });
+
+  /// Un niño recién dado de alta, sin un solo día hecho.
+  Future<(Nino, AppEstado)> reciente() async {
     final db = await BaseDatos.abrir(rutaCompleta: inMemoryDatabasePath);
     final vacio = Repositorio(db);
     final id = await vacio.crearNino(nombre: 'Ana', curso: 3);
-    final soloEl = AppEstado(
+    final soloElla = AppEstado(
       repo: vacio,
       voz: Locutora.silenciosa(),
       catalogo: catalogo,
     );
+    final ana = (await vacio.nino(id))!;
+    soloElla.elegir(ana);
+    await soloElla.cargar();
+    return (ana, soloElla);
+  }
 
-    tester.view.physicalSize = const Size(640, 1136);
+  Future<void> abrirCon(
+    WidgetTester tester,
+    AppEstado estado,
+    Widget pantalla, {
+    Size tamano = const Size(640, 1136),
+  }) async {
+    tester.view.physicalSize = tamano;
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ChangeNotifierProvider<AppEstado>.value(
-        value: soloEl,
-        child: MaterialApp(
-          theme: Tema.construir(),
-          home: PantallaColeccion(nino: (await vacio.nino(id))!),
-        ),
+        value: estado,
+        child: MaterialApp(theme: Tema.construir(), home: pantalla),
       ),
     );
     await tester.pumpAndSettle();
+  }
 
+  testWidgets('una colección vacía lo dice y enseña lo que hay por ganar', (
+    tester,
+  ) async {
+    final (ana, soloElla) = await reciente();
+    await abrirCon(tester, soloElla, PantallaColeccion(nino: ana));
+
+    expect(find.textContaining('Todavía no tienes ninguno'), findsOneWidget);
+    // Y no se queda ahí: las cuatro páginas están, por estrenar.
+    for (final rareza in Rareza.values.reversed) {
+      await tester.dragUntilVisible(
+        find.text(rareza.etiqueta),
+        find.byType(CustomScrollView),
+        const Offset(0, -120),
+      );
+      expect(find.text(rareza.etiqueta), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a la colección se entra desde el primer día, sin haber ganado '
+      'ninguno', (tester) async {
+    final (ana, soloElla) = await reciente();
+    await abrirCon(
+      tester,
+      soloElla,
+      PantallaHoy(nino: ana),
+      // Alto, para que la tarjeta del final del plan quepa sin arrastrar.
+      tamano: const Size(720, 2400),
+    );
+
+    expect(find.text('Mi colección'), findsOneWidget);
+    expect(find.text('Mira lo que puedes ganar'), findsOneWidget);
+
+    await tester.tap(find.text('Mi colección'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Todavía no tienes ninguno'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

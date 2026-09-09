@@ -21,8 +21,16 @@ class PantallaColeccion extends StatefulWidget {
   State<PantallaColeccion> createState() => _PantallaColeccionState();
 }
 
+/// Cómo se ordena el álbum.
+enum _Orden { rareza, fecha }
+
 class _PantallaColeccionState extends State<PantallaColeccion> {
   List<NounGuardado>? _nouns;
+
+  /// Por rareza de entrada: es el orden que hace que esto sea un álbum y no un
+  /// historial. La fecha sigue a un toque, para el niño que quiere ver por
+  /// dónde iba en abril.
+  _Orden _orden = _Orden.rareza;
 
   @override
   void initState() {
@@ -59,13 +67,11 @@ class _PantallaColeccionState extends State<PantallaColeccion> {
         child: switch ((nouns, catalogo)) {
           (null, _) => const Center(child: CircularProgressIndicator()),
           (_, null) => const _Aviso('No he podido cargar los dibujos.'),
-          ([], _) => const _Aviso(
-            'Todavía no tienes ninguno.\n\n'
-            'Termina las tres actividades de un día y te llevas uno.',
-          ),
-          (final lista?, final cat?) => _Rejilla(
+          (final lista?, final cat?) => _Album(
             nouns: lista,
             catalogo: cat,
+            orden: _orden,
+            onOrden: (orden) => setState(() => _orden = orden),
             onTocar: (guardado, noun) => _abrirFicha(cat, guardado, noun),
           ),
         },
@@ -84,81 +90,293 @@ class _PantallaColeccionState extends State<PantallaColeccion> {
   }
 }
 
-class _Rejilla extends StatelessWidget {
-  const _Rejilla({
+class _Album extends StatelessWidget {
+  const _Album({
     required this.nouns,
     required this.catalogo,
+    required this.orden,
+    required this.onOrden,
     required this.onTocar,
   });
 
   final List<NounGuardado> nouns;
   final CatalogoNouns catalogo;
+  final _Orden orden;
+  final ValueChanged<_Orden> onOrden;
   final void Function(NounGuardado, Noun) onTocar;
 
   @override
   Widget build(BuildContext context) {
-    // El resumen de arriba es la mitad de la gracia de tener una colección:
-    // cuántos llevas y cuántos de los buenos.
-    final porRareza = <Rareza, int>{};
+    final porRareza = <Rareza, List<NounGuardado>>{
+      for (final rareza in Rareza.values) rareza: <NounGuardado>[],
+    };
     for (final n in nouns) {
-      porRareza[n.rareza] = (porRareza[n.rareza] ?? 0) + 1;
+      porRareza[n.rareza]!.add(n);
     }
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-          child: Row(
-            children: [
-              Text(
-                nouns.length == 1 ? '1 dibujo' : '${nouns.length} dibujos',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // En Wrap y no en Row: con las cuatro rarezas y un número de tres
-              // cifras, una fila se sale de un móvil estrecho.
-              Expanded(
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    for (final rareza in Rareza.values.reversed)
-                      if ((porRareza[rareza] ?? 0) > 0)
-                        _Cuenta(rareza, porRareza[rareza]!),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 130,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+    // Un álbum vacío se abre igual, con sus cuatro páginas por estrenar. Es
+    // media gracia de tener uno: ver lo que falta antes de tenerlo.
+    final vacio = nouns.isEmpty;
+
+    return CustomScrollView(
+      slivers: [
+        if (vacio)
+          const SliverToBoxAdapter(
+            child: _Aviso(
+              'Todavía no tienes ninguno.\n'
+              'Termina las tres actividades de un día y te llevas uno.',
             ),
-            itemCount: nouns.length,
-            itemBuilder: (contexto, i) {
-              final guardado = nouns[i];
-              final noun = catalogo.desdeCodigo(guardado.codigo);
-              if (noun == null) return const SizedBox.shrink();
-              return _Casilla(
-                guardado: guardado,
-                noun: noun,
-                catalogo: catalogo,
-                onTocar: () => onTocar(guardado, noun),
-              );
-            },
+          )
+        else ...[
+          SliverToBoxAdapter(
+            child: _Resumen(nouns: nouns, porRareza: porRareza),
+          ),
+          SliverToBoxAdapter(child: _Selector(orden: orden, onOrden: onOrden)),
+        ],
+        if (!vacio && orden == _Orden.fecha)
+          _rejilla(nouns)
+        else
+          // De la más rara a la más común. Un álbum se abre por la página que
+          // uno quiere enseñar, no por la que tiene repetida.
+          for (final rareza in Rareza.values.reversed) ...[
+            SliverToBoxAdapter(
+              child: _Cabecera(
+                rareza: rareza,
+                cuantos: porRareza[rareza]!.length,
+                unoDeCada: catalogo.unoDeCada(rareza),
+              ),
+            ),
+            if (porRareza[rareza]!.isEmpty)
+              SliverToBoxAdapter(child: _Hueco(rareza))
+            else
+              _rejilla(porRareza[rareza]!),
+          ],
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+      ],
+    );
+  }
+
+  Widget _rejilla(List<NounGuardado> lista) => SliverPadding(
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+    sliver: SliverGrid.builder(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 130,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+      ),
+      itemCount: lista.length,
+      itemBuilder: (contexto, i) {
+        final guardado = lista[i];
+        final noun = catalogo.desdeCodigo(guardado.codigo);
+        if (noun == null) return const SizedBox.shrink();
+        return _Casilla(
+          guardado: guardado,
+          noun: noun,
+          catalogo: catalogo,
+          onTocar: () => onTocar(guardado, noun),
+        );
+      },
+    ),
+  );
+}
+
+/// Cuántos llevas y cuántos de los buenos: la mitad de la gracia de tener una
+/// colección.
+class _Resumen extends StatelessWidget {
+  const _Resumen({required this.nouns, required this.porRareza});
+
+  final List<NounGuardado> nouns;
+  final Map<Rareza, List<NounGuardado>> porRareza;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Row(
+        children: [
+          Text(
+            nouns.length == 1 ? '1 dibujo' : '${nouns.length} dibujos',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // En Wrap y no en Row: con las cuatro rarezas y un número de tres
+          // cifras, una fila se sale de un móvil estrecho.
+          Expanded(
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                for (final rareza in Rareza.values.reversed)
+                  if (porRareza[rareza]!.isNotEmpty)
+                    _Cuenta(rareza, porRareza[rareza]!.length),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Los dos órdenes del álbum.
+class _Selector extends StatelessWidget {
+  const _Selector({required this.orden, required this.onOrden});
+
+  final _Orden orden;
+  final ValueChanged<_Orden> onOrden;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+      // A medias y no cada una a su ancho: así las dos son igual de grandes y
+      // de fáciles de acertar, y ninguna se sale en un móvil estrecho.
+      child: Row(
+        children: [
+          Expanded(
+            child: _Pestana(
+              texto: 'Por rareza',
+              activa: orden == _Orden.rareza,
+              onTocar: () => onOrden(_Orden.rareza),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _Pestana(
+              texto: 'Por fecha',
+              activa: orden == _Orden.fecha,
+              onTocar: () => onOrden(_Orden.fecha),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pestana extends StatelessWidget {
+  const _Pestana({
+    required this.texto,
+    required this.activa,
+    required this.onTocar,
+  });
+
+  final String texto;
+  final bool activa;
+  final VoidCallback onTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTocar,
+      // La zona de toque llega a los 44 puntos de alto aunque la píldora mida
+      // menos: un dedo de siete años no apunta tan fino.
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        decoration: BoxDecoration(
+          color: activa ? Colors.white : Colors.white10,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          texto,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: activa ? const Color(0xFF1A1420) : Colors.white70,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// La cabecera de una página del álbum.
+class _Cabecera extends StatelessWidget {
+  const _Cabecera({
+    required this.rareza,
+    required this.cuantos,
+    required this.unoDeCada,
+  });
+
+  final Rareza rareza;
+  final int cuantos;
+  final int unoDeCada;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+      child: Row(
+        children: [
+          SelloRareza(rareza),
+          const SizedBox(width: 10),
+          Text(
+            '$cuantos',
+            style: TextStyle(
+              color: colorDeRareza(rareza),
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          // "1 de cada 1" no es un dato, así que del normal no se dice nada.
+          if (rareza != Rareza.normal)
+            Flexible(
+              child: Text(
+                '1 de cada $unoDeCada',
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white38, fontSize: 14),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Una página del álbum todavía sin estrenar.
+///
+/// El hueco se enseña en lugar de esconder la página: un álbum sin sitios
+/// vacíos no da ninguna gana de seguir.
+class _Hueco extends StatelessWidget {
+  const _Hueco(this.rareza);
+
+  final Rareza rareza;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorDeRareza(rareza);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Container(
+        height: 76,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Text(
+          'Todavía ninguno',
+          style: TextStyle(
+            color: color.withValues(alpha: 0.85),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -315,17 +533,15 @@ class _Aviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(36),
-        child: Text(
-          texto,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 19,
-            height: 1.5,
-          ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
+      child: Text(
+        texto,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 18,
+          height: 1.5,
         ),
       ),
     );
@@ -351,8 +567,13 @@ class TarjetaColeccion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (nouns.isEmpty) return const SizedBox.shrink();
-    final ultimo = catalogo.desdeCodigo(nouns.first.codigo);
+    // También sin dibujos, y con el mismo sitio y el mismo tamaño. Escondida
+    // hasta el primer premio, el niño que aún no ha ganado ninguno —o el padre
+    // que acaba de dar de alta a otro hijo— no tiene por dónde entrar a ver
+    // qué es esto, y hay que hacerse un día entero de deberes para enterarse.
+    final ultimo = nouns.isEmpty
+        ? null
+        : catalogo.desdeCodigo(nouns.first.codigo);
 
     return InkWell(
       borderRadius: BorderRadius.circular(Tema.radio),
@@ -365,7 +586,22 @@ class TarjetaColeccion extends StatelessWidget {
         child: Row(
           children: [
             if (ultimo != null)
-              VistaNoun(noun: ultimo, catalogo: catalogo, lado: 52, radio: 10),
+              VistaNoun(noun: ultimo, catalogo: catalogo, lado: 52, radio: 10)
+            else
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Tema.logroSuave,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.card_giftcard,
+                  color: Tema.logro,
+                  size: 26,
+                ),
+              ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -377,7 +613,11 @@ class TarjetaColeccion extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    nouns.length == 1 ? '1 dibujo' : '${nouns.length} dibujos',
+                    switch (nouns.length) {
+                      0 => 'Mira lo que puedes ganar',
+                      1 => '1 dibujo',
+                      final cuantos => '$cuantos dibujos',
+                    },
                     style: const TextStyle(
                       fontSize: 15,
                       color: Tema.tintaSuave,
