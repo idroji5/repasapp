@@ -5,13 +5,15 @@ import '../../datos/modelos.dart';
 import '../../dominio/coleccion.dart';
 import '../../estado.dart';
 import '../tema.dart';
+import '../widgets/cromo.dart';
 import '../widgets/noun.dart';
+import '../widgets/sala.dart';
 
-/// La colección del niño.
+/// El álbum de cromos del niño.
 ///
-/// Es la única pantalla de la app que no es papel y tinta, y lo es a
-/// propósito: el premio consiste precisamente en salir de la calma del
-/// cuaderno. Al trabajo no le sobra ni un color; aquí sí.
+/// Cuatro páginas, de la más rara a la más común, y en cada hueco el cromo
+/// entero: sus cinco características se leen sin sacarlo del álbum, que es lo
+/// que se compara cuando dos niños los ponen uno al lado del otro.
 class PantallaColeccion extends StatefulWidget {
   const PantallaColeccion({super.key, required this.nino});
 
@@ -51,30 +53,37 @@ class _PantallaColeccionState extends State<PantallaColeccion> {
     final nouns = _nouns;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1420),
-      appBar: AppBar(
-        title: const Text('Mi colección'),
-        backgroundColor: const Color(0xFF1A1420),
-        foregroundColor: Colors.white,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SafeArea(
-        child: switch ((nouns, catalogo)) {
-          (null, _) => const Center(child: CircularProgressIndicator()),
-          (_, null) => const _Aviso('No he podido cargar los dibujos.'),
-          (final lista?, final cat?) => _Album(
-            nouns: lista,
-            catalogo: cat,
-            orden: _orden,
-            onOrden: (orden) => setState(() => _orden = orden),
-            onTocar: (guardado, noun) => _abrirFicha(cat, guardado, noun),
+      backgroundColor: Sala.fondo,
+      body: Stack(
+        children: [
+          // Sin aura: en el álbum la luz la ponen los cromos.
+          const Sala(),
+          SafeArea(
+            child: Column(
+              children: [
+                const _Barra(),
+                Expanded(
+                  child: switch ((nouns, catalogo)) {
+                    (null, _) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    (_, null) => const _Aviso(
+                      'No he podido cargar los cromos.',
+                    ),
+                    (final lista?, final cat?) => _Album(
+                      nouns: lista,
+                      catalogo: cat,
+                      orden: _orden,
+                      onOrden: (orden) => setState(() => _orden = orden),
+                      onTocar: (guardado, noun) =>
+                          _abrirFicha(cat, guardado, noun),
+                    ),
+                  },
+                ),
+              ],
+            ),
           ),
-        },
+        ],
       ),
     );
   }
@@ -82,12 +91,40 @@ class _PantallaColeccionState extends State<PantallaColeccion> {
   void _abrirFicha(CatalogoNouns catalogo, NounGuardado guardado, Noun noun) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF2A2334),
+      backgroundColor: Sala.panel,
       showDragHandle: true,
       builder: (_) =>
           _Ficha(guardado: guardado, noun: noun, catalogo: catalogo),
     );
   }
+}
+
+class _Barra extends StatelessWidget {
+  const _Barra();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.chevron_left_rounded, size: 30),
+          color: Colors.white,
+          tooltip: 'Volver',
+        ),
+        const Text(
+          'Mi álbum',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Album extends StatelessWidget {
@@ -114,271 +151,139 @@ class _Album extends StatelessWidget {
       porRareza[n.rareza]!.add(n);
     }
 
-    // Un álbum vacío se abre igual, con sus cuatro páginas por estrenar. Es
-    // media gracia de tener uno: ver lo que falta antes de tenerlo.
-    final vacio = nouns.isEmpty;
-
     return CustomScrollView(
       slivers: [
-        if (vacio)
+        SliverToBoxAdapter(
+          child: _Resumen(total: nouns.length, porRareza: porRareza),
+        ),
+        SliverToBoxAdapter(
+          child: _Segmentado(orden: orden, onOrden: onOrden),
+        ),
+
+        if (nouns.isEmpty)
           const SliverToBoxAdapter(
             child: _Aviso(
-              'Todavía no tienes ninguno.\n'
-              'Termina las tres actividades de un día y te llevas uno.',
+              'Termina las tres actividades de un día\ny te llevas el primero.',
             ),
-          )
-        else ...[
-          SliverToBoxAdapter(
-            child: _Resumen(nouns: nouns, porRareza: porRareza),
           ),
-          SliverToBoxAdapter(child: _Selector(orden: orden, onOrden: onOrden)),
-        ],
-        if (!vacio && orden == _Orden.fecha)
-          _rejilla(nouns)
+
+        if (orden == _Orden.fecha)
+          ..._paginaSuelta(nouns)
         else
           // De la más rara a la más común. Un álbum se abre por la página que
           // uno quiere enseñar, no por la que tiene repetida.
           for (final rareza in Rareza.values.reversed) ...[
             SliverToBoxAdapter(
-              child: _Cabecera(
+              child: _CabeceraPagina(
                 rareza: rareza,
                 cuantos: porRareza[rareza]!.length,
-                unoDeCada: catalogo.unoDeCada(rareza),
               ),
             ),
             if (porRareza[rareza]!.isEmpty)
-              SliverToBoxAdapter(child: _Hueco(rareza))
+              SliverToBoxAdapter(child: _Huecos(rareza))
             else
-              _rejilla(porRareza[rareza]!),
+              ..._paginaSuelta(porRareza[rareza]!),
           ],
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
       ],
     );
   }
 
-  Widget _rejilla(List<NounGuardado> lista) => SliverPadding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-    sliver: SliverGrid.builder(
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 130,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-      ),
-      itemCount: lista.length,
-      itemBuilder: (contexto, i) {
-        final guardado = lista[i];
-        final noun = catalogo.desdeCodigo(guardado.codigo);
-        if (noun == null) return const SizedBox.shrink();
-        return _Casilla(
-          guardado: guardado,
-          noun: noun,
-          catalogo: catalogo,
-          onTocar: () => onTocar(guardado, noun),
-        );
-      },
-    ),
-  );
-}
-
-/// Cuántos llevas y cuántos de los buenos: la mitad de la gracia de tener una
-/// colección.
-class _Resumen extends StatelessWidget {
-  const _Resumen({required this.nouns, required this.porRareza});
-
-  final List<NounGuardado> nouns;
-  final Map<Rareza, List<NounGuardado>> porRareza;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-      child: Row(
-        children: [
-          Text(
-            nouns.length == 1 ? '1 dibujo' : '${nouns.length} dibujos',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 19,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 12),
-          // En Wrap y no en Row: con las cuatro rarezas y un número de tres
-          // cifras, una fila se sale de un móvil estrecho.
-          Expanded(
-            child: Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 12,
-              runSpacing: 4,
+  /// Los cromos de a dos.
+  ///
+  /// En filas y no en rejilla: un cromo mide lo que miden sus cinco
+  /// características, y una rejilla con proporción fija o los recorta o deja
+  /// un hueco debajo de cada uno.
+  List<Widget> _paginaSuelta(List<NounGuardado> lista) {
+    final filas = <Widget>[];
+    for (var i = 0; i < lista.length; i += 2) {
+      final pareja = lista.skip(i).take(2).toList();
+      filas.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final rareza in Rareza.values.reversed)
-                  if (porRareza[rareza]!.isNotEmpty)
-                    _Cuenta(rareza, porRareza[rareza]!.length),
+                for (final (j, guardado) in pareja.indexed) ...[
+                  if (j > 0) const SizedBox(width: 12),
+                  Expanded(
+                    child: _Casilla(
+                      guardado: guardado,
+                      catalogo: catalogo,
+                      onTocar: onTocar,
+                    ),
+                  ),
+                ],
+                // Un cromo impar no se estira a lo ancho de la página: se
+                // queda del tamaño de los demás, con su hueco al lado.
+                if (pareja.length == 1) ...[
+                  const SizedBox(width: 12),
+                  const Spacer(),
+                ],
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Los dos órdenes del álbum.
-class _Selector extends StatelessWidget {
-  const _Selector({required this.orden, required this.onOrden});
-
-  final _Orden orden;
-  final ValueChanged<_Orden> onOrden;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-      // A medias y no cada una a su ancho: así las dos son igual de grandes y
-      // de fáciles de acertar, y ninguna se sale en un móvil estrecho.
-      child: Row(
-        children: [
-          Expanded(
-            child: _Pestana(
-              texto: 'Por rareza',
-              activa: orden == _Orden.rareza,
-              onTocar: () => onOrden(_Orden.rareza),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _Pestana(
-              texto: 'Por fecha',
-              activa: orden == _Orden.fecha,
-              onTocar: () => onOrden(_Orden.fecha),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Pestana extends StatelessWidget {
-  const _Pestana({
-    required this.texto,
-    required this.activa,
-    required this.onTocar,
-  });
-
-  final String texto;
-  final bool activa;
-  final VoidCallback onTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTocar,
-      // La zona de toque llega a los 44 puntos de alto aunque la píldora mida
-      // menos: un dedo de siete años no apunta tan fino.
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 44,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(
-          color: activa ? Colors.white : Colors.white10,
-          borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(
-          texto,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: activa ? const Color(0xFF1A1420) : Colors.white70,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+      );
+    }
+    return filas;
+  }
+}
+
+/// Cuántos llevas y cuántos de los buenos: es lo primero que se mira.
+class _Resumen extends StatelessWidget {
+  const _Resumen({required this.total, required this.porRareza});
+
+  final int total;
+  final Map<Rareza, List<NounGuardado>> porRareza;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          '$total',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.6,
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// La cabecera de una página del álbum.
-class _Cabecera extends StatelessWidget {
-  const _Cabecera({
-    required this.rareza,
-    required this.cuantos,
-    required this.unoDeCada,
-  });
-
-  final Rareza rareza;
-  final int cuantos;
-  final int unoDeCada;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-      child: Row(
-        children: [
-          SelloRareza(rareza),
-          const SizedBox(width: 10),
-          Text(
-            '$cuantos',
+        const SizedBox(width: 5),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Text(
+            total == 1 ? 'cromo' : 'cromos',
             style: TextStyle(
-              color: colorDeRareza(rareza),
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const Spacer(),
-          // "1 de cada 1" no es un dato, así que del normal no se dice nada.
-          if (rareza != Rareza.normal)
-            Flexible(
-              child: Text(
-                '1 de cada $unoDeCada',
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white38, fontSize: 14),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Una página del álbum todavía sin estrenar.
-///
-/// El hueco se enseña en lugar de esconder la página: un álbum sin sitios
-/// vacíos no da ninguna gana de seguir.
-class _Hueco extends StatelessWidget {
-  const _Hueco(this.rareza);
-
-  final Rareza rareza;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = colorDeRareza(rareza);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Container(
-        height: 76,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
-        child: Text(
-          'Todavía ninguno',
-          style: TextStyle(
-            color: color.withValues(alpha: 0.85),
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 12),
+        // En Wrap y no en Row: con las cuatro rarezas y un número de tres
+        // cifras, una fila se sale de un móvil estrecho.
+        Expanded(
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              for (final rareza in Rareza.values.reversed)
+                if (porRareza[rareza]!.isNotEmpty)
+                  _Cuenta(rareza, porRareza[rareza]!.length),
+            ],
           ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 class _Cuenta extends StatelessWidget {
@@ -390,64 +295,271 @@ class _Cuenta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = colorDeRareza(rareza);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          '$cuantos',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FiguraRareza(rareza, lado: 11),
+          const SizedBox(width: 5),
+          Text(
+            '$cuantos',
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Casilla extends StatelessWidget {
-  const _Casilla({
-    required this.guardado,
-    required this.noun,
-    required this.catalogo,
-    required this.onTocar,
-  });
-
-  final NounGuardado guardado;
-  final Noun noun;
-  final CatalogoNouns catalogo;
-  final VoidCallback onTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = colorDeRareza(guardado.rareza);
-    return GestureDetector(
-      onTap: onTocar,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          // El marco es la rareza. Un niño aprende el código de colores en dos
-          // días y ya no necesita abrir nada para saber cuáles son los buenos.
-          border: Border.all(
-            color: color,
-            width: guardado.rareza == Rareza.normal ? 1 : 3,
-          ),
-        ),
-        padding: const EdgeInsets.all(3),
-        child: VistaNoun(noun: noun, catalogo: catalogo, radio: 12),
+        ],
       ),
     );
   }
 }
 
-/// La ficha de un Noun: cómo se llama, qué es y cuánto cuesta que salga.
+/// Los dos órdenes del álbum, con la pastilla que se desliza.
+class _Segmentado extends StatelessWidget {
+  const _Segmentado({required this.orden, required this.onOrden});
+
+  final _Orden orden;
+  final ValueChanged<_Orden> onOrden;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    child: Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: orden == _Orden.rareza
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              for (final (o, texto) in const [
+                (_Orden.rareza, 'Por rareza'),
+                (_Orden.fecha, 'Por fecha'),
+              ])
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => onOrden(o),
+                    // La zona de toque llega a los 44 puntos de alto: un dedo
+                    // de siete años no apunta tan fino.
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox(
+                      height: 44,
+                      child: Center(
+                        child: Text(
+                          texto,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: orden == o
+                                ? Sala.fondo
+                                : Colors.white.withValues(alpha: 0.65),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// La cabecera de una página del álbum.
+class _CabeceraPagina extends StatelessWidget {
+  const _CabeceraPagina({required this.rareza, required this.cuantos});
+
+  final Rareza rareza;
+  final int cuantos;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorDeRareza(rareza);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: color),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FiguraRareza(rareza, lado: 12),
+                const SizedBox(width: 5),
+                Text(
+                  rareza.etiqueta,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$cuantos',
+            style: TextStyle(
+              color: color,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 10),
+          // La costura de la página: cierra la cabecera sin meter una línea a
+          // todo lo ancho, que partiría el álbum en trozos.
+          Expanded(
+            child: Container(height: 1, color: color.withValues(alpha: 0.28)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Los huecos de una página sin estrenar.
+///
+/// Se enseñan a propósito, en lugar de esconder la página: un álbum donde solo
+/// salen las páginas llenas es un resumen, y lo que da ganas de seguir es ver
+/// lo que falta.
+class _Huecos extends StatelessWidget {
+  const _Huecos(this.rareza);
+
+  final Rareza rareza;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorDeRareza(rareza);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          for (var i = 0; i < 2; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(
+              child: CustomPaint(
+                painter: _BordeDePuntos(color.withValues(alpha: 0.4)),
+                child: SizedBox(
+                  height: 112,
+                  child: Center(
+                    child: Text(
+                      '?',
+                      style: TextStyle(
+                        color: color.withValues(alpha: 0.7),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Un borde de puntos. Flutter no trae discontinuos, y un borde entero
+/// convierte el hueco en una tarjeta vacía en lugar de en un sitio por llenar.
+class _BordeDePuntos extends CustomPainter {
+  const _BordeDePuntos(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas lienzo, Size tamano) {
+    final pincel = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final contorno = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(1, 1, tamano.width - 2, tamano.height - 2),
+          const Radius.circular(14),
+        ),
+      );
+
+    for (final tramo in contorno.computeMetrics()) {
+      var d = 0.0;
+      while (d < tramo.length) {
+        final hasta = (d + 7).clamp(0.0, tramo.length);
+        lienzo.drawPath(tramo.extractPath(d, hasta), pincel);
+        d += 13;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BordeDePuntos anterior) => anterior.color != color;
+}
+
+class _Casilla extends StatelessWidget {
+  const _Casilla({
+    required this.guardado,
+    required this.catalogo,
+    required this.onTocar,
+  });
+
+  final NounGuardado guardado;
+  final CatalogoNouns catalogo;
+  final void Function(NounGuardado, Noun) onTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final noun = catalogo.desdeCodigo(guardado.codigo);
+    if (noun == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => onTocar(guardado, noun),
+      child: Cromo(
+        noun: noun,
+        catalogo: catalogo,
+        pie: _fechaCorta(guardado.dia),
+        pequeno: true,
+      ),
+    );
+  }
+}
+
+/// El cromo en grande, al tocarlo en el álbum.
 class _Ficha extends StatelessWidget {
   const _Ficha({
     required this.guardado,
@@ -461,47 +573,23 @@ class _Ficha extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final raro = noun.rasgoRaroQueExplicar;
-    return Padding(
+    final ancho = MediaQuery.sizeOf(context).width;
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          VistaNoun(noun: noun, catalogo: catalogo, lado: 180, radio: 18),
+          SizedBox(
+            width: (ancho * 0.62).clamp(200.0, 264.0),
+            child: Cromo(noun: noun, catalogo: catalogo, pie: noun.codigo),
+          ),
           const SizedBox(height: 18),
           Text(
-            noun.nombre,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SelloRareza(guardado.rareza, grande: true),
-          if (guardado.rareza != Rareza.normal) ...[
-            const SizedBox(height: 14),
-            Text(
-              'Sale 1 de cada ${catalogo.unoDeCada(guardado.rareza)}',
-              style: const TextStyle(color: Colors.white70, fontSize: 17),
-            ),
-          ],
-          if (raro != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Lo raro: ${raro.nombre}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colorDeRareza(guardado.rareza),
-                fontSize: 16,
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Text(
             'Lo ganaste el ${_fecha(guardado.dia)}',
-            style: const TextStyle(color: Colors.white38, fontSize: 15),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 15,
+            ),
           ),
         ],
       ),
@@ -526,26 +614,28 @@ const _meses = [
 
 String _fecha(DateTime d) => '${d.day} de ${_meses[d.month - 1]}';
 
+/// La fecha que cabe en el pie de un cromo pequeño.
+String _fechaCorta(DateTime d) =>
+    '${d.day} ${_meses[d.month - 1].substring(0, 3)}';
+
 class _Aviso extends StatelessWidget {
   const _Aviso(this.texto);
 
   final String texto;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
-      child: Text(
-        texto,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white70,
-          fontSize: 18,
-          height: 1.5,
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
+    child: Text(
+      texto,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.white.withValues(alpha: 0.7),
+        fontSize: 17,
+        height: 1.5,
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// La tarjeta del pie del plan de hoy: el último que ganó y cuántos lleva.
@@ -567,7 +657,7 @@ class TarjetaColeccion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // También sin dibujos, y con el mismo sitio y el mismo tamaño. Escondida
+    // También sin cromos, y con el mismo sitio y el mismo tamaño. Escondida
     // hasta el primer premio, el niño que aún no ha ganado ninguno —o el padre
     // que acaba de dar de alta a otro hijo— no tiene por dónde entrar a ver
     // qué es esto, y hay que hacerse un día entero de deberes para enterarse.
@@ -608,15 +698,15 @@ class TarjetaColeccion extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Mi colección',
+                    'Mi álbum',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     switch (nouns.length) {
                       0 => 'Mira lo que puedes ganar',
-                      1 => '1 dibujo',
-                      final cuantos => '$cuantos dibujos',
+                      1 => '1 cromo',
+                      final cuantos => '$cuantos cromos',
                     },
                     style: const TextStyle(
                       fontSize: 15,

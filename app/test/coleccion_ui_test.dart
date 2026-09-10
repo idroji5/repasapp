@@ -91,22 +91,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  /// Lo que se ve de verdad.
-  ///
-  /// El nombre está en el árbol desde el principio —hay que reservarle el
-  /// sitio para que al abrirse no salte todo hacia arriba—, así que preguntar
-  /// si existe no dice nada: hay que mirar si es visible.
-  double visibilidadDe(WidgetTester tester, String texto) => tester
-      .widget<AnimatedOpacity>(
-        find
-            .ancestor(
-              of: find.text(texto),
-              matching: find.byType(AnimatedOpacity),
-            )
-            .first,
-      )
-      .opacity;
-
   Future<void> abrirLaCaja(WidgetTester tester) async {
     await tester.tap(find.byType(Sorpresa));
     await tester.pump();
@@ -128,8 +112,9 @@ void main() {
 
     expect(find.text('¡Has terminado el día!'), findsOneWidget);
     expect(find.text('Toca el regalo para abrirlo'), findsOneWidget);
-    expect(visibilidadDe(tester, noun.nombre), 0);
-    expect(visibilidadDe(tester, noun.rareza.etiqueta), 0);
+    // El cromo va dentro de la caja: nada suyo se ve todavía.
+    expect(find.text(catalogo.nombreDe(noun)), findsNothing);
+    expect(find.text(noun.rareza.sello.toUpperCase()), findsNothing);
 
     // Y no se puede salir sin haber visto lo que había dentro.
     await tester.tap(find.text('Listo'), warnIfMissed: false);
@@ -138,42 +123,67 @@ void main() {
 
     await abrirLaCaja(tester);
 
-    expect(find.text('Este es tu dibujo de hoy'), findsOneWidget);
-    expect(visibilidadDe(tester, noun.nombre), 1);
-    expect(visibilidadDe(tester, noun.rareza.etiqueta), 1);
-    expect(find.text('Ver mi colección'), findsOneWidget);
+    expect(find.text('Este es tu cromo de hoy'), findsOneWidget);
+    expect(find.text(catalogo.nombreDe(noun)), findsOneWidget);
+    expect(find.text(noun.rareza.sello.toUpperCase()), findsOneWidget);
+    expect(find.text('Ver mi álbum'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('del normal no se dice cada cuánto sale', (tester) async {
-    // "1 de cada 1" no es un dato. Se busca uno de cada clase en la colección
-    // para comprobar las dos ramas con Nouns de verdad.
+  testWidgets('el cromo lleva sus cinco características, en inglés', (
+    tester,
+  ) async {
+    final guardado = (await repo.nounDeHoy(nino.id))!;
+    final noun = catalogo.desdeCodigo(guardado.codigo)!;
+
+    await abrir(
+      tester,
+      PantallaPremio(nino: nino, noun: noun, catalogo: catalogo),
+    );
+    await abrirLaCaja(tester);
+
+    for (final (capa, etiqueta) in CatalogoNouns.fichaCapas) {
+      expect(find.text(etiqueta.toUpperCase()), findsOneWidget);
+      expect(find.text(noun.rasgos[capa]!.clave), findsOneWidget);
+    }
+    expect(find.text('BACKGROUND'), findsOneWidget);
+    expect(find.text(noun.fondoClave), findsOneWidget);
+    // Y el código, que es lo que se guarda de verdad.
+    expect(find.text(noun.codigo), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('en ningún sitio se dice cada cuánto sale un cromo', (
+    tester,
+  ) async {
+    // La probabilidad no se le enseña al niño. Sigue calculada —es lo que
+    // demuestra que las rarezas son honradas, y `coleccion_test.dart` la
+    // comprueba— pero de un cromo se dice lo que es, no lo que cuesta.
     final coleccion = await repo.coleccion(nino.id);
     Noun deRareza(bool Function(Rareza) cumple) => catalogo.desdeCodigo(
       coleccion.firstWhere((n) => cumple(n.rareza)).codigo,
     )!;
 
-    await abrir(
-      tester,
-      PantallaPremio(
-        nino: nino,
-        noun: deRareza((r) => r == Rareza.normal),
-        catalogo: catalogo,
-      ),
-    );
-    await abrirLaCaja(tester);
-    expect(find.textContaining('Sale 1 de cada'), findsNothing);
+    void nadaDeProbabilidades() {
+      for (final frase in ['de cada', '1 in ', 'Sale ', 'Comes up', 'Sale 1']) {
+        expect(find.textContaining(frase), findsNothing, reason: frase);
+      }
+    }
 
-    final raro = deRareza((r) => r != Rareza.normal);
-    await abrir(
-      tester,
-      PantallaPremio(nino: nino, noun: raro, catalogo: catalogo),
-    );
-    await abrirLaCaja(tester);
-    expect(
-      find.text('Sale 1 de cada ${catalogo.unoDeCada(raro.rareza)}'),
-      findsOneWidget,
-    );
+    for (final noun in [
+      deRareza((r) => r == Rareza.normal),
+      deRareza((r) => r != Rareza.normal),
+    ]) {
+      await abrir(
+        tester,
+        PantallaPremio(nino: nino, noun: noun, catalogo: catalogo),
+      );
+      await abrirLaCaja(tester);
+      nadaDeProbabilidades();
+    }
+
+    await abrir(tester, PantallaColeccion(nino: nino));
+    nadaDeProbabilidades();
     expect(tester.takeException(), isNull);
   });
 
@@ -211,7 +221,8 @@ void main() {
   ) async {
     await abrir(tester, PantallaColeccion(nino: nino));
 
-    expect(find.text('12 dibujos'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('cromos'), findsOneWidget);
     // Doce fichas, aunque en una pantalla pequeña no quepan todas a la vez.
     expect(find.byType(VistaNoun), findsWidgets);
     expect(tester.takeException(), isNull);
@@ -252,7 +263,9 @@ void main() {
         reason: 'la página de ${rareza.etiqueta} dice cuántos lleva',
       );
       if (cuantos == 0) {
-        expect(find.text('Todavía ninguno'), findsWidgets);
+        // Los huecos de una página sin estrenar. Se enseñan a propósito: lo
+        // que da ganas de seguir es ver lo que falta.
+        expect(find.text('?'), findsWidgets);
       }
     }
     expect(tester.takeException(), isNull);
@@ -268,7 +281,8 @@ void main() {
 
     // Sin páginas: una sola rejilla, del más nuevo al más viejo.
     expect(find.text('Especial'), findsNothing);
-    expect(find.text('12 dibujos'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('cromos'), findsOneWidget);
     final primero = tester.widget<VistaNoun>(find.byType(VistaNoun).first);
     expect(primero.noun.codigo, (await repo.nounDeHoy(nino.id))!.codigo);
     expect(tester.takeException(), isNull);
@@ -314,7 +328,7 @@ void main() {
     final (ana, soloElla) = await reciente();
     await abrirCon(tester, soloElla, PantallaColeccion(nino: ana));
 
-    expect(find.textContaining('Todavía no tienes ninguno'), findsOneWidget);
+    expect(find.textContaining('te llevas el primero'), findsOneWidget);
     // Y no se queda ahí: las cuatro páginas están, por estrenar.
     for (final rareza in Rareza.values.reversed) {
       await tester.dragUntilVisible(
@@ -338,12 +352,12 @@ void main() {
       tamano: const Size(720, 2400),
     );
 
-    expect(find.text('Mi colección'), findsOneWidget);
+    expect(find.text('Mi álbum'), findsWidgets);
     expect(find.text('Mira lo que puedes ganar'), findsOneWidget);
 
-    await tester.tap(find.text('Mi colección'));
+    await tester.tap(find.text('Mi álbum').first);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Todavía no tienes ninguno'), findsOneWidget);
+    expect(find.textContaining('te llevas el primero'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

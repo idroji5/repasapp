@@ -18,17 +18,21 @@ import 'noun.dart';
 class Sorpresa extends StatefulWidget {
   const Sorpresa({
     super.key,
-    required this.noun,
     required this.rareza,
-    required this.catalogo,
     required this.lado,
+    required this.dentro,
     this.onAbierta,
   });
 
-  final Noun noun;
   final Rareza rareza;
-  final CatalogoNouns catalogo;
+
+  /// El lado de la caja. Lo que sale de dentro puede ser más alto: un cromo
+  /// con sus cinco características lo es.
   final double lado;
+
+  /// Lo que hay dentro. La caja no sabe qué es: le da igual que sea un cromo,
+  /// y así se puede abrir con cualquier cosa dentro.
+  final Widget dentro;
 
   /// Se llama al empezar a abrirse, para que la pantalla saque el nombre y los
   /// botones cuando toca y no antes.
@@ -82,138 +86,182 @@ class _SorpresaState extends State<Sorpresa> with TickerProviderStateMixin {
 
     return GestureDetector(
       onTap: _abrir,
-      child: SizedBox(
-        width: widget.lado,
-        height: widget.lado,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_apertura, _respiracion]),
-          builder: (contexto, _) {
-            final sacude = _tramo(0, 0.16);
-            final tapa = _tramo(0.14, 0.40, Curves.easeOutCubic);
-            final caja = _tramo(0.14, 0.34);
-            final estallido = _tramo(0.18, 0.62, Curves.easeOutCubic);
-            final sale = _tramo(0.26, 0.72, Curves.easeOutBack);
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_apertura, _respiracion]),
+        builder: (contexto, _) {
+          final sacude = _tramo(0, 0.16);
+          final tapa = _tramo(0.14, 0.40, Curves.easeOutCubic);
+          final caja = _tramo(0.14, 0.34);
+          final estallido = _tramo(0.18, 0.62, Curves.easeOutCubic);
+          final sale = _tramo(0.26, 0.72, Curves.easeOutBack);
 
-            // Tres bandazos y para. Es el "un momento, que va a pasar algo".
-            final vaiven = sacude > 0 && sacude < 1
-                ? sin(sacude * pi * 6) * 0.07 * (1 - sacude)
-                : 0.0;
-            final flotar = _abierta
-                ? 0.0
-                : sin(_respiracion.value * pi) * 4 - 2;
+          // Tres bandazos y para. Es el "un momento, que va a pasar algo".
+          final vaiven = sacude > 0 && sacude < 1
+              ? sin(sacude * pi * 6) * 0.07 * (1 - sacude)
+              : 0.0;
+          final flotar = _abierta ? 0.0 : sin(_respiracion.value * pi) * 4 - 2;
 
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                if (estallido > 0 && estallido < 1)
-                  _Estallido(
-                    avance: estallido,
-                    color: color,
-                    lado: widget.lado,
+          return Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // La sombra del suelo: es lo que hace que la caja esté posada
+              // en algún sitio en vez de flotando sobre un fondo plano.
+              if (caja < 1)
+                Positioned(
+                  bottom: 0,
+                  child: Opacity(
+                    opacity: (1 - caja) * (0.85 + 0.15 * _respiracion.value),
+                    child: Transform.scale(
+                      scaleX: 0.97 + 0.06 * _respiracion.value,
+                      child: _Sombra(ancho: widget.lado * 1.15),
+                    ),
                   ),
+                ),
 
-                if (sale > 0)
-                  Transform.scale(
-                    scale: sale,
+              if (estallido > 0 && estallido < 1)
+                _Estallido(avance: estallido, color: color, lado: widget.lado),
+
+              if (sale > 0)
+                Transform.scale(
+                  scale: sale,
+                  child: Opacity(
+                    opacity: _tramo(0.26, 0.42).clamp(0.0, 1.0),
+                    child: widget.dentro,
+                  ),
+                ),
+
+              if (caja < 1)
+                Transform.translate(
+                  offset: Offset(0, flotar),
+                  child: Transform.rotate(
+                    angle: vaiven,
                     child: Opacity(
-                      opacity: _tramo(0.26, 0.42).clamp(0.0, 1.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(26),
-                          border: Border.all(color: color, width: 4),
-                        ),
-                        child: VistaNoun(
-                          noun: widget.noun,
-                          catalogo: widget.catalogo,
-                          lado: widget.lado - 18,
-                          radio: 22,
-                        ),
+                      opacity: 1 - caja,
+                      child: CustomPaint(
+                        size: Size.square(widget.lado),
+                        painter: const _PintorCaja(tapa: false),
                       ),
                     ),
                   ),
+                ),
 
-                if (caja < 1)
-                  Transform.translate(
-                    offset: Offset(0, flotar),
-                    child: Transform.rotate(
-                      angle: vaiven,
-                      child: Opacity(
-                        opacity: 1 - caja,
-                        child: CustomPaint(
-                          size: Size.square(widget.lado),
-                          painter: const _PintorCaja(tapa: false),
-                        ),
+              // La tapa sale disparada hacia arriba girando.
+              if (tapa < 1)
+                Transform.translate(
+                  offset: Offset(0, flotar - tapa * widget.lado * 0.9),
+                  child: Transform.rotate(
+                    angle: vaiven + tapa * 0.7,
+                    child: Opacity(
+                      opacity: 1 - tapa * tapa,
+                      child: CustomPaint(
+                        size: Size.square(widget.lado),
+                        painter: const _PintorCaja(tapa: true),
                       ),
                     ),
                   ),
-
-                // La tapa sale disparada hacia arriba girando.
-                if (tapa < 1)
-                  Transform.translate(
-                    offset: Offset(0, flotar - tapa * widget.lado * 0.9),
-                    child: Transform.rotate(
-                      angle: vaiven + tapa * 0.7,
-                      child: Opacity(
-                        opacity: 1 - tapa * tapa,
-                        child: CustomPaint(
-                          size: Size.square(widget.lado),
-                          painter: const _PintorCaja(tapa: true),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-/// La caja, dibujada a cuadros gordos para que pegue con los Nouns.
+/// La sombra del suelo, difuminada a mano.
 ///
-/// Se pinta en dos pasadas —tapa y cuerpo por separado— porque la tapa tiene
-/// que poder salir volando sin llevarse la caja con ella.
+/// Un `BoxShadow` no vale: pinta la sombra de una caja, y aquí hace falta la
+/// mancha sola, sin caja encima.
+class _Sombra extends StatelessWidget {
+  const _Sombra({required this.ancho});
+
+  final double ancho;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: ancho,
+    height: ancho * 0.13,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.all(Radius.elliptical(ancho, ancho * 0.13)),
+      gradient: RadialGradient(
+        colors: [Colors.black.withValues(alpha: 0.55), Colors.transparent],
+        stops: const [0.35, 1],
+      ),
+    ),
+  );
+}
+
+/// La caja, rectángulo a rectángulo sobre una rejilla de 16.
+///
+/// Son los mismos rectángulos del diseño, con las mismas coordenadas: el lazo
+/// es una cinta de verdad, con sus dos bucles y su nudo, y eso no sale de
+/// cuatro cuadrados grandes. Se pinta en dos pasadas —tapa y cuerpo por
+/// separado— porque la tapa tiene que poder salir volando sin llevarse la caja
+/// con ella.
 class _PintorCaja extends CustomPainter {
   const _PintorCaja({required this.tapa});
 
   final bool tapa;
 
-  static const _tinta = Color(0xFF1A1420);
-  static const _lazo = Color(0xFFC33246);
-  static const _lazoOscuro = Color(0xFF7A1E2B);
-  static const _papel = Color(0xFFF2E9DC);
-  static const _papelOscuro = Color(0xFFD9CBB6);
+  /// (x, y, ancho, alto, color) en la rejilla de 16.
+  static const List<(double, double, double, double, Color)> _cuerpo = [
+    (1.2, 6.9, 13.6, 8.9, Color(0xFF1A1420)),
+    (1.6, 7.3, 12.8, 8.1, Color(0xFFF2E9DC)),
+    (1.6, 13.6, 12.8, 1.8, Color(0xFFD9CBB6)),
+    (6.6, 6.9, 2.8, 8.9, Color(0xFF1A1420)),
+    (7.0, 7.3, 2.0, 8.1, Color(0xFFC33246)),
+  ];
+
+  static const List<(double, double, double, double, Color)> _tapa = [
+    (0.2, 3.6, 15.6, 3.8, Color(0xFF1A1420)),
+    (0.6, 4.0, 14.8, 3.0, Color(0xFFF2E9DC)),
+    (0.6, 6.2, 14.8, 0.8, Color(0xFFD9CBB6)),
+    (6.6, 3.6, 2.8, 3.8, Color(0xFF1A1420)),
+    (7.0, 4.0, 2.0, 3.0, Color(0xFFC33246)),
+    (2.6, -0.1, 2.7, 1.35, Color(0xFF1A1420)),
+    (2.6, 0.45, 3.5, 1.35, Color(0xFF1A1420)),
+    (2.9, 1.0, 3.9, 1.35, Color(0xFF1A1420)),
+    (3.6, 1.55, 4.0, 1.35, Color(0xFF1A1420)),
+    (4.8, 2.1, 2.8, 1.35, Color(0xFF1A1420)),
+    (10.7, -0.1, 2.7, 1.35, Color(0xFF1A1420)),
+    (9.9, 0.45, 3.5, 1.35, Color(0xFF1A1420)),
+    (9.2, 1.0, 3.9, 1.35, Color(0xFF1A1420)),
+    (8.4, 1.55, 4.0, 1.35, Color(0xFF1A1420)),
+    (8.4, 2.1, 2.8, 1.35, Color(0xFF1A1420)),
+    (3.0, 0.3, 1.9, 0.55, Color(0xFFC33246)),
+    (3.0, 0.85, 2.7, 0.55, Color(0xFFC33246)),
+    (3.3, 1.4, 3.1, 0.55, Color(0xFFC33246)),
+    (4.0, 1.95, 3.2, 0.55, Color(0xFFC33246)),
+    (5.2, 2.5, 2.0, 0.55, Color(0xFFC33246)),
+    (11.1, 0.3, 1.9, 0.55, Color(0xFFC33246)),
+    (10.3, 0.85, 2.7, 0.55, Color(0xFFC33246)),
+    (9.6, 1.4, 3.1, 0.55, Color(0xFFC33246)),
+    (8.8, 1.95, 3.2, 0.55, Color(0xFFC33246)),
+    (8.8, 2.5, 2.0, 0.55, Color(0xFFC33246)),
+    (3.9, 0.95, 1.3, 0.85, Color(0xFF1A1420)),
+    (10.8, 0.95, 1.3, 0.85, Color(0xFF1A1420)),
+    (6.5, 1.5, 3.0, 2.3, Color(0xFF1A1420)),
+    (6.9, 1.9, 2.2, 1.5, Color(0xFF9E2537)),
+    (5.8, 2.9, 2.0, 1.3, Color(0xFF1A1420)),
+    (5.1, 3.3, 1.9, 1.3, Color(0xFF1A1420)),
+    (8.2, 2.9, 2.0, 1.3, Color(0xFF1A1420)),
+    (9.0, 3.3, 1.9, 1.3, Color(0xFF1A1420)),
+    (6.2, 3.3, 1.2, 0.5, Color(0xFFC33246)),
+    (5.5, 3.7, 1.1, 0.5, Color(0xFFC33246)),
+    (8.6, 3.3, 1.2, 0.5, Color(0xFFC33246)),
+    (9.4, 3.7, 1.1, 0.5, Color(0xFFC33246)),
+  ];
 
   @override
   void paint(Canvas lienzo, Size tamano) {
-    // Todo se mide en una rejilla de 16, así que los bordes caen siempre en
-    // el mismo sitio y no salen píxeles a medias.
     final u = tamano.width / 16;
-    final borde = u * 0.5;
-
-    void bloque(double x, double y, double ancho, double alto, Color color) {
-      final caja = Rect.fromLTWH(x * u, y * u, ancho * u, alto * u);
-      lienzo.drawRect(caja.inflate(borde), Paint()..color = _tinta);
-      lienzo.drawRect(caja, Paint()..color = color);
+    for (final (x, y, ancho, alto, color) in tapa ? _tapa : _cuerpo) {
+      lienzo.drawRect(
+        Rect.fromLTWH(x * u, y * u, ancho * u, alto * u),
+        Paint()..color = color,
+      );
     }
-
-    if (tapa) {
-      // El lazo: dos bucles y el nudo en medio. Sin el nudo se quedaba en dos
-      // cuadrados rojos flotando encima de una caja.
-      bloque(2.5, 0.5, 4, 3.5, _lazo);
-      bloque(9.5, 0.5, 4, 3.5, _lazo);
-      bloque(6.5, 2, 3, 2.5, _lazoOscuro);
-      bloque(0.5, 4.5, 15, 3.5, _papel);
-      bloque(6.5, 4.5, 3, 3.5, _lazo); // la cinta cruzando la tapa
-      return;
-    }
-
-    bloque(1.5, 8, 13, 7.5, _papel);
-    bloque(1.5, 13.5, 13, 2, _papelOscuro); // el canto de abajo, en sombra
-    bloque(6.5, 8, 3, 7.5, _lazo); // la cinta bajando por delante
   }
 
   @override

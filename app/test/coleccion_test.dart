@@ -46,7 +46,7 @@ void main() {
       expect(vuelta, isNotNull);
       expect(vuelta!.codigo, noun.codigo);
       expect(vuelta.rareza, noun.rareza);
-      expect(vuelta.nombre, noun.nombre);
+      expect(catalogo.nombreDe(vuelta), catalogo.nombreDe(noun));
     }
   });
 
@@ -140,16 +140,69 @@ void main() {
           .map((r) => r.rareza.index)
           .reduce((a, b) => a > b ? a : b);
       expect(noun.rareza.index, masRaro);
-      // Y si no es normal se puede decir por qué, que es lo que se enseña.
-      expect(
-        noun.rasgoRaro?.rareza,
-        noun.rareza == Rareza.normal ? null : noun.rareza,
-      );
-      // Y no se repite el nombre: si lo raro es la cabeza, no hay nada que
-      // explicar porque la cabeza ya es el nombre del Noun.
-      if (noun.rasgoRaroQueExplicar case final explicar?) {
-        expect(explicar.nombre, isNot(noun.nombre));
-      }
+    }
+  });
+
+  // ---------------------------------------------- el nombre del cromo ---
+
+  test('el nombre sale de los rasgos y de nada más', () {
+    final azar = Random(11);
+    for (var i = 0; i < 200; i++) {
+      final noun = catalogo.tirar(azar);
+      final nombre = catalogo.nombreDe(noun);
+
+      // Una palabra, no un código: es lo que hace que se pueda decir en voz
+      // alta y cambiar en el patio.
+      expect(nombre, matches(RegExp(r'^[A-Z][a-z]{7}$')), reason: nombre);
+      // Y siempre el mismo para los mismos rasgos, hoy y en marzo.
+      expect(catalogo.nombreDe(catalogo.desdeCodigo(noun.codigo)!), nombre);
+    }
+  });
+
+  test('no hay dos cromos distintos con el mismo nombre', () {
+    // Es la promesa fuerte, así que se comprueba sobre los cromos reales y no
+    // sobre los índices: 60.000 combinaciones distintas, 60.000 nombres.
+    final azar = Random(2026);
+    final codigos = <String>{};
+    while (codigos.length < 60000) {
+      codigos.add(catalogo.tirar(azar).codigo);
+    }
+    final nombres = {
+      for (final c in codigos) catalogo.nombreDe(catalogo.desdeCodigo(c)!),
+    };
+    expect(nombres, hasLength(codigos.length));
+  });
+
+  test('dos cromos casi iguales no tienen nombres casi iguales', () {
+    // El mismo Noun con los dos fondos de Nouns. Si el número se convirtiera
+    // en sílabas sin barajarlo antes, saldrían dos palabras que solo se
+    // diferencian en la última letra, y el nombre dejaría de servir para
+    // distinguirlos de un vistazo.
+    final uno = catalogo.desdeCodigo('0-9-102-4-11')!;
+    final otro = catalogo.desdeCodigo('1-9-102-4-11')!;
+    final a = catalogo.nombreDe(uno);
+    final b = catalogo.nombreDe(otro);
+    expect(a, isNot(b));
+    final iguales = [
+      for (var i = 0; i < 8; i++)
+        if (a[i] == b[i]) i,
+    ];
+    expect(iguales, hasLength(lessThan(4)), reason: '$a / $b');
+  });
+
+  test('el cromo saca sus colores del propio dibujo', () {
+    final azar = Random(5);
+    for (var i = 0; i < 50; i++) {
+      final noun = catalogo.tirar(azar);
+      final vivo = catalogo.colorVivoDe(noun);
+      final fondo = catalogo.colorDeFondo(noun);
+
+      // La banda del título va del color que manda en el dibujo, y ese no
+      // puede ser el del fondo: la banda se perdería contra el paspartú.
+      expect(vivo, isNot(fondo));
+      expect(vivo, inInclusiveRange(0, 0xFFFFFF));
+      // Y siempre el mismo, que si no la banda cambia de color entre arranques.
+      expect(catalogo.colorVivoDe(catalogo.desdeCodigo(noun.codigo)!), vivo);
     }
   });
 

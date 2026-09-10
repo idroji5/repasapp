@@ -77,6 +77,26 @@ gafas—, no los accesorios, que son estampados de camiseta.
 | Extra raro | 1 de cada 12 | cada dos semanas |
 | Especial | 1 de cada 50 | cada mes y medio |
 
+Esa columna del medio **no se le enseña al niño en ningún sitio**. De un cromo
+se dice lo que es, no lo que cuesta: un número al lado del nombre lo convierte
+en una cotización. Se sigue calculando porque es lo que demuestra que las
+cuatro categorías son honradas.
+
+## El nombre de cada cromo
+
+Nouns no pone nombre a los suyos: se llaman "Noun 1042". Un número no se dice
+en voz alta ni se cambia en el patio, así que cada cromo tiene el suyo:
+**Kadavuyu, Munumoga, Vinemano, Prepepodo.**
+
+Sale de sus cinco rasgos y de nada más, y no hay dos cromos que compartan uno.
+El número del cromo se escribe en base 85 —17 consonantes por 5 vocales,
+cuatro sílabas— porque 85⁴ = 52.200.625 y cromos hay 50.124.360.
+
+Antes de convertirlo se multiplica por 3¹⁷, que sigue siendo una biyección
+porque no comparte factores con 85⁴ = 5⁴·17⁴. Sin ese paso, dos cromos que
+solo se diferencian en el fondo salen con palabras casi idénticas y el nombre
+deja de servir para distinguirlos de un vistazo.
+
 Los números están elegidos por lo que se le acaba diciendo al niño. Un reparto
 más generoso daba "raro: 1 de cada 3", y una palabra que significa "casi
 siempre" no vale para nada.
@@ -89,10 +109,13 @@ no se estima: `herramientas/generar.py --estadisticas` compara la fórmula con
 
 | Dónde | Qué |
 |---|---|
-| `lib/dominio/coleccion.dart` | El arte, el sorteo y las rarezas |
+| `lib/dominio/coleccion.dart` | El arte, el sorteo, las rarezas y el nombre de cada cromo |
+| `lib/ui/widgets/cromo.dart` | El cromo: marco, sello y sus cinco características |
+| `lib/ui/widgets/sala.dart` | El cuarto oscuro: la rejilla y el foco de la rareza |
 | `lib/datos/repositorio.dart` | `premioDelDia`, `nounDeHoy`, `coleccion` |
 | `lib/datos/bd.dart` | La tabla `nouns` y la migración de la v1 |
 | `lib/ui/widgets/noun.dart` | Dibujar un Noun |
+| `lib/ui/widgets/sorpresa.dart` | La caja que hay que abrir |
 | `lib/ui/pantallas/premio.dart` | El premio, al acabar el día |
 | `lib/ui/pantallas/coleccion.dart` | El álbum |
 

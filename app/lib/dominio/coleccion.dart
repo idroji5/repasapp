@@ -14,15 +14,24 @@ import 'dart:typed_data';
 /// `assets/nouns/catalogo.json`, que genera `characters/herramientas/`.
 
 enum Rareza {
-  normal('normal', 'Normal'),
-  raro('raro', 'Raro'),
-  extraRaro('extra_raro', 'Extra raro'),
-  especial('especial', 'Especial');
+  normal('normal', 'Normal', 'Normal'),
+  raro('raro', 'Raro', 'Rare'),
+  extraRaro('extra_raro', 'Extra raro', 'Extra rare'),
+  especial('especial', 'Especial', 'Special');
 
-  const Rareza(this.clave, this.etiqueta);
+  const Rareza(this.clave, this.etiqueta, this.sello);
 
   final String clave;
+
+  /// Como se dice en la app, que está en castellano.
   final String etiqueta;
+
+  /// Como va impreso en el cromo.
+  ///
+  /// El cromo va en inglés a propósito, con los rasgos tal y como los nombra
+  /// Nouns: es lo que hace que parezca un cromo de una colección de verdad y
+  /// no una ficha traducida.
+  final String sello;
 
   static Rareza porClave(String clave) =>
       values.firstWhere((r) => r.clave == clave, orElse: () => Rareza.normal);
@@ -65,23 +74,8 @@ class Noun {
       .map((r) => r.rareza)
       .reduce((a, b) => a.index >= b.index ? a : b);
 
-  /// La cabeza le da nombre: es lo que un niño mira y dice en voz alta.
-  String get nombre => rasgos['heads']!.nombre;
-
-  /// Qué rasgo lo hace raro, para poder explicarlo. Null si es normal.
-  Rasgo? get rasgoRaro {
-    if (rareza == Rareza.normal) return null;
-    return rasgos.values.firstWhere((r) => r.rareza == rareza);
-  }
-
-  /// Lo mismo, pero callándose cuando lo raro es la cabeza.
-  ///
-  /// La cabeza ya le da nombre al Noun, así que poner "Lo raro: cebra" debajo
-  /// de un dibujo que se llama "cebra" no explica nada.
-  Rasgo? get rasgoRaroQueExplicar {
-    final raro = rasgoRaro;
-    return identical(raro, rasgos['heads']) ? null : raro;
-  }
+  /// Cool o warm: los dos únicos fondos que tiene Nouns.
+  String get fondoClave => fondo == 0 ? 'cool' : 'warm';
 }
 
 class CatalogoNouns {
@@ -113,11 +107,47 @@ class CatalogoNouns {
 
   static const int lado = 32;
 
+  /// El orden en que se leen los rasgos en el cromo, y cómo se llaman.
+  ///
+  /// No es el orden de pintado: en el cromo manda la cabeza, que es lo que se
+  /// mira primero, y el fondo va al final porque es lo que menos distingue a
+  /// un cromo de otro.
+  static const List<(String, String)> fichaCapas = [
+    ('heads', 'Head'),
+    ('glasses', 'Glasses'),
+    ('bodies', 'Body'),
+    ('accessories', 'Accessory'),
+  ];
+
+  // --- el nombre del cromo -------------------------------------------------
+  //
+  // Nouns no pone nombre a los suyos: se llaman "Noun 1042". Un número no se
+  // dice en voz alta ni se cambia en el patio, así que cada cromo tiene aquí
+  // una palabra inventada.
+  //
+  // Sale de sus cinco rasgos y de nada más: los mismos rasgos dan siempre el
+  // mismo nombre, y no hay dos cromos distintos que compartan uno. Se
+  // consigue escribiendo el número del cromo en base 85 —17 consonantes por 5
+  // vocales, cuatro sílabas— porque 85^4 = 52.200.625 y cromos hay 50.124.360,
+  // así que caben todos con sitio de sobra.
+  static const String _consonantes = 'bcdfgjklmnprstvyz';
+  static const String _vocales = 'aeiou';
+  static const int _silabas = 85; // 17 x 5
+  static const int _espacioNombres = 52200625; // 85^4
+
+  /// Baraja el número antes de convertirlo en sílabas.
+  ///
+  /// Sin esto, dos cromos que solo se diferencian en el fondo salen con
+  /// nombres casi idénticos, y el nombre deja de servir para distinguirlos de
+  /// un vistazo. Multiplicar por 3^17 los reparte por todo el abecedario y
+  /// sigue siendo una biyección: 3^17 no comparte factores con 85^4 = 5^4·17^4.
+  static const int _mezclador = 129140163; // 3^17
+
   final int fondos;
   final Map<String, List<Rasgo>> rasgos;
 
-  /// Cada cuánto sale cada rareza. Es el "1 de cada 41" que se le enseña al
-  /// niño, y se calcula, no se estima a ojo.
+  /// Cada cuánto sale cada rareza, calculado y no estimado a ojo. Es lo que
+  /// permite comprobar que el sorteo hace lo que promete.
   final Map<Rareza, double> probabilidades;
 
   final List<String> _paleta;
@@ -212,7 +242,12 @@ class CatalogoNouns {
     return fuera;
   }
 
-  /// "1 de cada 41".
+  /// "1 de cada 50".
+  ///
+  /// No se le enseña al niño: de un cromo se dice lo que es, no lo que cuesta,
+  /// y un número al lado del nombre lo convierte en una cotización. Se sigue
+  /// calculando porque es lo que demuestra que las cuatro rarezas son
+  /// honradas, y `coleccion_test.dart` lo comprueba contra el sorteo.
   int unoDeCada(Rareza rareza) {
     final p = probabilidades[rareza] ?? 0;
     return p <= 0 ? 0 : (1 / p).round();
@@ -264,6 +299,76 @@ class CatalogoNouns {
       elegidos[capas[i]] = rasgo;
     }
     return Noun(fondo: fondo, rasgos: elegidos);
+  }
+
+  /// El número del cromo: uno distinto para cada combinación de rasgos.
+  ///
+  /// Se cuenta sobre TODOS los rasgos que tiene el arte de Nouns, no sobre los
+  /// que el catálogo deja pasar. Así el nombre de un cromo ya guardado no
+  /// cambia el día que se retire un rasgo del sorteo.
+  int numeroDe(Noun noun) {
+    var n = 0;
+    for (final capa in capas) {
+      n = n * _arte[capa]!.length + noun.rasgos[capa]!.indice;
+    }
+    return n * fondos + noun.fondo;
+  }
+
+  /// El nombre del cromo: "Prepepodo", "Magucebo", "Jatoyubi".
+  String nombreDe(Noun noun) {
+    var n = (numeroDe(noun) * _mezclador) % _espacioNombres;
+    final silabas = <String>[];
+    for (var i = 0; i < 4; i++) {
+      final j = n % _silabas;
+      n ~/= _silabas;
+      silabas.add('${_consonantes[j ~/ 5]}${_vocales[j % 5]}');
+    }
+    final palabra = silabas.reversed.join();
+    return palabra[0].toUpperCase() + palabra.substring(1);
+  }
+
+  /// El color del paspartú: el fondo con el que Nouns dibuja a los suyos.
+  int colorDeFondo(Noun noun) => _rgb(_coloresDeFondo[noun.fondo]);
+
+  /// El color que manda en el dibujo, para teñir la banda del título.
+  ///
+  /// Es el más repetido sin contar el fondo. Con esto no hay dos cromos
+  /// iguales aunque compartan rareza, que es lo que hace que apetezca
+  /// tenerlos todos: el marco lo pone la rareza y la banda, el dibujo.
+  int colorVivoDe(Noun noun) => _vivos[noun.codigo] ??= _calcularVivo(noun);
+
+  final Map<String, int> _vivos = {};
+
+  int _calcularVivo(Noun noun) {
+    final fondo = colorDeFondo(noun);
+    final pixeles = this.pixeles(noun);
+    final cuantos = <int, int>{};
+    for (var i = 0; i < pixeles.length; i += 4) {
+      final rgb = pixeles[i] << 16 | pixeles[i + 1] << 8 | pixeles[i + 2];
+      if (rgb == fondo) continue;
+      cuantos[rgb] = (cuantos[rgb] ?? 0) + 1;
+    }
+    if (cuantos.isEmpty) return fondo;
+
+    var mejor = fondo;
+    var mas = -1;
+    for (final e in cuantos.entries) {
+      // A igualdad de píxeles gana el color más bajo, y no el que salga
+      // primero del mapa: si no, la banda cambiaría de color entre ejecuciones.
+      if (e.value > mas || (e.value == mas && e.key < mejor)) {
+        mejor = e.key;
+        mas = e.value;
+      }
+    }
+    return mejor;
+  }
+
+  /// Si sobre ese color hay que escribir en blanco o en tinta oscura.
+  static bool esClaro(int rgb) {
+    final r = (rgb >> 16 & 0xff) / 255;
+    final g = (rgb >> 8 & 0xff) / 255;
+    final b = (rgb & 0xff) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.58;
   }
 
   /// El dibujo, 32x32 en RGBA, listo para volcar en una imagen.

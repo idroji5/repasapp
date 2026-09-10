@@ -129,35 +129,3 @@ Color colorDeRareza(Rareza rareza) => switch (rareza) {
   Rareza.extraRaro => const Color(0xFF6B2FBF),
   Rareza.especial => const Color(0xFFC79021),
 };
-
-/// La etiqueta de rareza: "Extra raro", en su color.
-class SelloRareza extends StatelessWidget {
-  const SelloRareza(this.rareza, {super.key, this.grande = false});
-
-  final Rareza rareza;
-  final bool grande;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = colorDeRareza(rareza);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: grande ? 16 : 10,
-        vertical: grande ? 8 : 4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color, width: grande ? 2 : 1),
-      ),
-      child: Text(
-        rareza.etiqueta,
-        style: TextStyle(
-          color: color,
-          fontSize: grande ? 17 : 13,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}

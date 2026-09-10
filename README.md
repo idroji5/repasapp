@@ -42,7 +42,10 @@ Todas las versiones en [Releases](https://github.com/idroji5/repasapp/releases).
 | Repetir | Cualquier actividad del día se puede repetir tocándola; no cuenta para el nivel |
 | Corrección | El niño toca lo que ha fallado sobre la solución en pantalla |
 | Cámara | **No se usa.** [Por qué](docs/por-que-no-hay-ocr/README.md) |
-| Premio | Al terminar las tres actividades del día se gana un **Noun**, uno al día. [Cómo](characters/README.md) |
+| Premio | Al terminar las tres actividades del día se gana un **cromo**, uno al día. [Cómo](characters/README.md) |
+| El cromo | Nombre propio inventado a partir de sus cinco rasgos, y los rasgos impresos como los nombra Nouns |
+| El álbum | Cuatro páginas por rareza, de la más rara a la más común, con los huecos de las que faltan |
+| Rarezas | Normal, Raro, Extra raro y Especial. **Cada cuánto sale no se le dice al niño**: de un cromo se dice lo que es, no lo que cuesta |
 
 ## Arquitectura
 
